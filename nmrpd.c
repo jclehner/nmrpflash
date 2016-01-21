@@ -249,7 +249,7 @@ static const char *arg_ipaddr = "192.168.2.2";
 static const char *arg_ipmask = "255.255.255.0";
 static const char *arg_intf = "enp4s0";
 static uint16_t arg_port = 69;
-#if 1
+#if 0
 static uint8_t target[ETH_ALEN] = { 0xa4, 0x2b, 0x8c, 0x10, 0xc2, 0x96 };
 #else
 static uint8_t target[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
@@ -363,7 +363,12 @@ int main(int argc, char **argv)
 
 					expect = NMRP_C_TFTP_UL_REQ;
 
-					printf("Configuring router: %s/%s.\n", arg_ipaddr,
+					printf("Configuration request received from "
+							"%02x:%02x:%02x:%02x:%02x:%02x.\n",
+							rx.eh.ether_shost[0], rx.eh.ether_shost[1],
+							rx.eh.ether_shost[2], rx.eh.ether_shost[3],
+							rx.eh.ether_shost[4], rx.eh.ether_shost[5]);
+					printf("Sending configuration: %s/%s.\n", arg_ipaddr,
 							arg_ipmask);
 
 					break;
