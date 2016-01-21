@@ -1,3 +1,4 @@
+#define _BSD_SOURCE
 #include <netinet/ether.h>
 #include <linux/if_packet.h>
 #include <arpa/inet.h>
@@ -6,6 +7,7 @@
 #include <net/if.h>
 #include <stdint.h>
 #include <string.h>
+#include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
 
@@ -19,20 +21,32 @@
 #define PACKED __attribute__((__packed__))
 #define MAX_LOOP_RECV 1024
 
+#define IS_OOO_CODE(x) (x == NMRP_C_CLOSE_REQ \
+		|| x == NMRP_C_KEEP_ALIVE_REQ \
+		|| x == NMRP_C_TFTP_UL_REQ)
+
+extern int tftp_put(const char *filename, const char *ipaddr, uint16_t port);
+extern int sock_set_rx_timeout(int fd, unsigned msec);
+
 enum nmrp_code {
-	NMRP_ADVERTISE = 1,
-	NMRP_CONF_REQ = 2,
-	NMRP_CONF_ACK = 3,
-	NMRP_CLOSE_REQ = 4,
-	NMRP_CLOSE_ACK = 5,
-	NMRP_KEEP_ALIVE_REQ = 6,
-	NMRP_KEEP_ALIVE_ACK = 7,
-	NMRP_TFTP_UPLOAD_REQ = 16
+	NMRP_C_NONE = 0,
+	NMRP_C_ADVERTISE = 1,
+	NMRP_C_CONF_REQ = 2,
+	NMRP_C_CONF_ACK = 3,
+	NMRP_C_CLOSE_REQ = 4,
+	NMRP_C_CLOSE_ACK = 5,
+	NMRP_C_KEEP_ALIVE_REQ = 6,
+	NMRP_C_KEEP_ALIVE_ACK = 7,
+	NMRP_C_TFTP_UL_REQ = 16
 };
 
 enum nmrp_opt_type {
-	NMRP_MAGIC_NO = 0x0001,
-	NMRP_DEV_IP = 0x0002
+	NMRP_O_MAGIC_NO = 0x0001,
+	NMRP_O_DEV_IP = 0x0002,
+	NMRP_O_DEV_REGION = 0x0004,
+	NMRP_O_FW_UP = 0x0101,
+	NMRP_O_ST_UP = 0x0102,
+	NMRP_O_FILE_NAME = 0x0181
 };
 
 struct nmrp_opt {
@@ -61,20 +75,26 @@ struct nmrp_pkt {
 	struct nmrp_msg msg;
 } PACKED;
 
+static void msg_update_len(struct nmrp_msg *msg)
+{
+	uint32_t i = 0;
+	msg->len = NMRP_HDR_LEN;
+	for (; i != msg->num_opts; ++i) {
+		msg->len += msg->opts[i].len;
+	}
+}
+
 static void msg_hton(struct nmrp_msg *msg)
 {
-	uint16_t len = NMRP_HDR_LEN;
 	uint32_t i = 0;
 
 	msg->reserved = htons(msg->reserved);
+	msg->len = htons(msg->len);
 
 	for (; i != msg->num_opts; ++i) {
-		len += msg->opts[i].len;
 		msg->opts[i].len = htons(msg->opts[i].len);
 		msg->opts[i].type = htons(msg->opts[i].type);
 	}
-
-	msg->len = htons(len);
 }
 
 static void msg_hdr_ntoh(struct nmrp_msg *msg)
@@ -111,11 +131,11 @@ static void msg_dump(struct nmrp_msg *msg)
 	struct nmrp_opt *opt;
 	int remain_len, len, i;
 
-	printf("res=0x%04x, code=%u, id=0x%02x, len=%u", msg->reserved, 
+	printf("res=0x%04x, code=0x%02x, id=0x%02x, len=%u", msg->reserved, 
 			msg->code, msg->id, msg->len);
 
 	remain_len = msg->len - NMRP_HDR_LEN;
-	printf("%s\n", remain_len ? " (no opts)" : "");
+	printf("%s\n", remain_len ? "" : " (no opts)");
 
 	opt = msg->opts;
 
@@ -208,22 +228,6 @@ static int pkt_recv(int fd, struct nmrp_pkt *pkt)
 	return 1;
 }
 
-static int sock_set_rx_timeout(int fd, unsigned msec)
-{
-	struct timeval tv;
-
-	if (msec) {
-		tv.tv_sec = 0;
-		tv.tv_usec = msec * 1000;
-		if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
-			perror("setsockopt(SO_RCVTIMEO)");
-			return 1;
-		}
-	}
-
-	return 0;
-}
-
 static int sock_bind(int fd, const char *name)
 {
 	struct ifreq ifr;
@@ -237,10 +241,14 @@ static int sock_bind(int fd, const char *name)
 	return 0;
 }
 
-static uint8_t ipaddr[4] = { 192, 168, 2, 2 };
-static uint8_t ipmask[4] = { 255, 255, 255, 0 };
-
-static const char *interface = "enp4s0";
+//static const char *arg_filename = "EX2700-V1.0.1.8.img";
+static unsigned arg_rx_timeout = 250;
+static unsigned arg_ul_timeout = 60000;
+static const char *arg_filename = "bad.img";
+static const char *arg_ipaddr = "192.168.2.2";
+static const char *arg_ipmask = "255.255.255.0";
+static const char *arg_intf = "enp4s0";
+static uint16_t arg_port = 69;
 #if 1
 static uint8_t target[ETH_ALEN] = { 0xa4, 0x2b, 0x8c, 0x10, 0xc2, 0x96 };
 #else
@@ -253,8 +261,9 @@ int main(int argc, char **argv)
 {
 	struct nmrp_pkt pkt, rx;
 	struct sockaddr_ll addr;
+	struct in_addr ipaddr;
 	uint8_t hwaddr[ETH_ALEN];
-	int i, fd, err, status, expect;
+	int i, fd, err, ulreqs, expect;
 
 	err = 1;
 
@@ -264,19 +273,18 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (get_intf_info(fd, interface, &addr.sll_ifindex, hwaddr)) {
+	if (get_intf_info(fd, arg_intf, &addr.sll_ifindex, hwaddr)) {
 		return 1;
 	}
 
-	if (sock_bind(fd, interface)) {
+	if (sock_bind(fd, arg_intf)) {
 		return 1;
 	}
 
-#if 1
-	if (sock_set_rx_timeout(fd, 10)) {
+	if (sock_set_rx_timeout(fd, arg_rx_timeout)) {
 		return 1;
 	}
-#endif
+
 	addr.sll_family = PF_PACKET;
 	//addr.sll_hatype = ARPHRD_ETHER;
 	//addr.sll_pkttype = PACKET_OTHERHOST;
@@ -289,35 +297,35 @@ int main(int argc, char **argv)
 	pkt.eh.ether_type = htons(ETH_P_NMRP);
 
 	pkt.msg.reserved = 0;
-	pkt.msg.code = NMRP_ADVERTISE;
+	pkt.msg.code = NMRP_C_ADVERTISE;
 	pkt.msg.id = 0;
 	pkt.msg.num_opts = 1;
-	pkt.msg.opts[0].type = NMRP_MAGIC_NO;
+	pkt.msg.opts[0].type = NMRP_O_MAGIC_NO;
 	pkt.msg.opts[0].len = NMRP_OPT_LEN + 4;
 	pkt.msg.opts[0].val.magic[0] = 'N';
 	pkt.msg.opts[0].val.magic[1] = 'T';
 	pkt.msg.opts[0].val.magic[2] = 'G';
 	pkt.msg.opts[0].val.magic[3] = 'R';
 
+	msg_update_len(&pkt.msg);
 	msg_hton(&pkt.msg);
 
 	i = 0;
 
 	while (1) {
-		printf("\rAdvertising NMRP server on %s ... %c", 
-				interface, spinner[i]);
+		printf("\rAdvertising NMRP server on %s ... %c", arg_intf, spinner[i]);
 		fflush(stdout);
 		i = (i + 1) & 3;
 
 		if (pkt_send(fd, &addr, &pkt) < 0) {
 			perror("sendto");
-			break;
+			goto out;
 		}
 
-		status = pkt_recv(fd, &rx);
-		if (status == 0) {
+		err = pkt_recv(fd, &rx);
+		if (err == 0) {
 			break;
-		} else if (status == 1) {
+		} else if (err == 1) {
 			printf("ERR\n");
 			goto out;
 		}
@@ -325,50 +333,107 @@ int main(int argc, char **argv)
 
 	printf("\n");
 
-	expect = NMRP_CONF_REQ;
+	expect = NMRP_C_CONF_REQ;
+	ulreqs = 0;
 
 	do {
-		if (rx.msg.code == expect || rx.msg.code == NMRP_KEEP_ALIVE_REQ) {
+		if (rx.msg.code == expect || IS_OOO_CODE(rx.msg.code)) {
 			pkt.msg.reserved = 0;
 			pkt.msg.id = 0;
+			pkt.msg.num_opts = 0;
+			pkt.msg.len = 0;
+
+			err = 1;
 
 			switch (rx.msg.code) {
-				case NMRP_KEEP_ALIVE_REQ:
-					pkt.msg.code = NMRP_KEEP_ALIVE_ACK;
-					pkt.msg.num_opts = 0;
-					break;
-				case NMRP_CONF_REQ:
-					pkt.msg.code = NMRP_CONF_ACK;
-					pkt.msg.num_opts = 1;
-					pkt.msg.opts[0].type = NMRP_DEV_IP;
+				case NMRP_C_CONF_REQ:
+					pkt.msg.code = NMRP_C_CONF_ACK;
+					pkt.msg.num_opts = 2;
+
+					pkt.msg.opts[0].type = NMRP_O_DEV_IP;
 					pkt.msg.opts[0].len = NMRP_OPT_LEN + 2 * IP_LEN;
-					memcpy(pkt.msg.opts[0].val.ip.addr, ipaddr, IP_LEN);
-					memcpy(pkt.msg.opts[0].val.ip.mask, ipmask, IP_LEN);
-					expect = -1;
+
+					inet_aton(arg_ipaddr, &ipaddr);
+					memcpy(pkt.msg.opts[0].val.ip.addr, &ipaddr, IP_LEN);
+					inet_aton(arg_ipmask, &ipaddr);
+					memcpy(pkt.msg.opts[0].val.ip.mask, &ipaddr, IP_LEN);
+
+					pkt.msg.opts[1].type = NMRP_O_FW_UP;
+					pkt.msg.opts[1].len = NMRP_OPT_LEN;
+
+					expect = NMRP_C_TFTP_UL_REQ;
+
+					printf("Configuring router: %s/%s.\n", arg_ipaddr,
+							arg_ipmask);
+
 					break;
+				case NMRP_C_TFTP_UL_REQ:
+					if (++ulreqs > 5) {
+						fprintf(stderr, "Device re-requested file upload %d "
+								"times; aborting.\n", ulreqs);
+						pkt.msg.code = NMRP_C_CLOSE_REQ;
+						break;
+					}
+
+					printf("Uploading %s ... ", arg_filename);
+					fflush(stdout);
+					err = tftp_put(arg_filename, arg_ipaddr, arg_port);
+					if (err && err != -3) {
+						pkt.msg.code = NMRP_C_NONE;
+					} else if (!err) {
+						printf("OK\nWaiting for router to respond.\n");
+						sock_set_rx_timeout(fd, arg_ul_timeout);
+						pkt.msg.code = NMRP_C_NONE;
+						expect = NMRP_C_CLOSE_REQ;
+					} else {
+						goto out;
+					}
+					break;
+				case NMRP_C_KEEP_ALIVE_REQ:
+					pkt.msg.code = NMRP_C_KEEP_ALIVE_ACK;
+					break;
+				case NMRP_C_CLOSE_REQ:
+					pkt.msg.code = NMRP_C_CLOSE_ACK;
+					break;
+				case NMRP_C_CLOSE_ACK:
+					err = 0;
+					goto out;
 				default:
-					fprintf(stderr, "Unhandled message code %02x!\n",
+					fprintf(stderr, "Unhandled message code 0x%02x!\n",
 							rx.msg.code);
 			}
+
+			if (pkt.msg.code != NMRP_C_NONE) {
+				msg_update_len(&pkt.msg);
+				msg_hton(&pkt.msg);
+				
+				if (pkt_send(fd, &addr, &pkt) < 0) {
+					perror("sendto");
+					goto out;
+				}
+			}
 			
-			if (pkt_send(fd, &addr, &pkt) < 0) {
-				perror("sendto");
+			if (rx.msg.code == NMRP_C_CLOSE_REQ) {
+				printf("Remote requested to close connection.\n");
 				break;
 			}
-		} else if (rx.msg.code != NMRP_KEEP_ALIVE_REQ) {
-			fprintf(stderr, "Received code %02x while waiting for %02x!", 
+
+		} else {
+			fprintf(stderr, "Received code 0x%02x while waiting for 0x%02x!\n", 
 					rx.msg.code, expect);
 		}
 
-		i = 0;
-
-		while ((status = pkt_recv(fd, &rx)) != 0) {
-			if (++i == MAX_LOOP_RECV) {
-				fprintf(stderr, "Timeout while waiting for %02x.\n", expect);
-				goto out;
+		err = pkt_recv(fd, &rx);
+		if (err) {
+			if (err == 2) {
+				fprintf(stderr, "Timeout while waiting for 0x%02x.\n", expect);
 			}
+			goto out;
 		}
-	} while (status != 1);
+
+		sock_set_rx_timeout(fd, arg_rx_timeout);
+
+	} while (1);
 
 	err = 0;
 
