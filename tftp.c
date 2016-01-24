@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
+#include "nmrpd.h"
 
 #define TFTP_PKT_SIZE 516
 
@@ -142,7 +143,7 @@ int sock_set_rx_timeout(int fd, unsigned msec)
 	return 0;
 }
 
-int tftp_put(const char *filename, const char *ipaddr, uint16_t port)
+int tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
 	uint16_t block;
@@ -150,7 +151,7 @@ int tftp_put(const char *filename, const char *ipaddr, uint16_t port)
 	int fd, sock, err, timeout, last_len;
 	char rx[TFTP_PKT_SIZE], tx[TFTP_PKT_SIZE];
 
-	fd = open(filename, O_RDONLY);
+	fd = open(args->filename, O_RDONLY);
 	if (fd < 0) {
 		perror("open");
 		err = fd;
@@ -164,21 +165,21 @@ int tftp_put(const char *filename, const char *ipaddr, uint16_t port)
 		goto cleanup;
 	}
 
-	err = sock_set_rx_timeout(sock, 999);
+	err = sock_set_rx_timeout(sock, args->rx_timeout);
 	if (err) {
 		goto cleanup;
 	}
 
-	err = !inet_aton(ipaddr, &addr.sin_addr);
+	err = !inet_aton(args->ipaddr, &addr.sin_addr);
 	if (err) {
 		perror("inet_aton");
 		goto cleanup;
 	}
 
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
+	addr.sin_port = htons(args->port);
 
-	pkt_mkwrq(tx, filename, "octet");
+	pkt_mkwrq(tx, args->filename, "octet");
 
 	len = tftp_sendto(sock, tx, 0, &addr);
 	if (len < 0) {
@@ -237,6 +238,7 @@ int tftp_put(const char *filename, const char *ipaddr, uint16_t port)
 			goto cleanup;
 		} else {
 			timeout = 0;
+			err = 0;
 		}
 	} while(1);
 
