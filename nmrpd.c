@@ -155,7 +155,8 @@ static void msg_dump(struct nmrp_msg *msg)
 	}
 }
 
-static int get_intf_info(int fd, const char *name, int *index, uint8_t *hwaddr)
+static int intf_get_index_and_addr(int fd, const char *name, int *index, 
+		uint8_t *hwaddr)
 {
 	struct ifreq ifr;
 
@@ -228,7 +229,7 @@ static int pkt_recv(int fd, struct nmrp_pkt *pkt)
 	return 1;
 }
 
-static int sock_bind(int fd, const char *name)
+static int sock_bind_to_intf(int fd, const char *name)
 {
 	struct ifreq ifr;
 
@@ -259,9 +260,8 @@ static const char *spinner = "\\|/-";
 
 int main(int argc, char **argv)
 {
-	struct nmrp_pkt pkt, rx;
+	struct nmrp_pkt tx, rx;
 	struct sockaddr_ll addr;
-	struct in_addr ipaddr;
 	uint8_t hwaddr[ETH_ALEN];
 	int i, fd, err, ulreqs, expect;
 
@@ -273,11 +273,11 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (get_intf_info(fd, arg_intf, &addr.sll_ifindex, hwaddr)) {
+	if (intf_get_index_and_addr(fd, arg_intf, &addr.sll_ifindex, hwaddr)) {
 		return 1;
 	}
 
-	if (sock_bind(fd, arg_intf)) {
+	if (sock_bind_to_intf(fd, arg_intf)) {
 		return 1;
 	}
 
@@ -292,23 +292,23 @@ int main(int argc, char **argv)
 	addr.sll_halen = ETH_ALEN;
 	memcpy(addr.sll_addr, target, ETH_ALEN);
 
-	memcpy(pkt.eh.ether_shost, hwaddr, ETH_ALEN);
-	memcpy(pkt.eh.ether_dhost, target, ETH_ALEN);
-	pkt.eh.ether_type = htons(ETH_P_NMRP);
+	memcpy(tx.eh.ether_shost, hwaddr, ETH_ALEN);
+	memcpy(tx.eh.ether_dhost, target, ETH_ALEN);
+	tx.eh.ether_type = htons(ETH_P_NMRP);
 
-	pkt.msg.reserved = 0;
-	pkt.msg.code = NMRP_C_ADVERTISE;
-	pkt.msg.id = 0;
-	pkt.msg.num_opts = 1;
-	pkt.msg.opts[0].type = NMRP_O_MAGIC_NO;
-	pkt.msg.opts[0].len = NMRP_OPT_LEN + 4;
-	pkt.msg.opts[0].val.magic[0] = 'N';
-	pkt.msg.opts[0].val.magic[1] = 'T';
-	pkt.msg.opts[0].val.magic[2] = 'G';
-	pkt.msg.opts[0].val.magic[3] = 'R';
+	tx.msg.reserved = 0;
+	tx.msg.code = NMRP_C_ADVERTISE;
+	tx.msg.id = 0;
+	tx.msg.num_opts = 1;
+	tx.msg.opts[0].type = NMRP_O_MAGIC_NO;
+	tx.msg.opts[0].len = NMRP_OPT_LEN + 4;
+	tx.msg.opts[0].val.magic[0] = 'N';
+	tx.msg.opts[0].val.magic[1] = 'T';
+	tx.msg.opts[0].val.magic[2] = 'G';
+	tx.msg.opts[0].val.magic[3] = 'R';
 
-	msg_update_len(&pkt.msg);
-	msg_hton(&pkt.msg);
+	msg_update_len(&tx.msg);
+	msg_hton(&tx.msg);
 
 	i = 0;
 
@@ -317,7 +317,7 @@ int main(int argc, char **argv)
 		fflush(stdout);
 		i = (i + 1) & 3;
 
-		if (pkt_send(fd, &addr, &pkt) < 0) {
+		if (pkt_send(fd, &addr, &tx) < 0) {
 			perror("sendto");
 			goto out;
 		}
@@ -337,95 +337,91 @@ int main(int argc, char **argv)
 	ulreqs = 0;
 
 	do {
-		if (rx.msg.code == expect || IS_OOO_CODE(rx.msg.code)) {
-			pkt.msg.reserved = 0;
-			pkt.msg.id = 0;
-			pkt.msg.num_opts = 0;
-			pkt.msg.len = 0;
-
-			err = 1;
-
-			switch (rx.msg.code) {
-				case NMRP_C_CONF_REQ:
-					pkt.msg.code = NMRP_C_CONF_ACK;
-					pkt.msg.num_opts = 2;
-
-					pkt.msg.opts[0].type = NMRP_O_DEV_IP;
-					pkt.msg.opts[0].len = NMRP_OPT_LEN + 2 * IP_LEN;
-
-					inet_aton(arg_ipaddr, &ipaddr);
-					memcpy(pkt.msg.opts[0].val.ip.addr, &ipaddr, IP_LEN);
-					inet_aton(arg_ipmask, &ipaddr);
-					memcpy(pkt.msg.opts[0].val.ip.mask, &ipaddr, IP_LEN);
-
-					pkt.msg.opts[1].type = NMRP_O_FW_UP;
-					pkt.msg.opts[1].len = NMRP_OPT_LEN;
-
-					expect = NMRP_C_TFTP_UL_REQ;
-
-					printf("Configuration request received from "
-							"%02x:%02x:%02x:%02x:%02x:%02x.\n",
-							rx.eh.ether_shost[0], rx.eh.ether_shost[1],
-							rx.eh.ether_shost[2], rx.eh.ether_shost[3],
-							rx.eh.ether_shost[4], rx.eh.ether_shost[5]);
-					printf("Sending configuration: %s/%s.\n", arg_ipaddr,
-							arg_ipmask);
-
-					break;
-				case NMRP_C_TFTP_UL_REQ:
-					if (++ulreqs > 5) {
-						fprintf(stderr, "Device re-requested file upload %d "
-								"times; aborting.\n", ulreqs);
-						pkt.msg.code = NMRP_C_CLOSE_REQ;
-						break;
-					}
-
-					printf("Uploading %s ... ", arg_filename);
-					fflush(stdout);
-					err = tftp_put(arg_filename, arg_ipaddr, arg_port);
-					if (err && err != -3) {
-						pkt.msg.code = NMRP_C_NONE;
-					} else if (!err) {
-						printf("OK\nWaiting for router to respond.\n");
-						sock_set_rx_timeout(fd, arg_ul_timeout);
-						pkt.msg.code = NMRP_C_NONE;
-						expect = NMRP_C_CLOSE_REQ;
-					} else {
-						goto out;
-					}
-					break;
-				case NMRP_C_KEEP_ALIVE_REQ:
-					pkt.msg.code = NMRP_C_KEEP_ALIVE_ACK;
-					break;
-				case NMRP_C_CLOSE_REQ:
-					pkt.msg.code = NMRP_C_CLOSE_ACK;
-					break;
-				case NMRP_C_CLOSE_ACK:
-					err = 0;
-					goto out;
-				default:
-					fprintf(stderr, "Unhandled message code 0x%02x!\n",
-							rx.msg.code);
-			}
-
-			if (pkt.msg.code != NMRP_C_NONE) {
-				msg_update_len(&pkt.msg);
-				msg_hton(&pkt.msg);
-				
-				if (pkt_send(fd, &addr, &pkt) < 0) {
-					perror("sendto");
-					goto out;
-				}
-			}
-			
-			if (rx.msg.code == NMRP_C_CLOSE_REQ) {
-				printf("Remote requested to close connection.\n");
-				break;
-			}
-
-		} else {
+		if (expect != NMRP_C_NONE && rx.msg.code != expect) {
 			fprintf(stderr, "Received code 0x%02x while waiting for 0x%02x!\n", 
 					rx.msg.code, expect);
+		}
+
+		tx.msg.code = NMRP_C_NONE;
+		tx.msg.reserved = 0;
+		tx.msg.id = 0;
+		tx.msg.num_opts = 0;
+		tx.msg.len = 0;
+
+		err = 1;
+
+		switch (rx.msg.code) {
+			case NMRP_C_CONF_REQ:
+				tx.msg.code = NMRP_C_CONF_ACK;
+				tx.msg.num_opts = 2;
+
+				tx.msg.opts[0].type = NMRP_O_DEV_IP;
+				tx.msg.opts[0].len = NMRP_OPT_LEN + 2 * IP_LEN;
+
+				inet_aton(arg_ipaddr, 
+						(struct in_addr*)tx.msg.opts[0].val.ip.addr);
+				inet_aton(arg_ipmask, 
+						(struct in_addr*)tx.msg.opts[0].val.ip.mask);
+
+				tx.msg.opts[1].type = NMRP_O_FW_UP;
+				tx.msg.opts[1].len = NMRP_OPT_LEN;
+
+				expect = NMRP_C_TFTP_UL_REQ;
+
+				printf("Configuration request received from "
+						"%02x:%02x:%02x:%02x:%02x:%02x.\n",
+						rx.eh.ether_shost[0], rx.eh.ether_shost[1],
+						rx.eh.ether_shost[2], rx.eh.ether_shost[3],
+						rx.eh.ether_shost[4], rx.eh.ether_shost[5]);
+				printf("Sending configuration: ip %s, mask %s.\n", arg_ipaddr,
+						arg_ipmask);
+
+				break;
+			case NMRP_C_TFTP_UL_REQ:
+				if (++ulreqs > 5) {
+					fprintf(stderr, "Device re-requested file upload %d "
+							"times; aborting.\n", ulreqs);
+					tx.msg.code = NMRP_C_CLOSE_REQ;
+					break;
+				}
+				printf("Uploading %s ... ", arg_filename);
+				fflush(stdout);
+				err = tftp_put(arg_filename, arg_ipaddr, arg_port);
+				if (!err) {
+					printf("OK\nWaiting for router to respond.\n");
+					sock_set_rx_timeout(fd, arg_ul_timeout);
+					expect = NMRP_C_CLOSE_REQ;
+				} else if (err != -3) {
+					goto out;
+				}
+				break;
+			case NMRP_C_KEEP_ALIVE_REQ:
+				tx.msg.code = NMRP_C_KEEP_ALIVE_ACK;
+				break;
+			case NMRP_C_CLOSE_REQ:
+				tx.msg.code = NMRP_C_CLOSE_ACK;
+				break;
+			case NMRP_C_CLOSE_ACK:
+				err = 0;
+				goto out;
+			default:
+				fprintf(stderr, "Unhandled message code 0x%02x!\n",
+						rx.msg.code);
+		}
+
+		if (tx.msg.code != NMRP_C_NONE) {
+			msg_update_len(&tx.msg);
+			msg_hton(&tx.msg);
+
+			if (pkt_send(fd, &addr, &tx) < 0) {
+				perror("sendto");
+				goto out;
+			}
+		}
+
+		if (rx.msg.code == NMRP_C_CLOSE_REQ) {
+			printf("Remote requested to close connection.\n");
+			break;
 		}
 
 		err = pkt_recv(fd, &rx);
