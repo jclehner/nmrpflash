@@ -19,8 +19,7 @@ enum tftp_opcode {
 	WRQ  = 2,
 	DATA = 3,
 	ACK  = 4,
-	ERR  = 5,
-	NETGEAR_ERR = 0x4669
+	ERR  = 5
 };
 
 static inline void pkt_mknum(char *pkt, uint16_t n)
@@ -62,9 +61,10 @@ static inline void pkt_print(char *pkt, FILE *fp)
 
 static ssize_t tftp_recvfrom(int sock, char *pkt, struct sockaddr_in *src)
 {
-	static int fail = 0;
 	socklen_t socklen;
 	ssize_t len;
+
+	(void)src, (void)socklen;
 
 	len = recvfrom(sock, pkt, TFTP_PKT_SIZE, 0, NULL, NULL);
 	if (len < 0) {
@@ -144,13 +144,11 @@ int sock_set_rx_timeout(int fd, unsigned msec)
 
 int tftp_put(const char *filename, const char *ipaddr, uint16_t port)
 {
-	struct sockaddr_in dst, src;
-	enum tftp_opcode opcode;
-	struct timeval tv;
+	struct sockaddr_in addr;
 	uint16_t block;
 	ssize_t len;
-	int fd, sock, err, done, i, last_len;
-	char pkt[TFTP_PKT_SIZE];
+	int fd, sock, err, timeout, last_len;
+	char rx[TFTP_PKT_SIZE], tx[TFTP_PKT_SIZE];
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0) {
@@ -171,73 +169,76 @@ int tftp_put(const char *filename, const char *ipaddr, uint16_t port)
 		goto cleanup;
 	}
 
-	err = !inet_aton(ipaddr, &dst.sin_addr);
+	err = !inet_aton(ipaddr, &addr.sin_addr);
 	if (err) {
 		perror("inet_aton");
 		goto cleanup;
 	}
 
-	dst.sin_family = AF_INET;
-	dst.sin_port = htons(port);
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(port);
 
-	pkt_mkwrq(pkt, filename, "octet");
+	pkt_mkwrq(tx, filename, "octet");
 
-	len = tftp_sendto(sock, pkt, 0, &dst);
+	len = tftp_sendto(sock, tx, 0, &addr);
 	if (len < 0) {
 		err = len;
 		goto cleanup;
 	}
 
-	len = tftp_recvfrom(sock, pkt, &dst);
+	len = tftp_recvfrom(sock, rx, &addr);
 	if (len < 0) {
 		err = len;
 		goto cleanup;
 	}
 
-	//dst.sin_port = src.sin_port;
-
+	timeout = 0;
 	block = 0;
-	done = 0;
 	last_len = -1;
 
 	do {
-		if (pkt_num(pkt) == ACK && pkt_num(pkt + 2) == block) {
-			++block;
-			pkt_mknum(pkt, DATA);
-			pkt_mknum(pkt + 2, block);
-			len = read(fd, pkt + 4, 512);
-			if (len < 0) {
-				perror("read");
-				err = len;
-				goto cleanup;
-			} else if (!len) {
-				done = last_len != 512;
+		if (timeout || (pkt_num(rx) == ACK && pkt_num(rx + 2) == block)) {
+			if (!timeout) {
+				++block;
+				pkt_mknum(tx, DATA);
+				pkt_mknum(tx + 2, block);
+				len = read(fd, tx + 4, 512);
+				if (len < 0) {
+					perror("read");
+					err = len;
+					goto cleanup;
+				} else if (!len) {
+					if (last_len != 512) {
+						break;
+					}
+				}
+
+				last_len = len;
 			}
 
-			last_len = len;
-
-			len = tftp_sendto(sock, pkt, len, &dst);
-			if (len < 0) {
-				err = len;
+			err = tftp_sendto(sock, tx, len, &addr);
+			if (err < 0) {
 				goto cleanup;
 			}
-		} else {
+		} else if (pkt_num(rx) != ACK) {
 			fprintf(stderr, "Expected ACK(%d), got ", block);
-			pkt_print(pkt, stderr);
+			pkt_print(rx, stderr);
 			fprintf(stderr, "!\n");
-			err = 1;
-			goto cleanup;
 		}
 
-		len = tftp_recvfrom(sock, pkt, &dst);
-		if (len < 0) {
-			if (len == -2) {
-				fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);
+		err = tftp_recvfrom(sock, rx, &addr);
+		if (err < 0) {
+			if (err == -2) {
+				if (++timeout < 5) {
+					continue;
+				}
+				fprintf(stderr, "Timeout while waiting for ACK(%d)\n.", block);
 			}
-			err = len;
 			goto cleanup;
+		} else {
+			timeout = 0;
 		}
-	} while(!done);
+	} while(1);
 
 	err = 0;
 
