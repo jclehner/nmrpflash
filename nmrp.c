@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
+#include <time.h>
 #include "nmrpd.h"
 
 #define NMRP_HDR_LEN 6
@@ -276,6 +277,7 @@ int nmrp_do(struct nmrpd_args *args)
 	struct sockaddr_ll addr;
 	uint8_t src[ETH_ALEN], dest[ETH_ALEN];
 	struct in_addr ipaddr, ipmask;
+	time_t beg;
 	int i, sock, err, ulreqs, expect;
 
 	if (args->op != NMRP_UPLOAD_FW) {
@@ -347,6 +349,7 @@ int nmrp_do(struct nmrpd_args *args)
 	msg_hton(&tx.msg);
 
 	i = 0;
+	beg = time(NULL);
 
 	while (1) {
 		printf("\rAdvertising NMRP server on %s ... %c", args->intf, 
@@ -360,11 +363,16 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 
 		err = pkt_recv(sock, &rx);
-		if (err == 0) {
+		if (err == 0 && memcmp(rx.eh.ether_dhost, src, ETH_ALEN) == 0) {
 			break;
 		} else if (err == 1) {
 			printf("ERR\n");
 			goto out;
+		} else {
+			if ((time(NULL) - beg) >= 60) {
+				printf("\nNo response after 60 seconds. Bailing out.\n");
+				goto out;
+			}
 		}
 	}
 
@@ -388,6 +396,14 @@ int nmrp_do(struct nmrpd_args *args)
 		err = 1;
 
 		switch (rx.msg.code) {
+			case NMRP_C_ADVERTISE:
+				printf("Received NMRP advertisement from "
+						"%02x:%02x:%02x:%02x:%02x:%02x.\n",
+						rx.eh.ether_shost[0], rx.eh.ether_shost[1],
+						rx.eh.ether_shost[2], rx.eh.ether_shost[3],
+						rx.eh.ether_shost[4], rx.eh.ether_shost[5]);
+				err = 1;
+				goto out;
 			case NMRP_C_CONF_REQ:
 				tx.msg.code = NMRP_C_CONF_ACK;
 				tx.msg.num_opts = 2;
@@ -435,7 +451,7 @@ int nmrp_do(struct nmrpd_args *args)
 				}
 
 				if (!err) {
-					printf("OK\nWaiting for router to respond.\n");
+					printf("OK\nWaiting for remote to respond.\n");
 					sock_set_rx_timeout(sock, args->ul_timeout);
 					expect = NMRP_C_CLOSE_REQ;
 				} else {
@@ -470,7 +486,7 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 
 		if (rx.msg.code == NMRP_C_CLOSE_REQ) {
-			printf("Remote requested to close connection.\n");
+			printf("Remote finished. Closing connection.\n");
 			break;
 		}
 
