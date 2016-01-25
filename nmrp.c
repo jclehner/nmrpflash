@@ -246,12 +246,13 @@ static int sock_bind_to_intf(int sock, const char *name)
 
 static int mac_parse(const char *str, uint8_t *hwaddr)
 {
-	unsigned i, data[6];
+	int i;
+	unsigned data[6];
 
-	i = sscanf(str, "%02x:%02x:%02x:%02x:%02x:%02x",
-			data, data + 1, data + 2, data + 3, data + 4, data + 5);
+	sscanf(str, "%02x:%02x:%02x:%02x:%02x:%02x%n",
+			data, data + 1, data + 2, data + 3, data + 4, data + 5, &i);
 
-	if (i == 6) {
+	if (i == strlen(str)) {
 		for (i = 0; i != 6; ++i) {
 			if (data[i] > 255) {
 				break;
@@ -264,8 +265,6 @@ static int mac_parse(const char *str, uint8_t *hwaddr)
 			return 1;
 		}
 	}
-
-	fprintf(stderr, "Invalid MAC address.\n");
 	return 0;
 }
 
