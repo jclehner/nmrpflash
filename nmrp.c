@@ -285,22 +285,22 @@ int nmrp_do(struct nmrpd_args *args)
 	}
 
 	if (!mac_parse(args->mac, dest)) {
-		fprintf(stderr, "Invalid MAC address %s.\n", args->mac);
+		fprintf(stderr, "Invalid MAC address '%s'.\n", args->mac);
 		return 1;
 	}
 
 	if (!inet_aton(args->ipaddr, &ipaddr)) {
-		fprintf(stderr, "Invalid IP address %s.\n", args->ipaddr);
+		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
 		return 1;
 	}
 
 	if (!inet_aton(args->ipmask, &ipmask)) {
-		fprintf(stderr, "Invalid subnet mask %s.\n", args->ipmask);
+		fprintf(stderr, "Invalid subnet mask '%s'.\n", args->ipmask);
 		return 1;
 	}
 
 	if (access(args->filename, R_OK) == -1) {
-		fprintf(stderr, "Error accessing file %s.\n", args->filename);
+		fprintf(stderr, "Error accessing file '%s'.\n", args->filename);
 		return 1;
 	}
 
