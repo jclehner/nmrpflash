@@ -3,10 +3,8 @@ nmrp-flash - Netgear Unbrick Utility
 
 This program uses Netgear's [NMRP protocol]
 (http://www.chubb.wattle.id.au/PeterChubb/nmrp.html)
-to flash a new firmware image to a compatible device.
-
-This utility has been tested with a Netgear EX2700,
-but is likely to work on many others as well.
+to flash a new firmware image to a compatible device. This utility has been
+tested with a Netgear EX2700, but is likely to work on many others as well.
 
 ### Using nmrp-flash
 
