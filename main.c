@@ -27,7 +27,7 @@ void usage(FILE *fp)
 	fprintf(fp,
 			"Usage: nmrp-flash [OPTIONS...]\n"
 			"\n"
-			"Options:\n"
+			"Options (-a, -i and -f are mandatory):\n"
 			" -a <ipaddr>     IP address to assign to target device\n"
 			" -f <firmware>   Firmware file\n"
 			" -i <interface>  Network interface directly connected to device\n"
@@ -36,10 +36,18 @@ void usage(FILE *fp)
 			" -t <timeout>    Timeout (in milliseconds) for regular messages\n"
 			" -T <timeout>    Time to wait after successfull TFTP upload\n"
 			" -p <port>       Port to use for TFTP upload\n"
+			" -V              Print version and exit\n"
 			" -h              Show this screen\n"
 			"\n"
-			"Options -a, -i and -f are mandatory!\n"
+			"Example:\n"
 			"\n"
+			"$ sudo nmrp-flash -a 192.168.1.254 -i eth0 -f firmware.bin\n"
+			"\n"
+			"nmrp-flash v%s, Copyright (C) 2016 Joseph C. Lehner\n"
+			"nmrp-flash is free software, licensed under the GNU GPLv3.\n"
+			"Source code at https://github.com/jclehner/nmrp-flash\n"
+			"\n",
+			NMRPD_VERSION
 	  );
 }
 
@@ -61,7 +69,7 @@ int main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "a:f:i:m:M:p:t:T:")) != -1) {
+	while ((c = getopt(argc, argv, "a:f:i:m:M:p:t:T:hV")) != -1) {
 		max = 0xffffffff;
 		switch (c) {
 			case 'a':
@@ -98,6 +106,9 @@ int main(int argc, char **argv)
 				}
 
 				break;
+			case 'V':
+				printf("nmrp-flash v%s\n", NMRPD_VERSION);
+				return 0;
 			case 'h':
 				usage(stdout);
 				return 0;
@@ -109,6 +120,11 @@ int main(int argc, char **argv)
 
 	if (!args.filename || !args.intf || !args.ipaddr) {
 		usage(stderr);
+		return 1;
+	}
+
+	if (geteuid() != 0) {
+		fprintf(stderr, "This program must be run as root!\n");
 		return 1;
 	}
 

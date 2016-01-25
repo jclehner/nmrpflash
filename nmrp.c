@@ -437,7 +437,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 				expect = NMRP_C_TFTP_UL_REQ;
 
-				printf("Configuration request received from "
+				printf("Received configuration request from "
 						"%02x:%02x:%02x:%02x:%02x:%02x.\n",
 						rx.eh.ether_shost[0], rx.eh.ether_shost[1],
 						rx.eh.ether_shost[2], rx.eh.ether_shost[3],
