@@ -1,5 +1,8 @@
 CC ?= gcc
+PREFIX ?= /usr/local
 CFLAGS = -Wall
+
+.PHONY: clean install
 
 nmrp-flash: nmrp.o tftp.o main.o
 	$(CC) $(CFLAGS) -o nmrp-flash nmrp.o tftp.o main.o
@@ -14,5 +17,8 @@ main.o: main.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o main.o main.c
 
 clean:
-	rm -f nmrp.o tftp.o main.o nmrpd
+	rm -f nmrp.o tftp.o main.o nmrp-flash
+
+install: nmrp-flash
+	install -m 755 nmrp-flash $(PREFIX)/bin
 
