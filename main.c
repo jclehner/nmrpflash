@@ -25,7 +25,7 @@
 void usage(FILE *fp)
 {
 	fprintf(fp,
-			"Usage: nmrpd [OPTIONS...]\n"
+			"Usage: nmrp-flash [OPTIONS...]\n"
 			"\n"
 			"Options:\n"
 			" -a <ipaddr>     IP address to assign to target device\n"

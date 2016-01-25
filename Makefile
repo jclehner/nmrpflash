@@ -1,8 +1,8 @@
 CC ?= gcc
 CFLAGS = -Wall
 
-nmrpd: nmrp.o tftp.o main.o
-	$(CC) $(CFLAGS) -o nmrpd nmrp.o tftp.o main.o
+nmrp-flash: nmrp.o tftp.o main.o
+	$(CC) $(CFLAGS) -o nmrp-flash nmrp.o tftp.o main.o
 
 nmrp.o: nmrp.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o nmrp.o nmrp.c
