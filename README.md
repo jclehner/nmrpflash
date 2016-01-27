@@ -36,6 +36,8 @@ Remote finished. Closing connection.
 
 ### Building and installing
 
+Linux only for now, sorry!
+
 ````
 $ make && sudo make install
 ````
