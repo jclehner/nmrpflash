@@ -36,6 +36,9 @@
 #define NMRP_OPT_LEN 4
 #define NMRP_MIN_PKT_LEN (sizeof(struct ether_header) +  NMRP_HDR_LEN)
 
+#define MAX_OPT_SIZE 12
+#define MAX_OPT_NUM 2
+
 #define ETH_P_NMRP 0x0912
 #define IP_LEN 4
 #define PACKED __attribute__((__packed__))
@@ -151,31 +154,37 @@ static int msg_ntoh(struct nmrp_msg *msg)
 {
 	struct nmrp_opt *opt = msg->opts;
 	int remaining;
-   
+
 	msg_hdr_ntoh(msg);
 	remaining = msg->len - NMRP_HDR_LEN;
 
-	while (remaining > 0) {
-		if (remaining < NMRP_OPT_LEN) {
-			fprintf(stderr, "Malformed message.\n");
-			msg_dump(msg, 0);
-			return 1;
+	// FIXME maximum of two options supported, maximum option
+	// size is 12
+	if (remaining < MAX_OPT_NUM * MAX_OPT_SIZE) {
+		while (remaining > 0) {
+			if (remaining < NMRP_OPT_LEN) {
+				break;
+			}
+
+			opt->type = ntohs(opt->type);
+			opt->len = ntohs(opt->len);
+
+			if (opt->len > MAX_OPT_SIZE) {
+				break;
+			}
+
+			remaining -= opt->len;
+			++opt;
 		}
 
-		opt->type = ntohs(opt->type);
-		opt->len = ntohs(opt->len);
-
-		remaining -= opt->len;
-		++opt;
+		if (!remaining) {
+			return 0;
+		}
 	}
 
-	if (remaining) {
-		fprintf(stderr, "Trailing data in message.\n");
-		msg_dump(msg, 0);
-		return 1;
-	}
-
-	return 0;
+	fprintf(stderr, "Unexpected message format.\n");
+	msg_dump(msg, 0);
+	return 1;
 }
 
 static int intf_get_info(int sock, const char *name, int *index, 
