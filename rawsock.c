@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <pcap.h>
 
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
 struct rawsock
 {
 	pcap_t *pcap;
@@ -10,9 +14,9 @@ struct rawsock
 	int fd;
 };
 
-struct rawsock *rawsock_create(const char *interface)
+struct rawsock *rawsock_create(const char *interface, uint16_t protocol)
 {
-	char errbuf[PCAP_ERRBUF_SIZE];
+	char buf[PCAP_ERRBUF_SIZE];
 	struct bpf_program fp;
 	struct rawsock *sock;
 	int err;
@@ -23,16 +27,16 @@ struct rawsock *rawsock_create(const char *interface)
 		return NULL;
 	}
 
-	errbuf[0] = '\0';
+	buf[0] = '\0';
 
-	sock->pcap = pcap_open_live(interface, BUFSIZ, 1, 1, errbuf);
+	sock->pcap = pcap_open_live(interface, BUFSIZ, 1, 1, buf);
 	if (!sock->pcap) {
-		fprintf(stderr, "pcap_open_live: %s\n", errbuf);
+		fprintf(stderr, "pcap_open_live: %s\n", buf);
 		goto cleanup_malloc;
 	}
 
-	if (*errbuf) {
-		fprintf(stderr, "Warning: %s.\n", errbuf);
+	if (*buf) {
+		fprintf(stderr, "Warning: %s.\n", buf);
 	}
 
 	if (pcap_datalink(sock->pcap) != DLT_EN10MB) {
@@ -40,8 +44,14 @@ struct rawsock *rawsock_create(const char *interface)
 		goto cleanup_pcap;
 	}
 
-	err = pcap_compile(sock->pcap, &fp, "ether proto 0x0912", 0,
-			PCAP_NETMASK_UNKNOWN);
+	sock->fd = pcap_get_selectable_fd(sock->pcap);
+	if (sock->fd == -1) {
+		fprintf(stderr, "No selectable file descriptor available.\n");
+		goto cleanup_pcap;
+	}
+
+	snprintf(buf, sizeof(buf), "ether proto %04x", protocol);
+	err = pcap_compile(sock->pcap, &fp, buf, 0, PCAP_NETMASK_UNKNOWN);
 	if (err) {
 		pcap_perror(sock->pcap, "pcap_compile");
 		goto cleanup_pcap;
@@ -49,12 +59,6 @@ struct rawsock *rawsock_create(const char *interface)
 
 	if ((err = pcap_setfilter(sock->pcap, &fp))) {
 		pcap_perror(sock->pcap, "pcap_setfilter");
-		goto cleanup_pcap;
-	}
-
-	sock->fd = pcap_get_selectable_fd(sock->pcap);
-	if (sock->fd == -1) {
-		fprintf(stderr, "No selectable file descriptor available.\n");
 		goto cleanup_pcap;
 	}
 
@@ -67,9 +71,10 @@ cleanup_malloc:
 	return NULL;
 }
 
-int rawsock_recv(struct rawsock *sock, uint8_t **buffer, unsigned *size)
+ssize_t rawsock_recv(struct rawsock *sock, uint8_t *buf, size_t len)
 {
 	struct pcap_pkthdr* hdr;
+	const u_char *capbuf;
 	int status;
 	fd_set fds;
 
@@ -86,39 +91,33 @@ int rawsock_recv(struct rawsock *sock, uint8_t **buffer, unsigned *size)
 		}
 	}
 
-	status = pcap_next_ex(sock->pcap, &hdr, (const u_char**)buffer);
+	status = pcap_next_ex(sock->pcap, &hdr, &capbuf);
 	switch (status) {
 		case 1:
-			status = 0;
-			*size = hdr->caplen;
-			break;
+			memcpy(buf, capbuf, MIN(len, hdr->caplen));
+			return hdr->caplen;
 		case 0:
-			status = 1;
-			break;
+			return 0;
 		case -1:
 			pcap_perror(sock->pcap, "pcap_next_ex");
-			status = -1;
-			break;
+			return -1;
 		default:
 			fprintf(stderr, "pcap_next_ex: returned %d.\n", status);
-			status = -1;
-			break;
+			return -1;
 	}
-
-	return status;
 }
 
-int rawsock_send(struct rawsock *sock, uint8_t *buffer, size_t size)
+int rawsock_send(struct rawsock *sock, uint8_t *buf, size_t len)
 {
 #if defined(_WIN32) || defined(_WIN64)
-	if (pcap_sendpacket(sock->pcap, buffer, size) == 0) {
+	if (pcap_sendpacket(sock->pcap, buf, len) == 0) {
 		return 0;
 	} else {
 		pcap_perror(sock->pcap, "pcap_sendpacket");
 		return -1;
 	}
 #else
-	if (pcap_inject(sock->pcap, buffer, size) != size) {
+	if (pcap_inject(sock->pcap, buf, len) == len) {
 		return 0;
 	} else {
 		pcap_perror(sock->pcap, "pcap_inject");
