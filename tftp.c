@@ -170,6 +170,8 @@ int tftp_put(struct nmrpd_args *args)
 	int fd, sock, err, timeout, last_len;
 	char rx[TFTP_PKT_SIZE], tx[TFTP_PKT_SIZE];
 
+	sock = -1;
+
 	fd = open(args->filename, O_RDONLY);
 	if (fd < 0) {
 		perror("open");
