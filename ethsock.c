@@ -2,26 +2,27 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pcap.h>
+#include "ethsock.h"
 
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
-struct rawsock
+struct ethsock
 {
 	pcap_t *pcap;
 	struct timeval timeout;
 	int fd;
 };
 
-struct rawsock *rawsock_create(const char *interface, uint16_t protocol)
+struct ethsock *ethsock_create(const char *interface, uint16_t protocol)
 {
 	char buf[PCAP_ERRBUF_SIZE];
 	struct bpf_program fp;
-	struct rawsock *sock;
+	struct ethsock *sock;
 	int err;
 
-	sock = malloc(sizeof(struct rawsock));
+	sock = malloc(sizeof(struct ethsock));
 	if (!sock) {
 		perror("malloc");
 		return NULL;
@@ -71,7 +72,7 @@ cleanup_malloc:
 	return NULL;
 }
 
-ssize_t rawsock_recv(struct rawsock *sock, void *buf, size_t len)
+ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len)
 {
 	struct pcap_pkthdr* hdr;
 	const u_char *capbuf;
@@ -107,7 +108,7 @@ ssize_t rawsock_recv(struct rawsock *sock, void *buf, size_t len)
 	}
 }
 
-int rawsock_send(struct rawsock *sock, void *buf, size_t len)
+int ethsock_send(struct ethsock *sock, void *buf, size_t len)
 {
 #if defined(_WIN32) || defined(_WIN64)
 	if (pcap_sendpacket(sock->pcap, buf, len) == 0) {
@@ -126,14 +127,14 @@ int rawsock_send(struct rawsock *sock, void *buf, size_t len)
 #endif
 }
 
-int rawsock_close(struct rawsock *sock)
+int ethsock_close(struct ethsock *sock)
 {
 	pcap_close(sock->pcap);
 	free(sock);
 	return 0;
 }
 
-int rawsock_set_timeout(struct rawsock *sock, unsigned msec)
+int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
 {
 	sock->timeout.tv_sec = msec / 1000;
 	sock->timeout.tv_usec = (msec % 1000) * 1000;
