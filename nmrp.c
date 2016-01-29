@@ -249,7 +249,7 @@ static const char *spinner = "\\|/-";
 int nmrp_do(struct nmrpd_args *args)
 {
 	struct nmrp_pkt tx, rx;
-	uint8_t src[6], dest[6];
+	uint8_t *src, dest[6];
 	struct in_addr ipaddr, ipmask;
 	time_t beg;
 	int i, err, ulreqs, expect;
@@ -288,6 +288,11 @@ int nmrp_do(struct nmrpd_args *args)
 	}
 
 	if (ethsock_set_timeout(sock, args->rx_timeout)) {
+		return 1;
+	}
+
+	src = ethsock_get_hwaddr(sock);
+	if (!src) {
 		return 1;
 	}
 

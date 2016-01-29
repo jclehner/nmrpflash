@@ -1,3 +1,8 @@
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <net/if_dl.h>
+#include <stdbool.h>
+#include <ifaddrs.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,7 +18,53 @@ struct ethsock
 	pcap_t *pcap;
 	struct timeval timeout;
 	int fd;
+	uint8_t hwaddr[6];
 };
+
+static bool ethsock_fill_hwaddr(struct ethsock *sock, const char *interface)
+{
+	struct ifaddrs *ifas, *ifa;
+	void *src;
+	bool found;
+
+	if (getifaddrs(&ifas) != 0) {
+		perror("getifaddrs");
+		return false;
+	}
+
+	found = false;
+
+	for (ifa = ifas; ifa; ifa = ifa->ifa_next) {
+		if (!strcmp(ifa->ifa_name, interface)) {
+#ifdef __linux__
+			if (ifa->ifa_addr->sa_family != AF_PACKET) {
+				continue;
+			}
+			src = ((struct sockaddr_ll*)ifa->ifa_addr)->sll_addr;
+#else
+			if (ifa->ifa_addr->sa_family != AF_LINK) {
+				continue;
+			}
+			src = LLADDR((struct sockaddr_dl*)ifa->ifa_addr);
+#endif
+			memcpy(sock->hwaddr, src, 6);
+			found = true;
+			break;
+		}
+	}
+
+	if (!found) {
+		fprintf(stderr, "Failed to get MAC address of interface %s.\n", interface);
+	}
+
+	freeifaddrs(ifas);
+	return found;
+}
+
+inline uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
+{
+	return sock->hwaddr;
+}
 
 struct ethsock *ethsock_create(const char *interface, uint16_t protocol)
 {
@@ -28,11 +79,15 @@ struct ethsock *ethsock_create(const char *interface, uint16_t protocol)
 		return NULL;
 	}
 
+	if (!ethsock_fill_hwaddr(sock, interface)) {
+		goto cleanup_malloc;
+	}
+
 	buf[0] = '\0';
 
 	sock->pcap = pcap_open_live(interface, BUFSIZ, 1, 1, buf);
 	if (!sock->pcap) {
-		fprintf(stderr, "pcap_open_live: %s\n", buf);
+		fprintf(stderr, "%s\n", buf);
 		goto cleanup_malloc;
 	}
 
