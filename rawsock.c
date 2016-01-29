@@ -71,7 +71,7 @@ cleanup_malloc:
 	return NULL;
 }
 
-ssize_t rawsock_recv(struct rawsock *sock, uint8_t *buf, size_t len)
+ssize_t rawsock_recv(struct rawsock *sock, void *buf, size_t len)
 {
 	struct pcap_pkthdr* hdr;
 	const u_char *capbuf;
@@ -107,7 +107,7 @@ ssize_t rawsock_recv(struct rawsock *sock, uint8_t *buf, size_t len)
 	}
 }
 
-int rawsock_send(struct rawsock *sock, uint8_t *buf, size_t len)
+int rawsock_send(struct rawsock *sock, void *buf, size_t len)
 {
 #if defined(_WIN32) || defined(_WIN64)
 	if (pcap_sendpacket(sock->pcap, buf, len) == 0) {
