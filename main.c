@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 	opterr = 0;
 
 	while ((c = getopt(argc, argv, "a:f:i:m:M:p:t:T:hV")) != -1) {
-		max = 0xffffffff;
+		max = 0x7fffffff;
 		switch (c) {
 			case 'a':
 				args.ipaddr = optarg;
