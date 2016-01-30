@@ -143,7 +143,7 @@ ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len)
 			perror("select");
 			return -1;
 		} else if (status == 0) {
-			return 1;
+			return 0;
 		}
 	}
 
