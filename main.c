@@ -58,6 +58,7 @@ int main(int argc, char **argv)
 	struct nmrpd_args args = {
 		.rx_timeout = 200,
 		.ul_timeout = 60000,
+		.tftpcmd = NULL,
 		.filename = NULL,
 		.ipaddr = NULL,
 		.ipmask = "255.255.255.0",
