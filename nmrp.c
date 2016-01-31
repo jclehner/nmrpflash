@@ -24,6 +24,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -244,6 +245,18 @@ static int mac_parse(const char *str, uint8_t *hwaddr)
 	return 0;
 }
 
+static struct ethsock *gsock = NULL;
+
+static void sigh(int sig)
+{
+	printf("\n");
+	if (gsock) {
+		ethsock_close(gsock);
+	}
+
+	exit(1);
+}
+
 static const char *spinner = "\\|/-";
 
 int nmrp_do(struct nmrpd_args *args)
@@ -254,6 +267,7 @@ int nmrp_do(struct nmrpd_args *args)
 	time_t beg;
 	int i, err, ulreqs, expect;
 	struct ethsock *sock;
+	sig_t sigh_orig;
 
 	if (args->op != NMRP_UPLOAD_FW) {
 		fprintf(stderr, "Operation not implemented.\n");
@@ -287,13 +301,16 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
+	gsock = sock;
+	sigh_orig = signal(SIGINT, sigh);
+
 	if (ethsock_set_timeout(sock, args->rx_timeout)) {
-		return 1;
+		goto out;
 	}
 
 	src = ethsock_get_hwaddr(sock);
 	if (!src) {
-		return 1;
+		goto out;
 	}
 
 	memcpy(tx.eh.ether_shost, src, 6);
@@ -470,6 +487,8 @@ int nmrp_do(struct nmrpd_args *args)
 	err = 0;
 
 out:
+	signal(SIGINT, sigh_orig);
+	gsock = NULL;
 	ethsock_close(sock);
 	return err;
 }
