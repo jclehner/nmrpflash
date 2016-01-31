@@ -76,10 +76,6 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *interface)
 		}
 	}
 
-	if (!found) {
-		fprintf(stderr, "Failed to get MAC address of interface %s.\n", interface);
-	}
-
 	freeifaddrs(ifas);
 	return found;
 }
@@ -109,12 +105,14 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *interface)
 			}
 
 			if (!strcmp(adapter->AdapterName, interface)) {
-				for (i = 0; i != MIN(adapter->AddressLength, 6); ++i) {
-					hwaddr[i] = adapter->Address[i];
-				}
+				if (adapter->AddressLength == 6) {
+					for (i = 0; i != 6; ++i) {
+						hwaddr[i] = adapter->Address[i];
+					}
 
-				found = true;
-				break;
+					found = true;
+					break;
+				}
 			}
 		}
 	} else {
@@ -145,10 +143,6 @@ struct ethsock *ethsock_create(const char *interface, uint16_t protocol)
 		return NULL;
 	}
 
-	if (!get_hwaddr(sock->hwaddr, interface)) {
-		goto cleanup_malloc;
-	}
-
 	buf[0] = '\0';
 
 	sock->pcap = pcap_open_live(interface, BUFSIZ, 1, 1, buf);
@@ -162,8 +156,14 @@ struct ethsock *ethsock_create(const char *interface, uint16_t protocol)
 	}
 
 	if (pcap_datalink(sock->pcap) != DLT_EN10MB) {
-		fprintf(stderr, "Interface %s not supported.\n", interface);
+		fprintf(stderr, "Interface %s is not an ethernet interface.\n",
+				interface);
 		goto cleanup_pcap;
+	}
+
+	if (!get_hwaddr(sock->hwaddr, interface)) {
+		fprintf(stderr, "Failed to get MAC address of interface.\n");
+		goto cleanup_malloc;
 	}
 
 	sock->fd = pcap_get_selectable_fd(sock->pcap);
@@ -262,10 +262,26 @@ int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
 	return 0;
 }
 
+static bool is_ethernet(const char *interface)
+{
+	pcap_t *pcap;
+	char errbuf[PCAP_ERRBUF_SIZE];
+	bool ret = false;
+
+	if ((pcap = pcap_create(interface, errbuf))) {
+		if (pcap_activate(pcap) == 0) {
+			ret = (pcap_datalink(pcap) == DLT_EN10MB);
+		}
+		pcap_close(pcap);
+	}
+
+	return ret;
+}
+
 int ethsock_list_all(void)
 {
 	pcap_if_t *devs, *dev;
-	uint8_t hwaddr[8];
+	uint8_t hwaddr[6];
 	char errbuf[PCAP_ERRBUF_SIZE];
 
 	if (pcap_findalldevs(&devs, errbuf) != 0) {
@@ -273,15 +289,26 @@ int ethsock_list_all(void)
 		return -1;
 	}
 
+	memset(hwaddr, 0, 6);
+
 	for (dev = devs; dev; dev = dev->next) {
-		get_hwaddr(hwaddr, dev->name);
-		printf("%02x:%02x:%02x:%02x:%02x:%02x %s",
-				hwaddr[0], hwaddr[1], hwaddr[2],
-				hwaddr[3], hwaddr[4], hwaddr[5],
-				dev->name);
+		if (dev->flags & PCAP_IF_LOOPBACK) {
+			continue;
+		}
+
+		if (!is_ethernet(dev->name)) {
+			continue;
+		}
+
+		if (!get_hwaddr(hwaddr, dev->name)) {
+			continue;
+		}
+
+		printf("%s  %02x:%02x:%02x:%02x:%02x:%02x", dev->name, hwaddr[0],
+				hwaddr[1], hwaddr[2], hwaddr[3], hwaddr[4], hwaddr[5]);
 
 		if (dev->description) {
-			printf(" (%s)\n", dev->description);
+			printf("    (%s)\n", dev->description);
 		} else {
 			printf("\n");
 		}
