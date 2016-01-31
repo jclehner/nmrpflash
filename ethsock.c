@@ -1,13 +1,35 @@
+#include <netinet/if_ether.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <net/if_dl.h>
 #include <stdbool.h>
-#include <ifaddrs.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <pcap.h>
 #include "ethsock.h"
+
+#if defined(_WIN32) || defined(_WIN64)
+#define NMRPFLASH_WINDOWS
+#elif defined(__linux__)
+#define NMRPFLASH_LINUX
+#elif defined(__APPLE__) && defined(__MACH__)
+#define NMRPFLASH_OSX
+#elif defined(__unix__)
+#define NMRPFLASH_UNIX
+#warning "nmrp-flash is not fully supported on your operating system"
+#endif
+
+#if defined(NMRPFLASH_WINDOWS)
+#include <winsock2.h>
+#include <iphlpapi.h>
+#else
+#include <ifaddrs.h>
+#if defined(NMRPFLASH_LINUX)
+#include <linux/if_packet.h>
+#elif defined (NMRPFLASH_OSX)
+#include <net/if_dl.h>
+#endif
+#endif
 
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -21,7 +43,8 @@ struct ethsock
 	uint8_t hwaddr[6];
 };
 
-static bool ethsock_fill_hwaddr(struct ethsock *sock, const char *interface)
+#ifndef NMRPFLASH_WINDOWS
+static bool get_hwaddr(uint8_t *hwaddr, const char *interface)
 {
 	struct ifaddrs *ifas, *ifa;
 	void *src;
@@ -36,7 +59,7 @@ static bool ethsock_fill_hwaddr(struct ethsock *sock, const char *interface)
 
 	for (ifa = ifas; ifa; ifa = ifa->ifa_next) {
 		if (!strcmp(ifa->ifa_name, interface)) {
-#ifdef __linux__
+#ifdef NMRPFLASH_LINUX
 			if (ifa->ifa_addr->sa_family != AF_PACKET) {
 				continue;
 			}
@@ -47,7 +70,7 @@ static bool ethsock_fill_hwaddr(struct ethsock *sock, const char *interface)
 			}
 			src = LLADDR((struct sockaddr_dl*)ifa->ifa_addr);
 #endif
-			memcpy(sock->hwaddr, src, 6);
+			memcpy(hwaddr, src, 6);
 			found = true;
 			break;
 		}
@@ -60,6 +83,49 @@ static bool ethsock_fill_hwaddr(struct ethsock *sock, const char *interface)
 	freeifaddrs(ifas);
 	return found;
 }
+#else
+static bool get_hwaddr(uint8_t *hwaddr, const char *interface)
+{
+	PIP_ADAPTER_INFO adapters, adapter;
+	DWORD ret;
+	ULONG i, bufLen = 0;
+	bool found = false;
+
+	if ((ret = GetAdaptersInfo(NULL, &bufLen)) != ERROR_BUFFER_OVERFLOW) {
+		fprintf(stderr, "GetAdaptersInfo: error %d.\n", ret);
+		return false;
+	}
+
+	adapters = malloc(bufLen);
+	if (!adapters) {
+		perror("malloc");
+		return false;
+	}
+
+	if ((ret = GetAdaptersInfo(adapters, bufLen) == NO_ERROR)) {
+		for (adapter = adapters; adapter; adapter = adapter->Next) {
+			if (adapter->Type != MIB_IF_TYPE_ETHERNET) {
+				continue;
+			}
+
+			if (!strcmp(adapter->AdapterName, interface)) {
+				for (i = 0; i != MIN(adapter->AddressLength, 6); ++i) {
+					hwaddr[i] = adapter->Address[i];
+				}
+
+				found = true;
+				break;
+			}
+		}
+	} else {
+		fprintf(stderr, "GetAdaptersInfo: error %d.\n", ret);
+	}
+
+	free(adapters);
+	return found;
+}
+#endif
+
 
 inline uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
 {
@@ -79,7 +145,7 @@ struct ethsock *ethsock_create(const char *interface, uint16_t protocol)
 		return NULL;
 	}
 
-	if (!ethsock_fill_hwaddr(sock, interface)) {
+	if (!get_hwaddr(sock->hwaddr, interface)) {
 		goto cleanup_malloc;
 	}
 
@@ -165,7 +231,7 @@ ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len)
 
 int ethsock_send(struct ethsock *sock, void *buf, size_t len)
 {
-#if defined(_WIN32) || defined(_WIN64)
+#ifdef NMRPFLASH_WINDOWS
 	if (pcap_sendpacket(sock->pcap, buf, len) == 0) {
 		return 0;
 	} else {
