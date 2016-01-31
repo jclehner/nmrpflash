@@ -37,6 +37,7 @@ void usage(FILE *fp)
 			" -T <timeout>    Time to wait after successfull TFTP upload\n"
 			" -p <port>       Port to use for TFTP upload\n"
 			" -V              Print version and exit\n"
+			" -L              List network interfaces\n"
 			" -h              Show this screen\n"
 			"\n"
 			"Example:\n"
@@ -69,7 +70,7 @@ int main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "a:f:i:m:M:p:t:T:hV")) != -1) {
+	while ((c = getopt(argc, argv, "a:f:i:m:M:p:t:T:hLV")) != -1) {
 		max = 0x7fffffff;
 		switch (c) {
 			case 'a':
@@ -109,6 +110,8 @@ int main(int argc, char **argv)
 			case 'V':
 				printf("nmrp-flash v%s\n", NMRPD_VERSION);
 				return 0;
+			case 'L':
+				return ethsock_list_all();
 			case 'h':
 				usage(stdout);
 				return 0;

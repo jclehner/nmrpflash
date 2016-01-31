@@ -153,7 +153,7 @@ struct ethsock *ethsock_create(const char *interface, uint16_t protocol)
 
 	sock->pcap = pcap_open_live(interface, BUFSIZ, 1, 1, buf);
 	if (!sock->pcap) {
-		fprintf(stderr, "%s\n", buf);
+		fprintf(stderr, "%s.\n", buf);
 		goto cleanup_malloc;
 	}
 
@@ -259,5 +259,33 @@ int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
 {
 	sock->timeout.tv_sec = msec / 1000;
 	sock->timeout.tv_usec = (msec % 1000) * 1000;
+	return 0;
+}
+
+int ethsock_list_all(void)
+{
+	pcap_if_t *devs, *dev;
+	uint8_t hwaddr[8];
+	char errbuf[PCAP_ERRBUF_SIZE];
+
+	if (pcap_findalldevs(&devs, errbuf) != 0) {
+		fprintf(stderr, "%s.\n", errbuf);
+		return -1;
+	}
+
+	for (dev = devs; dev; dev = dev->next) {
+		get_hwaddr(hwaddr, dev->name);
+		printf("%02x:%02x:%02x:%02x:%02x:%02x %s",
+				hwaddr[0], hwaddr[1], hwaddr[2],
+				hwaddr[3], hwaddr[4], hwaddr[5],
+				dev->name);
+
+		if (dev->description) {
+			printf(" (%s)\n", dev->description);
+		} else {
+			printf("\n");
+		}
+	}
+
 	return 0;
 }
