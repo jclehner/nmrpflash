@@ -94,7 +94,14 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 				continue;
 			}
 
-			if (!strcmp(adapter->AdapterName, intf)) {
+#ifndef NMRPFLASH_WINDOWS
+			if (!strcmp(intf, adapter->AdapterName))
+#else
+			/* Interface names from WinPcap are "\Device\NPF_{GUID}", while
+			 * AdapterName from GetAdaptersInfo is just "{GUID}".*/
+			if (strstr(intf, adapter->AdapterName))
+#endif
+			{
 				if (adapter->AddressLength == 6) {
 					for (i = 0; i != 6; ++i) {
 						hwaddr[i] = adapter->Address[i];
@@ -310,10 +317,6 @@ int ethsock_list_all(void)
 	memset(hwaddr, 0, 6);
 
 	for (dev = devs; dev; dev = dev->next) {
-		if (dev->flags & PCAP_IF_LOOPBACK) {
-			continue;
-		}
-
 		if (!is_ethernet(dev->name)) {
 			continue;
 		}
