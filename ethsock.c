@@ -91,11 +91,6 @@ static void win_perror2(const char *msg, int err)
 	fprintf(stderr, "%s: error %d\n", msg, err);
 }
 
-static void win_perror(const char *msg)
-{
-	win_perror2(msg, (int)GetLastError());
-}
-
 static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 {
 	PIP_ADAPTER_INFO adapters, adapter;
@@ -413,6 +408,7 @@ static bool is_ethernet(const char *intf)
 int ethsock_list_all(void)
 {
 	pcap_if_t *devs, *dev;
+	pcap_addr_t *addr;
 	uint8_t hwaddr[6];
 	unsigned dev_num = 0;
 #ifdef NMRPFLASH_WINDOWS
@@ -427,10 +423,18 @@ int ethsock_list_all(void)
 
 	for (dev = devs; dev; dev = dev->next) {
 		if (!is_ethernet(dev->name)) {
+			if (verbosity > 1) {
+				printf("%s  (not an ethernet device)\n",
+						dev->name);
+			}
 			continue;
 		}
 
 		if (!get_hwaddr(hwaddr, dev->name)) {
+			if (verbosity > 1) {
+				printf("%s  (failed to get hardware address)\n",
+						dev->name);
+			}
 			continue;
 		}
 
@@ -439,16 +443,34 @@ int ethsock_list_all(void)
 #else
 		printf(NMRPFLASH_ALIAS_PREFIX "%u", dev_num);
 #endif
+
+		for (addr = dev->addresses; addr; addr = addr->next) {
+			if (addr->addr->sa_family == AF_INET) {
+				printf("  %15s",
+						inet_ntoa(((struct sockaddr_in*)addr->addr)->sin_addr));
+				break;
+			}
+		}
+
+		if (!addr) {
+			printf("                 ");
+		}
+
 		printf("  %02x:%02x:%02x:%02x:%02x:%02x", hwaddr[0], hwaddr[1],
 				hwaddr[2], hwaddr[3], hwaddr[4], hwaddr[5]);
 
 #ifdef NMRPFLASH_WINDOWS
+		if (verbosity) {
+			printf("  %s", dev->name);
+		}
+
 		pretty = intf_get_pretty_name(dev->name);
 		if (pretty) {
 			printf("  (%s)", pretty);
 		} else if (dev->description) {
 			printf("  (%s)", dev->description);
 		}
+
 #endif
 		printf("\n");
 		++dev_num;
