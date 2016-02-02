@@ -1,5 +1,3 @@
-#include <netinet/if_ether.h>
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <stdbool.h>
 #include <string.h>
@@ -23,6 +21,7 @@
 #include <winsock2.h>
 #include <iphlpapi.h>
 #else
+#include <sys/socket.h>
 #include <ifaddrs.h>
 #if defined(NMRPFLASH_LINUX)
 #include <linux/if_packet.h>
