@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "nmrpd.h"
+#include "ethsock.h"
 
 void usage(FILE *fp)
 {
