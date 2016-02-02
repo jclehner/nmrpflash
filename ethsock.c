@@ -37,8 +37,13 @@
 struct ethsock
 {
 	pcap_t *pcap;
+#ifndef NMRPFLASH_WINDOWS
 	struct timeval timeout;
 	int fd;
+#else
+	DWORD timeout;
+	HANDLE handle;
+#endif
 	uint8_t hwaddr[6];
 };
 
@@ -87,7 +92,7 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 	bool found = false;
 
 	if ((ret = GetAdaptersInfo(NULL, &bufLen)) != ERROR_BUFFER_OVERFLOW) {
-		fprintf(stderr, "GetAdaptersInfo: error %d.\n", ret);
+		fprintf(stderr, "GetAdaptersInfo: error %d.\n", (int)ret);
 		return false;
 	}
 
@@ -97,7 +102,7 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 		return false;
 	}
 
-	if ((ret = GetAdaptersInfo(adapters, bufLen) == NO_ERROR)) {
+	if ((ret = GetAdaptersInfo(adapters, &bufLen) == NO_ERROR)) {
 		for (adapter = adapters; adapter; adapter = adapter->Next) {
 			if (adapter->Type != MIB_IF_TYPE_ETHERNET) {
 				continue;
@@ -115,7 +120,7 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 			}
 		}
 	} else {
-		fprintf(stderr, "GetAdaptersInfo: error %d.\n", ret);
+		fprintf(stderr, "GetAdaptersInfo: error %d.\n", (int)ret);
 	}
 
 	free(adapters);
@@ -165,14 +170,22 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 		goto cleanup_malloc;
 	}
 
+#ifndef NMRPFLASH_WINDOWS
 	sock->fd = pcap_get_selectable_fd(sock->pcap);
 	if (sock->fd == -1) {
 		fprintf(stderr, "No selectable file descriptor available.\n");
 		goto cleanup_pcap;
 	}
+#else
+	sock->handle = pcap_getevent(sock->pcap);
+	if (!sock->handle) {
+		fprintf(stderr, "No event handle available.\n");
+		goto cleanup_pcap;
+	}
+#endif
 
 	snprintf(buf, sizeof(buf), "ether proto %04x", protocol);
-	err = pcap_compile(sock->pcap, &fp, buf, 0, PCAP_NETMASK_UNKNOWN);
+	err = pcap_compile(sock->pcap, &fp, buf, 0, 0);
 	if (err) {
 		pcap_perror(sock->pcap, "pcap_compile");
 		goto cleanup_pcap;
@@ -197,8 +210,13 @@ ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len)
 	struct pcap_pkthdr* hdr;
 	const u_char *capbuf;
 	int status;
+#ifndef NMRPFLASH_WINDOWS
 	fd_set fds;
+#else
+	DWORD ret;
+#endif
 
+#ifndef NMRPFLASH_WINDOWS
 	if (sock->timeout.tv_sec || sock->timeout.tv_usec) {
 		FD_ZERO(&fds);
 		FD_SET(sock->fd, &fds);
@@ -211,6 +229,17 @@ ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len)
 			return 0;
 		}
 	}
+#else
+	if (sock->timeout) {
+		ret = WaitForSingleObject(sock->handle, sock->timeout);
+		if (ret == WAIT_TIMEOUT) {
+			return 0;
+		} else if (ret != WAIT_OBJECT_0) {
+			fprintf(stderr, "WaitForSingleObject: returned %d\n", (int)ret);
+			return -1;
+		}		
+	}
+#endif
 
 	status = pcap_next_ex(sock->pcap, &hdr, &capbuf);
 	switch (status) {
@@ -256,8 +285,12 @@ int ethsock_close(struct ethsock *sock)
 
 int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
 {
+#ifndef NMRPFLASH_WINDOWS
 	sock->timeout.tv_sec = msec / 1000;
 	sock->timeout.tv_usec = (msec % 1000) * 1000;
+#else
+	sock->timeout = msec;
+#endif
 	return 0;
 }
 

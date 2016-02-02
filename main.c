@@ -128,10 +128,12 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+#ifndef NMRPFLASH_WINDOWS
 	if (geteuid() != 0) {
 		fprintf(stderr, "This program must be run as root!\n");
 		return 1;
 	}
+#endif
 
 	return nmrp_do(&args);
 }
