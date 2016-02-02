@@ -5,17 +5,7 @@
 #include <stdio.h>
 #include <pcap.h>
 #include "ethsock.h"
-
-#if defined(_WIN32) || defined(_WIN64)
-#define NMRPFLASH_WINDOWS
-#elif defined(__linux__)
-#define NMRPFLASH_LINUX
-#elif defined(__APPLE__) && defined(__MACH__)
-#define NMRPFLASH_OSX
-#elif defined(__unix__)
-#define NMRPFLASH_UNIX
-#warning "nmrp-flash is not fully supported on your operating system"
-#endif
+#include "nmrpd.h"
 
 #if defined(NMRPFLASH_WINDOWS)
 #include <winsock2.h>

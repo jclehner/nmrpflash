@@ -22,6 +22,17 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#if defined(_WIN32) || defined(_WIN64)
+#define NMRPFLASH_WINDOWS
+#elif defined(__linux__)
+#define NMRPFLASH_LINUX
+#elif defined(__APPLE__) && defined(__MACH__)
+#define NMRPFLASH_OSX
+#elif defined(__unix__)
+#define NMRPFLASH_UNIX
+#warning "nmrp-flash is not fully supported on your operating system"
+#endif
+
 #define NMRPD_VERSION "0.9"
 
 enum nmrp_op {
