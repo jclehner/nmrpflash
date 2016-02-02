@@ -43,7 +43,7 @@ struct ethsock
 };
 
 #ifndef NMRPFLASH_WINDOWS
-static bool get_hwaddr(uint8_t *hwaddr, const char *interface)
+static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 {
 	struct ifaddrs *ifas, *ifa;
 	void *src;
@@ -57,7 +57,7 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *interface)
 	found = false;
 
 	for (ifa = ifas; ifa; ifa = ifa->ifa_next) {
-		if (!strcmp(ifa->ifa_name, interface)) {
+		if (!strcmp(ifa->ifa_name, intf)) {
 #ifdef NMRPFLASH_LINUX
 			if (ifa->ifa_addr->sa_family != AF_PACKET) {
 				continue;
@@ -79,7 +79,7 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *interface)
 	return found;
 }
 #else
-static bool get_hwaddr(uint8_t *hwaddr, const char *interface)
+static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 {
 	PIP_ADAPTER_INFO adapters, adapter;
 	DWORD ret;
@@ -103,7 +103,7 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *interface)
 				continue;
 			}
 
-			if (!strcmp(adapter->AdapterName, interface)) {
+			if (!strcmp(adapter->AdapterName, intf)) {
 				if (adapter->AddressLength == 6) {
 					for (i = 0; i != 6; ++i) {
 						hwaddr[i] = adapter->Address[i];
@@ -129,7 +129,7 @@ inline uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
 	return sock->hwaddr;
 }
 
-struct ethsock *ethsock_create(const char *interface, uint16_t protocol)
+struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 {
 	char buf[PCAP_ERRBUF_SIZE];
 	struct bpf_program fp;
@@ -144,7 +144,7 @@ struct ethsock *ethsock_create(const char *interface, uint16_t protocol)
 
 	buf[0] = '\0';
 
-	sock->pcap = pcap_open_live(interface, BUFSIZ, 1, 1, buf);
+	sock->pcap = pcap_open_live(intf, BUFSIZ, 1, 1, buf);
 	if (!sock->pcap) {
 		fprintf(stderr, "%s.\n", buf);
 		goto cleanup_malloc;
@@ -155,12 +155,12 @@ struct ethsock *ethsock_create(const char *interface, uint16_t protocol)
 	}
 
 	if (pcap_datalink(sock->pcap) != DLT_EN10MB) {
-		fprintf(stderr, "Interface %s is not an ethernet interface.\n",
-				interface);
+		fprintf(stderr, "%s is not an ethernet interface.\n",
+				intf);
 		goto cleanup_pcap;
 	}
 
-	if (!get_hwaddr(sock->hwaddr, interface)) {
+	if (!get_hwaddr(sock->hwaddr, intf)) {
 		fprintf(stderr, "Failed to get MAC address of interface.\n");
 		goto cleanup_malloc;
 	}
@@ -261,13 +261,13 @@ int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
 	return 0;
 }
 
-static bool is_ethernet(const char *interface)
+static bool is_ethernet(const char *intf)
 {
 	pcap_t *pcap;
 	char errbuf[PCAP_ERRBUF_SIZE];
 	bool ret = false;
 
-	if ((pcap = pcap_create(interface, errbuf))) {
+	if ((pcap = pcap_create(intf, errbuf))) {
 		if (pcap_activate(pcap) == 0) {
 			ret = (pcap_datalink(pcap) == DLT_EN10MB);
 		}
