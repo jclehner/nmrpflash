@@ -7,7 +7,10 @@
 #include "ethsock.h"
 #include "nmrpd.h"
 
-#if !defined(NMRPFLASH_WINDOWS)
+#if defined(NMRPFLASH_WINDOWS)
+#include <windows.h>
+#define NMRPFLASH_ALIAS_PREFIX "net"
+#else
 #include <ifaddrs.h>
 #if defined(NMRPFLASH_LINUX)
 #include <linux/if_packet.h>
@@ -19,6 +22,7 @@
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
+
 
 struct ethsock
 {
@@ -32,6 +36,17 @@ struct ethsock
 #endif
 	uint8_t hwaddr[6];
 };
+
+static int x_pcap_findalldevs(pcap_if_t **devs)
+{
+	char errbuf[PCAP_ERRBUF_SIZE];
+	if (pcap_findalldevs(devs, errbuf) != 0) {
+		fprintf(stderr, "%s.\n", errbuf);
+		return -1;
+	}
+
+	return 0;
+}
 
 #ifndef NMRPFLASH_WINDOWS
 static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
@@ -70,6 +85,17 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 	return found;
 }
 #else
+
+static void win_perror2(const char *msg, int err)
+{
+	fprintf(stderr, "%s: error %d\n", msg, err);
+}
+
+static void win_perror(const char *msg)
+{
+	win_perror2(msg, (int)GetLastError());
+}
+
 static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 {
 	PIP_ADAPTER_INFO adapters, adapter;
@@ -78,7 +104,7 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 	bool found = false;
 
 	if ((ret = GetAdaptersInfo(NULL, &bufLen)) != ERROR_BUFFER_OVERFLOW) {
-		fprintf(stderr, "GetAdaptersInfo: error %d.\n", (int)ret);
+		win_perror2("GetAdaptersInfo", ret);
 		return false;
 	}
 
@@ -113,11 +139,85 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 			}
 		}
 	} else {
-		fprintf(stderr, "GetAdaptersInfo: error %d.\n", (int)ret);
+		win_perror2("GetAdaptersInfo", ret);
 	}
 
 	free(adapters);
 	return found;
+}
+
+static const char *intf_alias_to_wpcap(const char *intf)
+{
+	static char buf[128];
+	pcap_if_t *devs, *dev;
+	unsigned i = 0, dev_num = 0;
+
+	if (intf[0] == '\\') {
+		return intf;
+	} else if (sscanf(intf, NMRPFLASH_ALIAS_PREFIX "%u", &dev_num) != 1) {
+		fprintf(stderr, "Invalid interface alias.\n");
+		return NULL;
+	}
+
+	if (x_pcap_findalldevs(&devs) != 0) {
+		return NULL;
+	}
+
+	for (dev = devs; dev; dev = dev->next) {
+		if (i == dev_num) {
+			printf(NMRPFLASH_ALIAS_PREFIX "%u: %s\n", i, dev->name);
+			strncpy(buf, dev->name, sizeof(buf) - 1);
+			buf[sizeof(buf) - 1] = '\0';
+			break;
+		}
+	}
+
+	pcap_freealldevs(devs);
+
+	if (!dev) {
+		fprintf(stderr, "Interface alias not found.\n");
+		return NULL;
+	}
+
+	return buf;
+}
+
+static const char *intf_get_pretty_name(const char *intf)
+{
+	static char buf[512];
+	char *guid;
+	HKEY hkey;
+	LONG err;
+	DWORD len;
+
+	guid = strstr(intf, "NPF_{");
+	if (!guid) {
+		return NULL;
+	}
+
+	guid += 4;
+
+	snprintf(buf, sizeof(buf),
+			"System\\CurrentControlSet\\Control\\Network\\"
+			"{4D36E972-E325-11CE-BFC1-08002BE10318}\\"
+			"%s\\Connection", guid);
+	err = RegOpenKeyExA(HKEY_LOCAL_MACHINE, buf, 0, KEY_READ, &hkey);
+	if (err != ERROR_SUCCESS) {
+		win_perror2("RegOpenKeyExA", err);
+		return NULL;
+	}
+
+	len = sizeof(buf);
+	err = RegQueryValueExA(hkey, "Name", NULL, NULL, (LPBYTE)buf, &len);
+	if (err == ERROR_SUCCESS) {
+		intf = buf;
+	} else {
+		win_perror2("RegQueryValueExA", err);
+		intf = NULL;
+	}
+
+	RegCloseKey(hkey);
+	return intf;
 }
 #endif
 
@@ -139,6 +239,13 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 		perror("malloc");
 		return NULL;
 	}
+
+#ifdef NMRPFLASH_WINDOWS
+	intf = intf_alias_to_wpcap(intf);
+	if (!intf) {
+		return NULL;
+	}
+#endif
 
 	buf[0] = '\0';
 
@@ -230,7 +337,7 @@ ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len)
 		} else if (ret != WAIT_OBJECT_0) {
 			fprintf(stderr, "WaitForSingleObject: returned %d\n", (int)ret);
 			return -1;
-		}		
+		}
 	}
 #endif
 
@@ -307,10 +414,12 @@ int ethsock_list_all(void)
 {
 	pcap_if_t *devs, *dev;
 	uint8_t hwaddr[6];
-	char errbuf[PCAP_ERRBUF_SIZE];
+	unsigned dev_num = 0;
+#ifdef NMRPFLASH_WINDOWS
+	const char *pretty;
+#endif
 
-	if (pcap_findalldevs(&devs, errbuf) != 0) {
-		fprintf(stderr, "%s.\n", errbuf);
+	if (x_pcap_findalldevs(&devs) != 0) {
 		return -1;
 	}
 
@@ -325,14 +434,28 @@ int ethsock_list_all(void)
 			continue;
 		}
 
-		printf("%s  %02x:%02x:%02x:%02x:%02x:%02x", dev->name, hwaddr[0],
-				hwaddr[1], hwaddr[2], hwaddr[3], hwaddr[4], hwaddr[5]);
+#ifndef NMRPFLASH_WINDOWS
+		printf("%s", dev->name);
+#else
+		printf(NMRPFLASH_ALIAS_PREFIX "%u", dev_num);
+#endif
+		printf("  %02x:%02x:%02x:%02x:%02x:%02x", hwaddr[0], hwaddr[1],
+				hwaddr[2], hwaddr[3], hwaddr[4], hwaddr[5]);
 
-		if (dev->description) {
-			printf("    (%s)\n", dev->description);
-		} else {
-			printf("\n");
+#ifdef NMRPFLASH_WINDOWS
+		pretty = intf_get_pretty_name(dev->name);
+		if (pretty) {
+			printf("  (%s)", pretty);
+		} else if (dev->description) {
+			printf("  (%s)", dev->description);
 		}
+#endif
+		printf("\n");
+		++dev_num;
+	}
+
+	if (!dev_num) {
+		printf("No suitable network interfaces found.\n");
 	}
 
 	return 0;
