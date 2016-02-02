@@ -89,10 +89,10 @@ struct nmrp_msg {
 } PACKED;
 
 struct eth_hdr {
-	uint8_t ether_shost[8];
-	uint8_t ether_dhost[8];
+	uint8_t ether_dhost[6];
+	uint8_t ether_shost[6];
 	uint16_t ether_type;
-};
+} PACKED;
 
 struct nmrp_pkt {
 	struct eth_hdr eh;
