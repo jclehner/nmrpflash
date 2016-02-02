@@ -18,9 +18,6 @@
  */
 
 #define _BSD_SOURCE
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <net/if.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -81,10 +78,7 @@ static inline void pkt_print(char *pkt, FILE *fp)
 
 static ssize_t tftp_recvfrom(int sock, char *pkt, struct sockaddr_in *src)
 {
-	socklen_t socklen;
 	ssize_t len;
-
-	(void)src, (void)socklen;
 
 	len = recvfrom(sock, pkt, TFTP_PKT_SIZE, 0, NULL, NULL);
 	if (len < 0) {
@@ -153,7 +147,7 @@ int sock_set_rx_timeout(int fd, unsigned msec)
 	if (msec) {
 		tv.tv_usec = (msec % 1000) * 1000;
 		tv.tv_sec = msec / 1000;
-		if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+		if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv)) < 0) {
 			perror("setsockopt(SO_RCVTIMEO)");
 			return 1;
 		}
@@ -191,9 +185,8 @@ int tftp_put(struct nmrpd_args *args)
 		goto cleanup;
 	}
 
-	err = !inet_aton(args->ipaddr, &addr.sin_addr);
-	if (err) {
-		perror("inet_aton");
+	if ((addr.sin_addr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
+		perror("inet_addr");
 		goto cleanup;
 	}
 

@@ -7,11 +7,7 @@
 #include "ethsock.h"
 #include "nmrpd.h"
 
-#if defined(NMRPFLASH_WINDOWS)
-#include <winsock2.h>
-#include <iphlpapi.h>
-#else
-#include <sys/socket.h>
+#if !defined(NMRPFLASH_WINDOWS)
 #include <ifaddrs.h>
 #if defined(NMRPFLASH_LINUX)
 #include <linux/if_packet.h>

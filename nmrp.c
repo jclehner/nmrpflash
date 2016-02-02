@@ -18,12 +18,6 @@
  */
 
 #define _BSD_SOURCE
-#include <netinet/if_ether.h>
-//#include <linux/if_packet.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,12 +28,18 @@
 #include "ethsock.h"
 #include "nmrpd.h"
 
+#ifndef NMRPFLASH_WINDOWS
+#include <arpa/inet.h>
+#else
+#include <winsock2.h>
+#endif
+
 #define NMRP_HDR_LEN 6
 #define NMRP_OPT_LEN 4
-#define NMRP_MIN_PKT_LEN (sizeof(struct ether_header) +  NMRP_HDR_LEN)
+#define NMRP_MIN_PKT_LEN (sizeof(struct eth_hdr) +  NMRP_HDR_LEN)
 
-#define MAX_OPT_SIZE 12
-#define MAX_OPT_NUM 2
+#define NMRP_MAX_OPT_SIZE 12
+#define NMRP_MAX_OPT_NUM 2
 
 #define ETH_P_NMRP 0x0912
 #define IP_LEN 4
@@ -88,8 +88,14 @@ struct nmrp_msg {
 	uint32_t num_opts;
 } PACKED;
 
+struct eth_hdr {
+	uint8_t ether_shost[8];
+	uint8_t ether_dhost[8];
+	uint16_t ether_type;
+};
+
 struct nmrp_pkt {
-	struct ether_header eh;
+	struct eth_hdr eh;
 	struct nmrp_msg msg;
 } PACKED;
 
@@ -162,7 +168,7 @@ static int msg_ntoh(struct nmrp_msg *msg)
 
 	// FIXME maximum of two options supported, maximum option
 	// size is 12
-	if (remaining < MAX_OPT_NUM * MAX_OPT_SIZE) {
+	if (remaining < NMRP_MAX_OPT_NUM * NMRP_MAX_OPT_SIZE) {
 		while (remaining > 0) {
 			if (remaining < NMRP_OPT_LEN) {
 				break;
@@ -171,7 +177,7 @@ static int msg_ntoh(struct nmrp_msg *msg)
 			opt->type = ntohs(opt->type);
 			opt->len = ntohs(opt->len);
 
-			if (opt->len > MAX_OPT_SIZE) {
+			if (opt->len > NMRP_MAX_OPT_SIZE) {
 				break;
 			}
 
@@ -206,7 +212,7 @@ static int pkt_recv(struct ethsock *sock, struct nmrp_pkt *pkt)
 	} else if (!bytes) {
 		return 2;
 	} else if (bytes < NMRP_MIN_PKT_LEN) {
-		fprintf(stderr, "Short packet (%zi bytes)\n", bytes);
+		fprintf(stderr, "Short packet (%d bytes)\n", (int)bytes);
 		return 1;
 	}
 
@@ -214,7 +220,7 @@ static int pkt_recv(struct ethsock *sock, struct nmrp_pkt *pkt)
 	len = pkt->msg.len + sizeof(pkt->eh);
 
 	if (bytes != len) {
-		fprintf(stderr, "Unexpected message length (%zi bytes).\n", len);
+		fprintf(stderr, "Unexpected message length (%d bytes).\n", (int)len);
 		return 1;
 	}
 
@@ -267,7 +273,7 @@ int nmrp_do(struct nmrpd_args *args)
 	time_t beg;
 	int i, err, ulreqs, expect;
 	struct ethsock *sock;
-	sig_t sigh_orig;
+	void (*sigh_orig)(int);
 
 	if (args->op != NMRP_UPLOAD_FW) {
 		fprintf(stderr, "Operation not implemented.\n");
@@ -279,12 +285,12 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	if (!inet_aton(args->ipaddr, &ipaddr)) {
-		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
+	if ((ipaddr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
+ 		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
 		return 1;
 	}
 
-	if (!inet_aton(args->ipmask, &ipmask)) {
+	if ((ipmask.s_addr = inet_addr(args->ipmask)) == INADDR_NONE) {
 		fprintf(stderr, "Invalid subnet mask '%s'.\n", args->ipmask);
 		return 1;
 	}
