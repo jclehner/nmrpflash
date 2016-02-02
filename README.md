@@ -12,11 +12,15 @@ Connect your Netgear router to your computer using a network cable.
 Assign a static IP address to your computer (more specifically, to 
 the network card that's plugged into the Netgear router).
 
+
 For this example, we'll assume that your network interface is `eth0`.
-First, we have to assign a static IP address to our network interface:
+First, we have to assign a static IP address to our network interface.
+In this example, we'll use `192.168.1.2`. All available network interfaces 
+can be listed using
 
 ````
-$ sudo ifconfig eth0 192.168.1.2
+$ nmrp-flash -L
+eth0      192.168.1.2  f2:11:a1:02:03:b1
 ````
 
 Now we can start `nmrp-flash`. The argument for the `-a` option needs
@@ -25,9 +29,9 @@ network interface. We'll use `192.168.1.254`. The firmware image file
 can usually be downloaded directly from Netgear's FTP servers.
 
 ````
-$ sudo nmrp-flash -i eth0 -a 192.168.1.254 -f EX2700-V1.0.1.8.img
+$ nmrp-flash -i eth0 -a 192.168.1.254 -f EX2700-V1.0.1.8.img
 Advertising NMRP server on eth0 ... /
-Received configuration request from XX:XX:XX:XX:XX:XX.
+Received configuration request from a4:2b:8c:00:00:01.
 Sending configuration: ip 192.168.1.254, mask 255.255.255.0.
 Uploading EX2700-V1.0.1.8.img ... OK
 Waiting for remote to respond.
@@ -35,8 +39,6 @@ Remote finished. Closing connection.
 ````
 
 ### Building and installing
-
-Linux only for now, sorry!
 
 ````
 $ make && sudo make install
