@@ -3,14 +3,16 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <pcap.h>
 #include "ethsock.h"
 #include "nmrpd.h"
 
 #if defined(NMRPFLASH_WINDOWS)
-#include <windows.h>
 #define NMRPFLASH_ALIAS_PREFIX "net"
+#define WPCAP
+#include <pcap.h>
+#include <windows.h>
 #else
+#include <pcap.h>
 #include <ifaddrs.h>
 #if defined(NMRPFLASH_LINUX)
 #include <linux/if_packet.h>
