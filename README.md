@@ -39,7 +39,17 @@ Remote finished. Closing connection.
 ````
 
 ### Building and installing
+###### Linux, Mac OS X, BSDs
 
 ````
 $ make && sudo make install
 ````
+
+###### Windows
+
+The repository includes a 
+[DevCpp](http://sourceforge.net/projects/orwelldevcpp/)
+project file (`nmrp-flash.dev`). Download the latest 
+[WinPcap Developer Pack](http://www.winpcap.org/devel.htm) 
+and extract it into the root folder of the nmrp-flash sources.
+
