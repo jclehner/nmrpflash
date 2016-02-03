@@ -444,7 +444,11 @@ int ethsock_list_all(void)
 #ifndef NMRPFLASH_WINDOWS
 		printf("%s", dev->name);
 #else
-		printf(NMRPFLASH_ALIAS_PREFIX "%u", dev_num);
+		if (!verbosity) {
+			printf("%s%u", NMRPFLASH_NETALIAS_PREFIX, dev_num);
+		} else {
+			printf("%s", dev->name);
+		}
 #endif
 
 		for (addr = dev->addresses; addr; addr = addr->next) {
@@ -463,10 +467,6 @@ int ethsock_list_all(void)
 				hwaddr[2], hwaddr[3], hwaddr[4], hwaddr[5]);
 
 #ifdef NMRPFLASH_WINDOWS
-		if (verbosity) {
-			printf("  %s", dev->name);
-		}
-
 		pretty = intf_get_pretty_name(dev->name);
 		if (pretty) {
 			printf("  (%s)", pretty);
