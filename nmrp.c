@@ -17,7 +17,6 @@
  *
  */
 
-#define _BSD_SOURCE
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,12 +26,6 @@
 #include <time.h>
 #include "ethsock.h"
 #include "nmrpd.h"
-
-#ifndef NMRPFLASH_WINDOWS
-#include <arpa/inet.h>
-#else
-#include <winsock2.h>
-#endif
 
 #define NMRP_HDR_LEN 6
 #define NMRP_OPT_LEN 4

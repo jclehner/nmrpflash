@@ -7,10 +7,9 @@
 #include "nmrpd.h"
 
 #if defined(NMRPFLASH_WINDOWS)
-#define NMRPFLASH_ALIAS_PREFIX "net"
+#define NMRPFLASH_NETALIAS_PREFIX "net"
 #define WPCAP
 #include <pcap.h>
-#include <windows.h>
 #else
 #include <pcap.h>
 #include <ifaddrs.h>
@@ -151,7 +150,7 @@ static const char *intf_alias_to_wpcap(const char *intf)
 
 	if (intf[0] == '\\') {
 		return intf;
-	} else if (sscanf(intf, NMRPFLASH_ALIAS_PREFIX "%u", &dev_num) != 1) {
+	} else if (sscanf(intf, NMRPFLASH_NETALIAS_PREFIX "%u", &dev_num) != 1) {
 		fprintf(stderr, "Invalid interface alias.\n");
 		return NULL;
 	}
@@ -162,7 +161,9 @@ static const char *intf_alias_to_wpcap(const char *intf)
 
 	for (dev = devs; dev; dev = dev->next) {
 		if (i == dev_num) {
-			printf(NMRPFLASH_ALIAS_PREFIX "%u: %s\n", i, dev->name);
+			if (verbosity) {
+				printf("%s%u: %s\n", NMRPFLASH_NETALIAS_PREFIX, i, dev->name);
+			}
 			strncpy(buf, dev->name, sizeof(buf) - 1);
 			buf[sizeof(buf) - 1] = '\0';
 			break;
@@ -332,7 +333,7 @@ ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len)
 		if (ret == WAIT_TIMEOUT) {
 			return 0;
 		} else if (ret != WAIT_OBJECT_0) {
-			fprintf(stderr, "WaitForSingleObject: returned %d\n", (int)ret);
+			win_perror("WaitForSingleObject", ret);
 			return -1;
 		}
 	}

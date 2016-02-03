@@ -34,7 +34,6 @@
 #endif
 
 #ifndef NMRPFLASH_WINDOWS
-#define _BSD_SOURCE
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <net/if.h>
@@ -42,6 +41,7 @@
 #include <winsock2.h>
 #include <iphlpapi.h>
 #include <ws2tcpip.h>
+#include <windows.h>
 #endif
 
 #define NMRPD_VERSION "0.9"
