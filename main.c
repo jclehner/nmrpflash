@@ -46,7 +46,11 @@ void usage(FILE *fp)
 			"\n"
 			"Example:\n"
 			"\n"
-			"$ sudo nmrp-flash -a 192.168.1.254 -i eth0 -f firmware.bin\n"
+#ifndef NMRPFLASH_WINDOWS
+			"$ sudo nmrp-flash -i eth0 -a 192.168.1.254 -f firmware.bin\n"
+#else
+			"C:\\> nmrp-flash.exe -i net0 -a 192.168.1.254 -f firmware.bin\n"
+#endif
 			"\n"
 			"nmrp-flash v%s, Copyright (C) 2016 Joseph C. Lehner\n"
 			"nmrp-flash is free software, licensed under the GNU GPLv3.\n"
