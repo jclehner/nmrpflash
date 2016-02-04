@@ -20,6 +20,7 @@
 #define _BSD_SOURCE
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -27,7 +28,7 @@
 
 #define TFTP_PKT_SIZE 516
 
-static const char *opcode_names[] = { 
+static const char *opcode_names[] = {
 	"RRQ", "WRQ", "DATA", "ACK", "ERR"
 };
 
@@ -38,6 +39,37 @@ enum tftp_opcode {
 	ACK  = 4,
 	ERR  = 5
 };
+
+static char *x_basename(const char *path)
+{
+	char *slash, *bslash;
+
+	slash = rindex(path, '/');
+	bslash = rindex(path, '\\');
+
+	if (slash && bslash) {
+		path = 1 + (slash > bslash ? slash : bslash);
+	} else if (slash) {
+		path = 1 + slash;
+	} else if (bslash) {
+		path = 1 + bslash;
+	}
+
+	return strdup(path);
+}
+
+static const char *sanitize_netascii(char *str)
+{
+	char *p = str;
+
+	for (; *p; ++p) {
+		if (*p < 0x20 || *p > 0x7f) {
+			*p = '_';
+		}
+	}
+
+	return str;
+}
 
 static inline void pkt_mknum(char *pkt, uint16_t n)
 {
@@ -106,7 +138,7 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, struct sockaddr_in *src)
 	return len;
 }
 
-static ssize_t tftp_sendto(int sock, char *pkt, size_t len, 
+static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 		struct sockaddr_in *dst)
 {
 	ssize_t sent;
@@ -159,12 +191,14 @@ int sock_set_rx_timeout(int fd, unsigned msec)
 int tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
+	char *filename;
 	uint16_t block;
 	ssize_t len;
 	int fd, sock, err, timeout, last_len;
 	char rx[TFTP_PKT_SIZE], tx[TFTP_PKT_SIZE];
 
 	sock = -1;
+	filename = NULL;
 
 	fd = open(args->filename, O_RDONLY);
 	if (fd < 0) {
@@ -193,7 +227,21 @@ int tftp_put(struct nmrpd_args *args)
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(args->port);
 
-	pkt_mkwrq(tx, args->filename, "octet");
+	filename = x_basename(args->filename);
+	if (!filename) {
+		perror("x_basename");
+		goto cleanup;
+	} else if (strlen(filename) > 256) {
+		fprintf(stderr, "Filename exceeds maximum of 256 characters.\n");
+		goto cleanup;
+	}
+
+	sanitize_netascii(filename);
+	if (verbosity > 1) {
+		printf("%s -> %s\n", args->filename, filename);
+	}
+
+	pkt_mkwrq(tx, filename, "octet");
 
 	len = tftp_sendto(sock, tx, 0, &addr);
 	if (len < 0) {
@@ -259,6 +307,8 @@ int tftp_put(struct nmrpd_args *args)
 	err = 0;
 
 cleanup:
+	free(filename);
+
 	if (fd >= 0) {
 		close(fd);
 	}
