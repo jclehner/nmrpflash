@@ -333,7 +333,7 @@ ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len)
 		if (ret == WAIT_TIMEOUT) {
 			return 0;
 		} else if (ret != WAIT_OBJECT_0) {
-			win_perror("WaitForSingleObject", ret);
+			win_perror2("WaitForSingleObject", ret);
 			return -1;
 		}
 	}
