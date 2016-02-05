@@ -40,7 +40,7 @@ enum tftp_opcode {
 	ERR  = 5
 };
 
-static const char *x_basename(const char *path)
+static const char *leafname(const char *path)
 {
 	const char *slash, *bslash;
 
@@ -83,7 +83,7 @@ static void pkt_mkwrq(char *pkt, const char *filename)
 {
 	size_t len = 2;
 
-	filename = x_basename(filename);
+	filename = leafname(filename);
 	if (!is_netascii(filename) || strlen(filename) > 500) {
 		fprintf(stderr, "Overlong/illegal filename; using 'firmware.bin'.");
 		filename = "firmware.bin";
