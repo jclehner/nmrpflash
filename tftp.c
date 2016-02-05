@@ -44,8 +44,8 @@ static const char *x_basename(const char *path)
 {
 	const char *slash, *bslash;
 
-	slash = rindex(path, '/');
-	bslash = rindex(path, '\\');
+	slash = strrchr(path, '/');
+	bslash = strrchr(path, '\\');
 
 	if (slash && bslash) {
 		path = 1 + (slash > bslash ? slash : bslash);
