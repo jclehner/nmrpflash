@@ -314,7 +314,12 @@ cleanup:
 	}
 
 	if (sock >= 0) {
+		shutdown(sock, SHUT_RDWR);
+#ifndef NMRPFLASH_WINDOWS
 		close(sock);
+#else
+		closesocket(sock);
+#endif
 	}
 
 	return err;
