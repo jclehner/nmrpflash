@@ -105,7 +105,7 @@ static inline void pkt_print(char *pkt, FILE *fp)
 		fprintf(fp, "%s", opcode_names[opcode - 1]);
 		if (opcode == ACK || opcode == DATA) {
 			fprintf(fp, "(%d)", pkt_num(pkt + 2));
-		} else if (opcode == WRQ) {
+		} else if (opcode == WRQ || opcode == RRQ) {
 			fprintf(fp, "(%s, %s)", pkt + 2, pkt + 2 + strlen(pkt + 2) + 1);
 		}
 	}
@@ -235,23 +235,13 @@ int tftp_put(struct nmrpd_args *args)
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(args->port);
 
-	pkt_mkwrq(tx, args->filename);
-
-	len = tftp_sendto(sock, tx, 0, &addr);
-	if (len < 0) {
-		err = len;
-		goto cleanup;
-	}
-
-	len = tftp_recvfrom(sock, rx, &addr);
-	if (len < 0) {
-		err = len;
-		goto cleanup;
-	}
-
-	timeout = 0;
 	block = 0;
 	last_len = -1;
+	len = 0;
+	/* Not really, but this way the loop sends our WRQ before receiving */
+	timeout = 1;
+
+	pkt_mkwrq(tx, args->filename);
 
 	do {
 		if (timeout || (pkt_num(rx) == ACK && pkt_num(rx + 2) == block)) {
@@ -289,7 +279,7 @@ int tftp_put(struct nmrpd_args *args)
 				if (++timeout < 5) {
 					continue;
 				}
-				fprintf(stderr, "Timeout while waiting for ACK(%d)\n.", block);
+				fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);
 			}
 			goto cleanup;
 		} else {
