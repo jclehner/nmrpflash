@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include "nmrpd.h"
 
+#define NMRPFLASH_TFTP_TEST
+
 int verbosity = 0;
 
 void usage(FILE *fp)
@@ -38,6 +40,9 @@ void usage(FILE *fp)
 			" -t <timeout>    Timeout (in milliseconds) for regular messages\n"
 			" -T <timeout>    Time to wait after successfull TFTP upload\n"
 			" -p <port>       Port to use for TFTP upload\n"
+#ifdef NMRPFLASH_TFTP_TEST
+			" -U              Test TFTP upload\n"
+#endif
 			" -v              Be verbose\n"
 			" -V              Print version and exit\n"
 			" -L              List network interfaces\n"
@@ -87,7 +92,7 @@ int main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "a:f:i:m:M:p:t:T:hLVv")) != -1) {
+	while ((c = getopt(argc, argv, "a:f:i:m:M:p:t:T:hLVvU")) != -1) {
 		max = 0x7fffffff;
 		switch (c) {
 			case 'a':
@@ -135,6 +140,13 @@ int main(int argc, char **argv)
 			case 'h':
 				usage(stdout);
 				return 0;
+#ifdef NMRPFLASH_TFTP_TEST
+			case 'U':
+				if (args.ipaddr && args.filename) {
+					return tftp_put(&args);
+				}
+				/* fall through */
+#endif
 			default:
 				usage(stderr);
 				return 1;
