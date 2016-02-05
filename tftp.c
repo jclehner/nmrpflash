@@ -296,10 +296,11 @@ cleanup:
 	}
 
 	if (sock >= 0) {
-		shutdown(sock, SHUT_RDWR);
 #ifndef NMRPFLASH_WINDOWS
+		shutdown(sock, SHUT_RDWR);
 		close(sock);
 #else
+		shutdown(sock, SD_BOTH);
 		closesocket(sock);
 #endif
 	}
