@@ -36,8 +36,11 @@
 
 #define ETH_P_NMRP 0x0912
 #define IP_LEN 4
-#define PACKED __attribute__((__packed__))
 #define MAX_LOOP_RECV 1024
+
+#ifndef PACKED
+#define PACKED __attribute__((__packed__))
+#endif
 
 enum nmrp_code {
 	NMRP_C_NONE = 0,
