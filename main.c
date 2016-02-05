@@ -76,6 +76,15 @@ int main(int argc, char **argv)
 		.port = 69,
 		.force_root = 1
 	};
+#ifdef NMRPFLASH_WINDOWS
+	WSADATA wsa;
+
+	val = WSAStartup(MAKEWORD(2, 2), &wsa);
+	if (val != 0) {
+		win_perror2("WSAStartup", val);
+		return 1;
+	}
+#endif
 
 	opterr = 0;
 
@@ -145,5 +154,9 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	return nmrp_do(&args);
+	val = nmrp_do(&args);
+#ifdef NMRPFLASH_WINDOWS
+	WSACleanup();
+#endif
+	return val;
 }
