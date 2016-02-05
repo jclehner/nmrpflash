@@ -87,9 +87,20 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 }
 #else
 
-static void win_perror2(const char *msg, int err)
+void win_perror2(const char *msg, DWORD err)
 {
-	fprintf(stderr, "%s: error %d\n", msg, err);
+	char *buf = NULL;
+	FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPTSTR)&buf, 0, NULL);
+
+	if (buf) {
+		fprintf(stderr, "%s: %s (%d)\n", msg, buf, (int)err);
+		LocalFree(buf);
+	} else {
+		fprintf(stderr, "%s: error %d\n", msg, (int)err);
+	}
 }
 
 static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
