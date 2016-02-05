@@ -68,6 +68,14 @@ struct nmrpd_args {
 
 int tftp_put(struct nmrpd_args *args);
 int nmrp_do(struct nmrpd_args *args);
+int select_fd(int fd, unsigned timeout);
+
+#ifdef NMRPFLASH_WINDOWS
+void win_perror2(const char *msg, DWORD err);
+void sock_perror(const char *msg);
+#else
+#define sock_perror(x) perror(x)
+#endif
 
 extern int verbosity;
 

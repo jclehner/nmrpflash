@@ -29,12 +29,11 @@ struct ethsock
 {
 	pcap_t *pcap;
 #ifndef NMRPFLASH_WINDOWS
-	struct timeval timeout;
 	int fd;
 #else
-	DWORD timeout;
 	HANDLE handle;
 #endif
+	unsigned timeout;
 	uint8_t hwaddr[6];
 };
 
@@ -314,31 +313,34 @@ cleanup_malloc:
 	return NULL;
 }
 
+int select_fd(int fd, unsigned timeout)
+{
+	struct timeval tv;
+	int status;
+	fd_set fds;
+
+	FD_ZERO(&fds);
+	FD_SET(fd, &fds);
+
+	tv.tv_sec = timeout / 1000;
+	tv.tv_usec = 1000 * (timeout % 1000);
+
+	status = select(fd + 1, &fds, NULL, NULL, &tv);
+	if (status < 0) {
+		sock_perror("select");
+	}
+
+	return status;
+}
+
 ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len)
 {
 	struct pcap_pkthdr* hdr;
 	const u_char *capbuf;
 	int status;
-#ifndef NMRPFLASH_WINDOWS
-	fd_set fds;
-#else
+#ifdef NMRPFLASH_WINDOWS
 	DWORD ret;
-#endif
 
-#ifndef NMRPFLASH_WINDOWS
-	if (sock->timeout.tv_sec || sock->timeout.tv_usec) {
-		FD_ZERO(&fds);
-		FD_SET(sock->fd, &fds);
-
-		status = select(sock->fd + 1, &fds, NULL, NULL, &sock->timeout);
-		if (status == -1) {
-			perror("select");
-			return -1;
-		} else if (status == 0) {
-			return 0;
-		}
-	}
-#else
 	if (sock->timeout) {
 		ret = WaitForSingleObject(sock->handle, sock->timeout);
 		if (ret == WAIT_TIMEOUT) {
@@ -346,6 +348,15 @@ ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len)
 		} else if (ret != WAIT_OBJECT_0) {
 			win_perror2("WaitForSingleObject", ret);
 			return -1;
+		}
+	}
+#else
+	if (sock->timeout) {
+		status = select_fd(sock->fd, sock->timeout);
+		if (status < 0) {
+			return -1;
+		} else if (status == 0) {
+			return 0;
 		}
 	}
 #endif
@@ -392,14 +403,9 @@ int ethsock_close(struct ethsock *sock)
 	return 0;
 }
 
-int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
+inline int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
 {
-#ifndef NMRPFLASH_WINDOWS
-	sock->timeout.tv_sec = msec / 1000;
-	sock->timeout.tv_usec = (msec % 1000) * 1000;
-#else
 	sock->timeout = msec;
-#endif
 	return 0;
 }
 

@@ -111,18 +111,22 @@ static inline void pkt_print(char *pkt, FILE *fp)
 	}
 }
 
-static ssize_t tftp_recvfrom(int sock, char *pkt, struct sockaddr_in *src)
+static ssize_t tftp_recvfrom(int sock, char *pkt, struct sockaddr_in *src,
+		unsigned timeout)
 {
 	ssize_t len;
 
+	len = select_fd(sock, timeout);
+	if (len < 0) {
+		return -1;
+	} else if (!len) {
+		return 0;
+	}
+
 	len = recvfrom(sock, pkt, TFTP_PKT_SIZE, 0, NULL, NULL);
 	if (len < 0) {
-		if (errno != EAGAIN) {
-			perror("recvfrom");
-			return -1;
-		}
-
-		return -2;
+		sock_perror("recvfrom");
+		return -1;
 	}
 
 	uint16_t opcode = pkt_num(pkt);
@@ -176,54 +180,46 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 
 	sent = sendto(sock, pkt, len, 0, (struct sockaddr*)dst, sizeof(*dst));
 	if (sent < 0) {
-		perror("sendto");
+		sock_perror("sendto");
 	}
 
 	return sent;
 }
 
-static int sock_set_rx_timeout(int fd, unsigned msec)
+#ifdef NMRPFLASH_WINDOWS
+void sock_perror(const char *msg)
 {
-	struct timeval tv;
-
-	if (msec) {
-		tv.tv_usec = (msec % 1000) * 1000;
-		tv.tv_sec = msec / 1000;
-		if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv)) < 0) {
-			perror("setsockopt(SO_RCVTIMEO)");
-			return 1;
-		}
-	}
-
-	return 0;
+	win_perror2(msg, WSAGetLastError());
 }
+#else
+inline void sock_perror(const char *msg)
+{
+	perror(msg);
+}
+#endif
 
 int tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
 	uint16_t block;
 	ssize_t len;
-	int fd, sock, err, timeout, last_len;
+	int fd, sock, ret, timeout, last_len;
 	char rx[TFTP_PKT_SIZE], tx[TFTP_PKT_SIZE];
 
 	sock = -1;
+	ret = -1;
 
 	fd = open(args->filename, O_RDONLY);
 	if (fd < 0) {
 		perror("open");
-		err = fd;
+		ret = fd;
 		goto cleanup;
 	}
 
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (sock < 0) {
-		perror("socket");
-		err = sock;
-		goto cleanup;
-	}
-
-	err = sock_set_rx_timeout(sock, args->rx_timeout);
-	if (err) {
+		sock_perror("socket");
+		ret = sock;
 		goto cleanup;
 	}
 
@@ -252,7 +248,7 @@ int tftp_put(struct nmrpd_args *args)
 				len = read(fd, tx + 4, 512);
 				if (len < 0) {
 					perror("read");
-					err = len;
+					ret = len;
 					goto cleanup;
 				} else if (!len) {
 					if (last_len != 512) {
@@ -263,8 +259,8 @@ int tftp_put(struct nmrpd_args *args)
 				last_len = len;
 			}
 
-			err = tftp_sendto(sock, tx, len, &addr);
-			if (err < 0) {
+			ret = tftp_sendto(sock, tx, len, &addr);
+			if (ret < 0) {
 				goto cleanup;
 			}
 		} else if (pkt_num(rx) != ACK) {
@@ -273,22 +269,22 @@ int tftp_put(struct nmrpd_args *args)
 			fprintf(stderr, "!\n");
 		}
 
-		err = tftp_recvfrom(sock, rx, &addr);
-		if (err < 0) {
-			if (err == -2) {
-				if (++timeout < 5) {
-					continue;
-				}
-				fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);
+		ret = tftp_recvfrom(sock, rx, &addr, args->rx_timeout);
+		if (ret < 0) {
+			goto cleanup;
+		} else if (!ret) {
+			if (++timeout < 5) {
+				continue;
 			}
+			fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);
 			goto cleanup;
 		} else {
 			timeout = 0;
-			err = 0;
+			ret = 0;
 		}
 	} while(1);
 
-	err = 0;
+	ret = 0;
 
 cleanup:
 	if (fd >= 0) {
@@ -305,5 +301,5 @@ cleanup:
 #endif
 	}
 
-	return err;
+	return ret;
 }
