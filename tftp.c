@@ -40,9 +40,9 @@ enum tftp_opcode {
 	ERR  = 5
 };
 
-static char *x_basename(const char *path)
+static const char *x_basename(const char *path)
 {
-	char *slash, *bslash;
+	const char *slash, *bslash;
 
 	slash = rindex(path, '/');
 	bslash = rindex(path, '\\');
@@ -55,20 +55,18 @@ static char *x_basename(const char *path)
 		path = 1 + bslash;
 	}
 
-	return strdup(path);
+	return path;
 }
 
-static const char *sanitize_netascii(char *str)
+static bool is_netascii(const char *str)
 {
-	char *p = str;
-
-	for (; *p; ++p) {
-		if (*p < 0x20 || *p > 0x7f) {
-			*p = '_';
+	for (; *str; ++str) {
+		if (*str < 0x20 || *str > 0x7f) {
+			return false;
 		}
 	}
 
-	return str;
+	return true;
 }
 
 static inline void pkt_mknum(char *pkt, uint16_t n)
@@ -81,16 +79,21 @@ static inline uint16_t pkt_num(char *pkt)
 	return ntohs(*(uint16_t*)pkt);
 }
 
-static void pkt_mkwrq(char *pkt, const char *filename, const char *mode)
+static void pkt_mkwrq(char *pkt, const char *filename)
 {
 	size_t len = 2;
+
+	filename = x_basename(filename);
+	if (!is_netascii(filename) || strlen(filename) > 500) {
+		fprintf(stderr, "Overlong/illegal filename; using 'firmware.bin'.");
+		filename = "firmware.bin";
+	}
 
 	pkt_mknum(pkt, WRQ);
 
 	strcpy(pkt + len, filename);
 	len += strlen(filename) + 1;
-	strcpy(pkt + len, mode);
-	len += strlen(mode) + 1;
+	strcpy(pkt + len, "octet");
 }
 
 static inline void pkt_print(char *pkt, FILE *fp)
@@ -191,14 +194,12 @@ int sock_set_rx_timeout(int fd, unsigned msec)
 int tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
-	char *filename;
 	uint16_t block;
 	ssize_t len;
 	int fd, sock, err, timeout, last_len;
 	char rx[TFTP_PKT_SIZE], tx[TFTP_PKT_SIZE];
 
 	sock = -1;
-	filename = NULL;
 
 	fd = open(args->filename, O_RDONLY);
 	if (fd < 0) {
@@ -227,21 +228,7 @@ int tftp_put(struct nmrpd_args *args)
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(args->port);
 
-	filename = x_basename(args->filename);
-	if (!filename) {
-		perror("x_basename");
-		goto cleanup;
-	} else if (strlen(filename) > 256) {
-		fprintf(stderr, "Filename exceeds maximum of 256 characters.\n");
-		goto cleanup;
-	}
-
-	sanitize_netascii(filename);
-	if (verbosity > 1) {
-		printf("%s -> %s\n", args->filename, filename);
-	}
-
-	pkt_mkwrq(tx, filename, "octet");
+	pkt_mkwrq(tx, args->filename);
 
 	len = tftp_sendto(sock, tx, 0, &addr);
 	if (len < 0) {
@@ -307,8 +294,6 @@ int tftp_put(struct nmrpd_args *args)
 	err = 0;
 
 cleanup:
-	free(filename);
-
 	if (fd >= 0) {
 		close(fd);
 	}
