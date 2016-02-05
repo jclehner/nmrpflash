@@ -202,8 +202,8 @@ int tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
 	uint16_t block;
-	ssize_t len;
-	int fd, sock, ret, timeout, last_len;
+	ssize_t len, last_len;
+	int fd, sock, ret, timeout;
 	char rx[TFTP_PKT_SIZE], tx[TFTP_PKT_SIZE];
 
 	sock = -1;
