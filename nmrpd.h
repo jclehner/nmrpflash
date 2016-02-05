@@ -66,7 +66,6 @@ struct nmrpd_args {
 	int force_root;
 };
 
-int sock_set_rx_timeout(int sock, unsigned msec);
 int tftp_put(struct nmrpd_args *args);
 int nmrp_do(struct nmrpd_args *args);
 

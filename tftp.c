@@ -182,7 +182,7 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 	return sent;
 }
 
-int sock_set_rx_timeout(int fd, unsigned msec)
+static int sock_set_rx_timeout(int fd, unsigned msec)
 {
 	struct timeval tv;
 
