@@ -17,13 +17,13 @@
  *
  */
 
-#define _BSD_SOURCE
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <ctype.h>
 #include "nmrpd.h"
 
 #define TFTP_PKT_SIZE 516
@@ -130,12 +130,18 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, struct sockaddr_in *src)
 	if (opcode == ERR) {
 		fprintf(stderr, "Error (%d): %.511s\n", pkt_num(pkt + 2), pkt + 4);
 		return -1;
-	} else if (!opcode || opcode > ERR) {
-		/* The EX2700 I've tested this on sends a raw TFTP packet with no
-		 * opcode, and an error message starting at offset 0.
+	} else if (isprint(pkt[0])) {
+		/* In case of a firmware checksum error, the EX2700 I've tested this
+		 * on sends a raw UDP packet containing just an error message starting
+		 * at offset 0. The limit of 32 chars is arbitrary.
 		 */
 		fprintf(stderr, "Error: %.32s\n", pkt);
 		return -3;
+	} else {
+		fprintf(stderr, "Received invalid packet: ");
+		pkt_print(pkt, stderr);
+		fprintf(stderr, ".\n");
+		return -2;
 	}
 
 	return len;
@@ -162,8 +168,9 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 			len = 4 + strlen(pkt + 4);
 			break;
 		default:
-			fprintf(stderr, "Error: Invalid packet ");
+			fprintf(stderr, "Attempted to send invalid packet ");
 			pkt_print(pkt, stderr);
+			fprintf(stderr, "; this is a bug!\n");
 			return -1;
 	}
 
