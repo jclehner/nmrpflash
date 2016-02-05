@@ -24,7 +24,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include <time.h>
-#include "ethsock.h"
 #include "nmrpd.h"
 
 #define NMRP_HDR_LEN 6

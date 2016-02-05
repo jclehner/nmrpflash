@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "nmrpd.h"
-#include "ethsock.h"
 
 int verbosity = 0;
 

@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "ethsock.h"
 #include "nmrpd.h"
 
 #if defined(NMRPFLASH_WINDOWS)
