@@ -280,7 +280,7 @@ int nmrp_do(struct nmrpd_args *args)
 	}
 
 	if ((ipaddr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
- 		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
+		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
 		return 1;
 	}
 
@@ -366,7 +366,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 	do {
 		if (expect != NMRP_C_NONE && rx.msg.code != expect) {
-			fprintf(stderr, "Received code 0x%02x while waiting for 0x%02x!\n", 
+			fprintf(stderr, "Received code 0x%02x while waiting for 0x%02x!\n",
 					rx.msg.code, expect);
 		}
 
