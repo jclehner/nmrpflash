@@ -158,7 +158,6 @@ static int msg_ntoh(struct nmrp_msg *msg)
 	struct nmrp_opt *opt = msg->opts;
 	int remaining;
 
-	msg_hdr_ntoh(msg);
 	remaining = msg->len - NMRP_HDR_LEN;
 
 	// FIXME maximum of two options supported, maximum option
