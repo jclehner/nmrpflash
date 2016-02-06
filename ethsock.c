@@ -94,7 +94,8 @@ void win_perror2(const char *msg, DWORD err)
 			(LPTSTR)&buf, 0, NULL);
 
 	if (buf) {
-		fprintf(stderr, "%s: %s (%d)\n", msg, buf, (int)err);
+		/* FormatMessageA terminates buf with CRLF! */
+		fprintf(stderr, "%s: %s", msg, buf);
 		LocalFree(buf);
 	} else {
 		fprintf(stderr, "%s: error %d\n", msg, (int)err);
@@ -210,7 +211,9 @@ static const char *intf_get_pretty_name(const char *intf)
 			"%s\\Connection", guid);
 	err = RegOpenKeyExA(HKEY_LOCAL_MACHINE, buf, 0, KEY_READ, &hkey);
 	if (err != ERROR_SUCCESS) {
-		win_perror2("RegOpenKeyExA", err);
+		if (verbosity > 1) {
+			win_perror2("RegOpenKeyExA", err);
+		}
 		return NULL;
 	}
 
@@ -219,7 +222,9 @@ static const char *intf_get_pretty_name(const char *intf)
 	if (err == ERROR_SUCCESS) {
 		intf = buf;
 	} else {
-		win_perror2("RegQueryValueExA", err);
+		if (verbosity > 1) {
+			win_perror2("RegQueryValueExA", err);
+		}
 		intf = NULL;
 	}
 
@@ -460,6 +465,9 @@ int ethsock_list_all(void)
 #ifndef NMRPFLASH_WINDOWS
 		printf("%s", dev->name);
 #else
+		/* Call this here so *_perror() calls don't happen within a line */
+		pretty = intf_get_pretty_name(dev->name);
+
 		if (!verbosity) {
 			printf("%s%u", NMRPFLASH_NETALIAS_PREFIX, dev_num);
 		} else {
@@ -483,7 +491,6 @@ int ethsock_list_all(void)
 				hwaddr[2], hwaddr[3], hwaddr[4], hwaddr[5]);
 
 #ifdef NMRPFLASH_WINDOWS
-		pretty = intf_get_pretty_name(dev->name);
 		if (pretty) {
 			printf("  (%s)", pretty);
 		} else if (dev->description) {
