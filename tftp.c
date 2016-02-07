@@ -150,7 +150,7 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 		 */
 		fprintf(stderr, "Error: %.32s\n", pkt);
 		return -3;
-	} else {
+	} else if (!opcode || opcode > ERR) {
 		fprintf(stderr, "Received invalid packet: ");
 		pkt_print(pkt, stderr);
 		fprintf(stderr, ".\n");
