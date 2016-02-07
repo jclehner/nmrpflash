@@ -272,7 +272,7 @@ int tftp_put(struct nmrpd_args *args)
 					ret = len;
 					goto cleanup;
 				} else if (!len) {
-					if (last_len != 512) {
+					if (last_len != 512 && last_len != -1) {
 						break;
 					}
 				}
