@@ -111,10 +111,16 @@ static inline void pkt_print(char *pkt, FILE *fp)
 	}
 }
 
-static ssize_t tftp_recvfrom(int sock, char *pkt, struct sockaddr_in *src,
+static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 		unsigned timeout)
 {
 	ssize_t len;
+	struct sockaddr_in src;
+#ifndef NMRPFLASH_WINDOWS
+	socklen_t alen;
+#else
+	int alen;
+#endif
 
 	len = select_fd(sock, timeout);
 	if (len < 0) {
@@ -123,11 +129,14 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, struct sockaddr_in *src,
 		return 0;
 	}
 
-	len = recvfrom(sock, pkt, TFTP_PKT_SIZE, 0, NULL, NULL);
+	alen = sizeof(src);
+	len = recvfrom(sock, pkt, TFTP_PKT_SIZE, 0, (struct sockaddr*)&src, &alen);
 	if (len < 0) {
 		sock_perror("recvfrom");
 		return -1;
 	}
+
+	*port = ntohs(src.sin_port);
 
 	uint16_t opcode = pkt_num(pkt);
 
@@ -201,7 +210,7 @@ inline void sock_perror(const char *msg)
 int tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
-	uint16_t block;
+	uint16_t block, port;
 	ssize_t len, last_len;
 	int fd, sock, ret, timeout;
 	char rx[TFTP_PKT_SIZE], tx[TFTP_PKT_SIZE];
@@ -269,7 +278,7 @@ int tftp_put(struct nmrpd_args *args)
 			fprintf(stderr, "!\n");
 		}
 
-		ret = tftp_recvfrom(sock, rx, &addr, args->rx_timeout);
+		ret = tftp_recvfrom(sock, rx, &port, args->rx_timeout);
 		if (ret < 0) {
 			goto cleanup;
 		} else if (!ret) {
@@ -281,6 +290,13 @@ int tftp_put(struct nmrpd_args *args)
 		} else {
 			timeout = 0;
 			ret = 0;
+
+			if (!block && port != args->port) {
+				if (verbosity > 1) {
+					printf("Switching to port %d\n", port);
+				}
+				addr.sin_port = htons(port);
+			}
 		}
 	} while(1);
 
