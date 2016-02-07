@@ -446,8 +446,8 @@ int ethsock_list_all(void)
 	memset(hwaddr, 0, 6);
 
 	for (dev = devs; dev; dev = dev->next) {
-		if (!is_ethernet(dev->name)) {
-			if (verbosity > 1) {
+		if (!is_ethernet(dev->name) || dev->flags & PCAP_IF_LOOPBACK) {
+			if (verbosity) {
 				printf("%s  (not an ethernet device)\n",
 						dev->name);
 			}
@@ -455,7 +455,7 @@ int ethsock_list_all(void)
 		}
 
 		if (!get_hwaddr(hwaddr, dev->name)) {
-			if (verbosity > 1) {
+			if (verbosity) {
 				printf("%s  (failed to get hardware address)\n",
 						dev->name);
 			}
@@ -463,7 +463,7 @@ int ethsock_list_all(void)
 		}
 
 #ifndef NMRPFLASH_WINDOWS
-		printf("%s", dev->name);
+		printf("%-15s", dev->name);
 #else
 		/* Call this here so *_perror() calls don't happen within a line */
 		pretty = intf_get_pretty_name(dev->name);
@@ -477,14 +477,14 @@ int ethsock_list_all(void)
 
 		for (addr = dev->addresses; addr; addr = addr->next) {
 			if (addr->addr->sa_family == AF_INET) {
-				printf("  %15s",
+				printf("  %-15s",
 						inet_ntoa(((struct sockaddr_in*)addr->addr)->sin_addr));
 				break;
 			}
 		}
 
 		if (!addr) {
-			printf("                 ");
+			printf("  %-15s", "0.0.0.0");
 		}
 
 		printf("  %02x:%02x:%02x:%02x:%02x:%02x", hwaddr[0], hwaddr[1],
