@@ -85,7 +85,7 @@ static void pkt_mkwrq(char *pkt, const char *filename)
 
 	filename = leafname(filename);
 	if (!is_netascii(filename) || strlen(filename) > 500) {
-		fprintf(stderr, "Overlong/illegal filename; using 'firmware.bin'.");
+		fprintf(stderr, "Overlong/illegal filename; using 'firmware.bin'.\n");
 		filename = "firmware.bin";
 	}
 
@@ -157,6 +157,12 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 		return -2;
 	}
 
+	if (verbosity > 2) {
+		printf(">> ");
+		pkt_print(pkt, stdout);
+		printf("\n");
+	}
+
 	return len;
 }
 
@@ -185,6 +191,12 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 			pkt_print(pkt, stderr);
 			fprintf(stderr, "; this is a bug!\n");
 			return -1;
+	}
+
+	if (verbosity > 2) {
+		printf("<< ");
+		pkt_print(pkt, stdout);
+		printf("\n");
 	}
 
 	sent = sendto(sock, pkt, len, 0, (struct sockaddr*)dst, sizeof(*dst));
