@@ -14,7 +14,7 @@ nmrp.o: nmrp.c nmrpd.h
 tftp.o: tftp.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o tftp.o tftp.c
 
-ethsock.o: ethsock.c ethsock.h
+ethsock.o: ethsock.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o ethsock.o ethsock.c
 
 main.o: main.c nmrpd.h
