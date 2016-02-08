@@ -1,9 +1,10 @@
 CC ?= gcc
 PREFIX ?= /usr/local
-CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(shell git describe --always)\"
+VERSION = $(shell git describe --always)
+CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 LIBS = -lpcap
 
-.PHONY: clean install release release/osx release/linux
+.PHONY: clean install release release/osx release/linux release/win32
 
 nmrpflash: nmrp.o tftp.o ethsock.o main.o
 	$(CC) $(CFLAGS) -o nmrpflash nmrp.o tftp.o ethsock.o main.o $(LIBS)
@@ -28,9 +29,13 @@ install: nmrpflash
 
 release/osx:
 	CFLAGS="-arch i686 -arch x86_64" make release
+	zip nmrpflash-osx.zip nmrpflash
 
 release/linux: release
-	cp nmrpflash binaries/linux/
+	zip nmrpflash-linux.zip nmrpflash
+
+release/win32:
+	zip nmrpflash-win32.zip nmrpflash.exe
 
 release: clean nmrpflash
 	strip nmrpflash
