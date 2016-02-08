@@ -1,0 +1,10 @@
+*.o
+*.swp
+*.img
+*.pcap
+*.dni
+nmrp-flash
+nmrp-flash.exe
+Makefile.win
+WpdPack/
+Obj/
