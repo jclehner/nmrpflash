@@ -7,7 +7,7 @@ to flash a new firmware image to a compatible device. This utility has been
 tested with a Netgear EX2700, but is likely to work on many others as well.
 
 Prebuilt binaries for Linux, OS X and Windows are available
-[here](https://github.com/jclehner/nmrp-flash/releases).
+[here](https://github.com/jclehner/nmrpflash/releases).
 
 ````
 Usage: nmrpflash [OPTIONS...]
