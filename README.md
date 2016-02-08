@@ -71,6 +71,15 @@ The router did not respond. Try running `nmrpflash` with `-m` and specify
 your router's MAC address. It's also entirely possible that your device does
 not support the NMRP protocol.
 
+###### Timeout while waiting for 0x04.
+
+After a successful file upload, `nmrpflash` waits for up to 60 seconds for an
+answer from your device. You can increase this by specifying a longer timeout
+using `-T` switch (argument is in milliseconds). 
+
+It's entirely possible that the image was flashed successfully, but the
+operation took longer than 60 seconds.
+
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
 
