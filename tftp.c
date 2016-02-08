@@ -149,12 +149,12 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 		 * at offset 0. The limit of 32 chars is arbitrary.
 		 */
 		fprintf(stderr, "Error: %.32s\n", pkt);
-		return -3;
+		return -2;
 	} else if (!opcode || opcode > ERR) {
 		fprintf(stderr, "Received invalid packet: ");
 		pkt_print(pkt, stderr);
 		fprintf(stderr, ".\n");
-		return -2;
+		return -1;
 	}
 
 	if (verbosity > 2) {
@@ -307,8 +307,12 @@ int tftp_put(struct nmrpd_args *args)
 		} else if (!ret) {
 			if (++timeout < 5) {
 				continue;
+			} else if (block) {
+				fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);
+			} else {
+				fprintf(stderr, "Timeout while waiting for initial reply.\n");
 			}
-			fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);
+			ret = -1;
 			goto cleanup;
 		} else {
 			timeout = 0;
