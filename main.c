@@ -23,8 +23,6 @@
 #include <stdio.h>
 #include "nmrpd.h"
 
-#define NMRPFLASH_TFTP_TEST
-
 int verbosity = 0;
 
 void usage(FILE *fp)
