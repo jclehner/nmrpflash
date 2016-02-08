@@ -446,9 +446,16 @@ int ethsock_list_all(void)
 	memset(hwaddr, 0, 6);
 
 	for (dev = devs; dev; dev = dev->next) {
-		if (!is_ethernet(dev->name) || dev->flags & PCAP_IF_LOOPBACK) {
+		if (dev->flags & PCAP_IF_LOOPBACK) {
 			if (verbosity) {
-				printf("%s  (not an ethernet device)\n",
+				printf("%-15s  (loopback device)\n", dev->name);
+			}
+			continue;
+		}
+
+		if (!is_ethernet(dev->name)) {
+			if (verbosity) {
+				printf("%-15s  (not an ethernet device)\n",
 						dev->name);
 			}
 			continue;
@@ -456,7 +463,7 @@ int ethsock_list_all(void)
 
 		if (!get_hwaddr(hwaddr, dev->name)) {
 			if (verbosity) {
-				printf("%s  (failed to get hardware address)\n",
+				printf("%-15s  (failed to get hardware address)\n",
 						dev->name);
 			}
 			continue;
