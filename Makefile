@@ -22,7 +22,7 @@ main.o: main.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o main.o main.c
 
 clean:
-	rm -f nmrp.o tftp.o main.o ethsock.o nmrpflash nmrpflash.exe
+	rm -f nmrp.o tftp.o main.o ethsock.o nmrpflash
 
 install: nmrpflash
 	install -m 755 nmrpflash $(PREFIX)/bin
