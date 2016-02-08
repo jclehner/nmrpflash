@@ -3,7 +3,7 @@ PREFIX ?= /usr/local
 CFLAGS += -Wall -g
 LIBS = -lpcap
 
-.PHONY: clean install
+.PHONY: clean install release release/osx release/linux
 
 nmrp-flash: nmrp.o tftp.o ethsock.o main.o
 	$(CC) $(CFLAGS) -o nmrp-flash nmrp.o tftp.o ethsock.o main.o $(LIBS)
@@ -26,3 +26,10 @@ clean:
 install: nmrp-flash
 	install -m 755 nmrp-flash $(PREFIX)/bin
 
+release/osx:
+	make clean release CFLAGS="-arch i686 -arch x86_64"
+
+release/linux: release
+
+release: nmrp-flash
+	strip nmrp-flash
