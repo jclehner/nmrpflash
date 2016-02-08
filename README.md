@@ -6,12 +6,33 @@ This program uses Netgear's [NMRP protocol]
 to flash a new firmware image to a compatible device. This utility has been
 tested with a Netgear EX2700, but is likely to work on many others as well.
 
+Prebuilt binaries for Linux, OS X and Windows are available
+[here](https://github.com/jclehner/nmrp-flash/releases).
+
+````
+Usage: nmrpflash [OPTIONS...]
+
+Options (-a, -i and -f are mandatory):
+ -a <ipaddr>     IP address to assign to target device
+ -f <firmware>   Firmware file
+ -i <interface>  Network interface directly connected to device
+ -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)
+ -M <netmask>    Subnet mask to assign to target device
+ -t <timeout>    Timeout (in milliseconds) for regular messages
+ -T <timeout>    Time to wait after successfull TFTP upload
+ -p <port>       Port to use for TFTP upload
+ -U              Test TFTP upload
+ -v              Be verbose
+ -V              Print version and exit
+ -L              List network interfaces
+ -h              Show this screen
+````
+
 ### Using nmrpflash
 
 Connect your Netgear router to your computer using a network cable.
-Assign a static IP address to your computer (more specifically, to 
-the network card that's plugged into the Netgear router).
-
+Assign a static IP address to the network adapter that's plugged into
+the Netgear router.
 
 For this example, we'll assume that your network interface is `eth0`.
 First, we have to assign a static IP address to our network interface.
@@ -37,6 +58,18 @@ Uploading EX2700-V1.0.1.8.img ... OK
 Waiting for remote to respond.
 Remote finished. Closing connection.
 ````
+
+### Common issues
+###### No suitable network interfaces found.
+
+If you're *not* on Windows, rerun `nmrpflash -L` using `sudo`. In any case,
+use `-vvvL` to see more detailed messages, and file a bug report if applicable.
+
+###### No response after 60 seconds. Bailing out.
+
+The router did not respond. Try running `nmrpflash` with `-m` and specify
+your router's MAC address. It's also entirely possible that your device does
+not support the NMRP protocol.
 
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
