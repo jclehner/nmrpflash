@@ -319,7 +319,10 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 		goto cleanup_pcap;
 	}
 
-	if ((err = pcap_setfilter(sock->pcap, &fp))) {
+	err = pcap_setfilter(sock->pcap, &fp);
+	pcap_freecode(&fp);
+
+	if (err) {
 		pcap_perror(sock->pcap, "pcap_setfilter");
 		goto cleanup_pcap;
 	}
