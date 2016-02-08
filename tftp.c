@@ -222,9 +222,9 @@ inline void sock_perror(const char *msg)
 int tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
-	uint16_t block, ackblock, port;
+	uint16_t block, port;
 	ssize_t len, last_len;
-	int fd, sock, ret, timeout, errors;
+	int fd, sock, ret, timeout, errors, ackblock;
 	char rx[TFTP_PKT_SIZE], tx[TFTP_PKT_SIZE];
 
 	sock = -1;
