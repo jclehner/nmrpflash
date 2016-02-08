@@ -36,6 +36,14 @@ struct ethsock
 	uint8_t hwaddr[6];
 };
 
+const char *mac_to_str(uint8_t *mac)
+{
+	static char buf[18];
+	snprintf(buf, sizeof(buf), "%02x:%02x:%02x:%02x:%02x:%02x",
+			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	return buf;
+}
+
 static int x_pcap_findalldevs(pcap_if_t **devs)
 {
 	char errbuf[PCAP_ERRBUF_SIZE];
@@ -169,7 +177,7 @@ static const char *intf_alias_to_wpcap(const char *intf)
 		return NULL;
 	}
 
-	for (dev = devs; dev; dev = dev->next) {
+	for (dev = devs; dev; dev = dev->next, ++i) {
 		if (i == dev_num) {
 			if (verbosity) {
 				printf("%s%u: %s\n", NMRPFLASH_NETALIAS_PREFIX, i, dev->name);
@@ -294,9 +302,17 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 		fprintf(stderr, "No event handle available.\n");
 		goto cleanup_pcap;
 	}
+
+	err = pcap_setmintocopy(sock->pcap, 1);
+	if (err) {
+		pcap_perror(sock->pcap, "pcap_setmintocopy");
+		goto cleanup_pcap;
+	}
 #endif
 
-	snprintf(buf, sizeof(buf), "ether proto 0x%04x", protocol);
+	snprintf(buf, sizeof(buf), "ether proto 0x%04x and not ether src %s",
+			protocol, mac_to_str(sock->hwaddr));
+
 	err = pcap_compile(sock->pcap, &fp, buf, 0, 0);
 	if (err) {
 		pcap_perror(sock->pcap, "pcap_compile");
@@ -434,7 +450,7 @@ int ethsock_list_all(void)
 	pcap_if_t *devs, *dev;
 	pcap_addr_t *addr;
 	uint8_t hwaddr[6];
-	unsigned dev_num = 0;
+	unsigned dev_num = 0, dev_ok = 0;
 #ifdef NMRPFLASH_WINDOWS
 	const char *pretty;
 #endif
@@ -445,7 +461,7 @@ int ethsock_list_all(void)
 
 	memset(hwaddr, 0, 6);
 
-	for (dev = devs; dev; dev = dev->next) {
+	for (dev = devs; dev; dev = dev->next, ++dev_num) {
 		if (dev->flags & PCAP_IF_LOOPBACK) {
 			if (verbosity) {
 				printf("%-15s  (loopback device)\n", dev->name);
@@ -506,10 +522,10 @@ int ethsock_list_all(void)
 
 #endif
 		printf("\n");
-		++dev_num;
+		++dev_ok;
 	}
 
-	if (!dev_num) {
+	if (!dev_ok) {
 		printf("No suitable network interfaces found.\n");
 	}
 

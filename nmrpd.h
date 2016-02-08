@@ -68,7 +68,9 @@ struct nmrpd_args {
 
 int tftp_put(struct nmrpd_args *args);
 int nmrp_do(struct nmrpd_args *args);
+
 int select_fd(int fd, unsigned timeout);
+const char *mac_to_str(uint8_t *mac);
 
 #ifdef NMRPFLASH_WINDOWS
 void win_perror2(const char *msg, DWORD err);
