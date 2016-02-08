@@ -60,8 +60,10 @@ static const char *leafname(const char *path)
 
 static bool is_netascii(const char *str)
 {
-	for (; *str; ++str) {
-		if (*str < 0x20 || *str > 0x7f) {
+	uint8_t *p = (uint8_t*)str;
+
+	for (; *p; ++p) {
+		if (*p < 0x20 || *p > 0x7f) {
 			return false;
 		}
 	}
