@@ -296,7 +296,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	}
 #endif
 
-	snprintf(buf, sizeof(buf), "ether proto %04x", protocol);
+	snprintf(buf, sizeof(buf), "ether proto 0x%04x", protocol);
 	err = pcap_compile(sock->pcap, &fp, buf, 0, 0);
 	if (err) {
 		pcap_perror(sock->pcap, "pcap_compile");
