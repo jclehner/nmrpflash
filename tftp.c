@@ -262,7 +262,11 @@ int tftp_put(struct nmrpd_args *args)
 	pkt_mkwrq(tx, args->filename);
 
 	do {
-		ackblock = pkt_num(rx) == ACK ? pkt_num(rx + 2) : -1;
+		if (!timeout && pkt_num(rx) == ACK) {
+			ackblock = pkt_num(rx + 2);
+		} else {
+			ackblock = -1;
+		}
 
 		if (timeout || ackblock == block) {
 			if (!timeout) {
