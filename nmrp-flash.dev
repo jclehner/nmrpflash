@@ -1,6 +1,6 @@
 [Project]
-FileName=nmrp-flash.dev
-Name=nmrp-flash
+FileName=nmrpflash.dev
+Name=nmrpflash
 Type=1
 Ver=2
 ObjFiles=
@@ -19,7 +19,7 @@ ObjectOutput=Obj
 LogOutput=
 LogOutputEnabled=0
 OverrideOutput=0
-OverrideOutputName=nmrp-flash.exe
+OverrideOutputName=nmrpflash.exe
 HostApplication=
 UseCustomMakefile=0
 CustomMakefile=

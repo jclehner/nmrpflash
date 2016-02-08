@@ -5,8 +5,8 @@ LIBS = -lpcap
 
 .PHONY: clean install release release/osx release/linux
 
-nmrp-flash: nmrp.o tftp.o ethsock.o main.o
-	$(CC) $(CFLAGS) -o nmrp-flash nmrp.o tftp.o ethsock.o main.o $(LIBS)
+nmrpflash: nmrp.o tftp.o ethsock.o main.o
+	$(CC) $(CFLAGS) -o nmrpflash nmrp.o tftp.o ethsock.o main.o $(LIBS)
 
 nmrp.o: nmrp.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o nmrp.o nmrp.c
@@ -21,17 +21,16 @@ main.o: main.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o main.o main.c
 
 clean:
-	rm -f nmrp.o tftp.o main.o ethsock.o nmrp-flash nmrp-flash.exe
+	rm -f nmrp.o tftp.o main.o ethsock.o nmrpflash nmrpflash.exe
 
-install: nmrp-flash
-	install -m 755 nmrp-flash $(PREFIX)/bin
+install: nmrpflash
+	install -m 755 nmrpflash $(PREFIX)/bin
 
 release/osx:
 	CFLAGS="-arch i686 -arch x86_64" make release
-	cp nmrp-flash binaries/osx/
 
 release/linux: release
-	cp nmrp-flash binaries/linux/
+	cp nmrpflash binaries/linux/
 
-release: clean nmrp-flash
-	strip nmrp-flash
+release: clean nmrpflash
+	strip nmrpflash
