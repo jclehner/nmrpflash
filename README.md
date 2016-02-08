@@ -73,12 +73,12 @@ not support the NMRP protocol.
 
 ###### Timeout while waiting for 0x04.
 
-After a successful file upload, `nmrpflash` waits for up to 60 seconds for an
+After a successful file upload, `nmrpflash` waits for up to 120 seconds for an
 answer from your device. You can increase this by specifying a longer timeout
 using `-T` switch (argument is in seconds).
 
 It's entirely possible that the image was flashed successfully, but the
-operation took longer than 60 seconds.
+operation took longer than 120 seconds.
 
 ### Building and installing
 ###### Linux, Mac OS X, BSDs

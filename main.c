@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 	int c, val, max;
 	struct nmrpd_args args = {
 		.rx_timeout = 200,
-		.ul_timeout = 60000,
+		.ul_timeout = 120000,
 		.tftpcmd = NULL,
 		.filename = NULL,
 		.ipaddr = NULL,
