@@ -27,7 +27,7 @@ install: nmrp-flash
 	install -m 755 nmrp-flash $(PREFIX)/bin
 
 release/osx:
-	make release CFLAGS="-arch i686 -arch x86_64"
+	CFLAGS="-arch i686 -arch x86_64" make release
 	cp nmrp-flash binaries/osx/
 
 release/linux: release
