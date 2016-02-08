@@ -132,25 +132,30 @@ int main(int argc, char **argv)
 				break;
 			case 'V':
 				printf("nmrp-flash v%s\n", NMRPD_VERSION);
-				return 0;
+				val = 0;
+				goto out;
 			case 'v':
 				++verbosity;
 				break;
 			case 'L':
-				return ethsock_list_all();
+				val = ethsock_list_all();
+				goto out;
 			case 'h':
 				usage(stdout);
-				return 0;
+				val = 0;
+				goto out;
 #ifdef NMRPFLASH_TFTP_TEST
 			case 'U':
 				if (args.ipaddr && args.filename) {
-					return tftp_put(&args);
+					val = tftp_put(&args);
+					goto out;
 				}
 				/* fall through */
 #endif
 			default:
 				usage(stderr);
-				return 1;
+				val = 1;
+				goto out;
 		}
 	}
 
@@ -167,6 +172,8 @@ int main(int argc, char **argv)
 #endif
 
 	val = nmrp_do(&args);
+
+out:
 #ifdef NMRPFLASH_WINDOWS
 	WSACleanup();
 #endif
