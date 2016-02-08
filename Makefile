@@ -28,7 +28,7 @@ install: nmrpflash
 	install -m 755 nmrpflash $(PREFIX)/bin
 
 release/osx:
-	CFLAGS="-arch i686 -arch x86_64" make release
+	CFLAGS="-arch i686 -arch x86_64 -mmacosx-version-min=10.6" make release
 	zip nmrpflash-osx.zip nmrpflash
 
 release/linux: release
