@@ -222,9 +222,9 @@ inline void sock_perror(const char *msg)
 int tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
-	uint16_t block, port;
+	uint16_t block, ackblock, port;
 	ssize_t len, last_len;
-	int fd, sock, ret, timeout;
+	int fd, sock, ret, timeout, errors;
 	char rx[TFTP_PKT_SIZE], tx[TFTP_PKT_SIZE];
 
 	sock = -1;
@@ -255,13 +255,16 @@ int tftp_put(struct nmrpd_args *args)
 	block = 0;
 	last_len = -1;
 	len = 0;
+	errors = 0;
 	/* Not really, but this way the loop sends our WRQ before receiving */
 	timeout = 1;
 
 	pkt_mkwrq(tx, args->filename);
 
 	do {
-		if (timeout || (pkt_num(rx) == ACK && pkt_num(rx + 2) == block)) {
+		ackblock = pkt_num(rx) == ACK ? pkt_num(rx + 2) : -1;
+
+		if (timeout || ackblock == block) {
 			if (!timeout) {
 				++block;
 				pkt_mknum(tx, DATA);
@@ -284,10 +287,18 @@ int tftp_put(struct nmrpd_args *args)
 			if (ret < 0) {
 				goto cleanup;
 			}
-		} else if (pkt_num(rx) != ACK) {
-			fprintf(stderr, "Expected ACK(%d), got ", block);
-			pkt_print(rx, stderr);
-			fprintf(stderr, "!\n");
+		} else if (pkt_num(rx) != ACK || ackblock > block) {
+			if (verbosity) {
+				fprintf(stderr, "Expected ACK(%d), got ", block);
+				pkt_print(rx, stderr);
+				fprintf(stderr, ".\n");
+			}
+
+			if (ackblock != -1 && ++errors > 5) {
+				fprintf(stderr, "Protocol error; bailing out.\n");
+				ret = -1;
+				goto cleanup;
+			}
 		}
 
 		ret = tftp_recvfrom(sock, rx, &port, args->rx_timeout);
