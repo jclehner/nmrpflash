@@ -2,11 +2,12 @@ CC ?= gcc
 PREFIX ?= /usr/local
 CFLAGS = -Wall -g
 LIBS = -lpcap
+LDFLAGS = $(LIBS)
 
 .PHONY: clean install
 
 nmrp-flash: nmrp.o tftp.o ethsock.o main.o
-	$(CC) $(CFLAGS) -o nmrp-flash nmrp.o tftp.o ethsock.o main.o $(LIBS)
+	$(CC) $(CFLAGS) -o nmrp-flash nmrp.o tftp.o ethsock.o main.o $(LDFLAGS)
 
 nmrp.o: nmrp.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o nmrp.o nmrp.c
