@@ -29,7 +29,7 @@ IncludeVersionInfo=0
 SupportXPThemes=0
 CompilerSet=3
 CompilerSettings=0000000100100000000001000
-UnitCount=6
+UnitCount=5
 
 [VersionInfo]
 Major=1
@@ -91,16 +91,6 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit5]
-FileName=ethsock.h
-CompileCpp=0
-Folder=
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit6]
 FileName=nmrpd.h
 CompileCpp=0
 Folder=
@@ -109,4 +99,3 @@ Link=1
 Priority=1000
 OverrideBuildCmd=0
 BuildCmd=
-
