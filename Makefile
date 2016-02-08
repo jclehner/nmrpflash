@@ -1,6 +1,6 @@
 CC ?= gcc
 PREFIX ?= /usr/local
-CFLAGS = -Wall -g
+CFLAGS += -Wall -g
 LIBS = -lpcap
 
 .PHONY: clean install
@@ -21,7 +21,7 @@ main.o: main.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o main.o main.c
 
 clean:
-	rm -f nmrp.o tftp.o main.o nmrp-flash
+	rm -f nmrp.o tftp.o main.o ethsock.o nmrp-flash nmrp-flash.exe
 
 install: nmrp-flash
 	install -m 755 nmrp-flash $(PREFIX)/bin
