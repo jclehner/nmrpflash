@@ -37,7 +37,7 @@ void usage(FILE *fp)
 			" -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)\n"
 			" -M <netmask>    Subnet mask to assign to target device\n"
 			" -t <timeout>    Timeout (in milliseconds) for regular messages\n"
-			" -T <timeout>    Time to wait after successfull TFTP upload\n"
+			" -T <timeout>    Time (seconds) to wait after successfull TFTP upload\n"
 			" -p <port>       Port to use for TFTP upload\n"
 #ifdef NMRPFLASH_TFTP_TEST
 			" -U              Test TFTP upload\n"
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
 				} else if (c == 't') {
 					args.rx_timeout = val;
 				} else {
-					args.ul_timeout = val;
+					args.ul_timeout = val * 1000;
 				}
 
 				break;
