@@ -1,19 +1,19 @@
 /**
- * nmrp-flash - Netgear Unbrick Utility
+ * nmrpflash - Netgear Unbrick Utility
  * Copyright (C) 2016 Joseph Lehner <joseph.c.lehner@gmail.com>
  *
- * nmrp-flash is free software: you can redistribute it and/or modify
+ * nmrpflash is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * nmrp-flash is distributed in the hope that it will be useful,
+ * nmrpflash is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with nmrp-flash.  If not, see <http://www.gnu.org/licenses/>.
+ * along with nmrpflash.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +30,7 @@ int verbosity = 0;
 void usage(FILE *fp)
 {
 	fprintf(fp,
-			"Usage: nmrp-flash [OPTIONS...]\n"
+			"Usage: nmrpflash [OPTIONS...]\n"
 			"\n"
 			"Options (-a, -i and -f are mandatory):\n"
 			" -a <ipaddr>     IP address to assign to target device\n"
@@ -52,14 +52,14 @@ void usage(FILE *fp)
 			"Example:\n"
 			"\n"
 #ifndef NMRPFLASH_WINDOWS
-			"$ sudo nmrp-flash -i eth0 -a 192.168.1.254 -f firmware.bin\n"
+			"$ sudo nmrpflash -i eth0 -a 192.168.1.254 -f firmware.bin\n"
 #else
-			"C:\\> nmrp-flash.exe -i net0 -a 192.168.1.254 -f firmware.bin\n"
+			"C:\\> nmrpflash.exe -i net0 -a 192.168.1.254 -f firmware.bin\n"
 #endif
 			"\n"
-			"nmrp-flash %s, Copyright (C) 2016 Joseph C. Lehner\n"
-			"nmrp-flash is free software, licensed under the GNU GPLv3.\n"
-			"Source code at https://github.com/jclehner/nmrp-flash\n"
+			"nmrpflash %s, Copyright (C) 2016 Joseph C. Lehner\n"
+			"nmrpflash is free software, licensed under the GNU GPLv3.\n"
+			"Source code at https://github.com/jclehner/nmrpflash\n"
 			"\n",
 			NMRPFLASH_VERSION
 	  );
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 
 				break;
 			case 'V':
-				printf("nmrp-flash %s\n", NMRPFLASH_VERSION);
+				printf("nmrpflash %s\n", NMRPFLASH_VERSION);
 				val = 0;
 				goto out;
 			case 'v':
