@@ -213,8 +213,9 @@ static int pkt_recv(struct ethsock *sock, struct nmrp_pkt *pkt)
 	msg_hdr_ntoh(&pkt->msg);
 	len = pkt->msg.len + sizeof(pkt->eh);
 
-	if (bytes != len) {
-		fprintf(stderr, "Unexpected message length (%d bytes).\n", (int)len);
+	if (bytes < len) {
+		fprintf(stderr, "Short packet (expected %d, got %d).\n",
+				(int)len, (int)bytes);
 		return 1;
 	}
 
