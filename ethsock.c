@@ -510,8 +510,7 @@ int ethsock_list_all(void)
 			printf("  %-15s", "0.0.0.0");
 		}
 
-		printf("  %02x:%02x:%02x:%02x:%02x:%02x", hwaddr[0], hwaddr[1],
-				hwaddr[2], hwaddr[3], hwaddr[4], hwaddr[5]);
+		printf("  %s", mac_to_str(hwaddr));
 
 #ifdef NMRPFLASH_WINDOWS
 		if (pretty) {

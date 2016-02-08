@@ -381,11 +381,8 @@ int nmrp_do(struct nmrpd_args *args)
 
 		switch (rx.msg.code) {
 			case NMRP_C_ADVERTISE:
-				printf("Received NMRP advertisement from "
-						"%02x:%02x:%02x:%02x:%02x:%02x.\n",
-						rx.eh.ether_shost[0], rx.eh.ether_shost[1],
-						rx.eh.ether_shost[2], rx.eh.ether_shost[3],
-						rx.eh.ether_shost[4], rx.eh.ether_shost[5]);
+				printf("Received NMRP advertisement from %s.\n",
+						mac_to_str(rx.eh.ether_shost));
 				err = 1;
 				goto out;
 			case NMRP_C_CONF_REQ:
@@ -403,11 +400,8 @@ int nmrp_do(struct nmrpd_args *args)
 
 				expect = NMRP_C_TFTP_UL_REQ;
 
-				printf("Received configuration request from "
-						"%02x:%02x:%02x:%02x:%02x:%02x.\n",
-						rx.eh.ether_shost[0], rx.eh.ether_shost[1],
-						rx.eh.ether_shost[2], rx.eh.ether_shost[3],
-						rx.eh.ether_shost[4], rx.eh.ether_shost[5]);
+				printf("Received configuration request from %s.\n",
+						mac_to_str(rx.eh.ether_shost));
 
 				memcpy(tx.eh.ether_dhost, rx.eh.ether_shost, 6);
 
