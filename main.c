@@ -57,11 +57,11 @@ void usage(FILE *fp)
 			"C:\\> nmrp-flash.exe -i net0 -a 192.168.1.254 -f firmware.bin\n"
 #endif
 			"\n"
-			"nmrp-flash v%s, Copyright (C) 2016 Joseph C. Lehner\n"
+			"nmrp-flash %s, Copyright (C) 2016 Joseph C. Lehner\n"
 			"nmrp-flash is free software, licensed under the GNU GPLv3.\n"
 			"Source code at https://github.com/jclehner/nmrp-flash\n"
 			"\n",
-			NMRPD_VERSION
+			NMRPFLASH_VERSION
 	  );
 }
 
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 
 				break;
 			case 'V':
-				printf("nmrp-flash v%s\n", NMRPD_VERSION);
+				printf("nmrp-flash %s\n", NMRPFLASH_VERSION);
 				val = 0;
 				goto out;
 			case 'v':

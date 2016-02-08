@@ -1,6 +1,6 @@
 CC ?= gcc
 PREFIX ?= /usr/local
-CFLAGS += -Wall -g
+CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(shell git describe --always)\"
 LIBS = -lpcap
 
 .PHONY: clean install release release/osx release/linux
@@ -28,8 +28,10 @@ install: nmrp-flash
 
 release/osx:
 	make release CFLAGS="-arch i686 -arch x86_64"
+	cp nmrp-flash binaries/osx/
 
 release/linux: release
+	cp nmrp-flash binaries/linux/
 
 release: clean nmrp-flash
 	strip nmrp-flash

@@ -44,8 +44,6 @@
 #include <windows.h>
 #endif
 
-#define NMRPD_VERSION "0.9"
-
 enum nmrp_op {
 	NMRP_UPLOAD_FW = 0,
 	NMRP_UPLOAD_ST = 1,
