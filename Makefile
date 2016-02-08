@@ -1,10 +1,10 @@
 CC ?= gcc
 PREFIX ?= /usr/local
-CFLAGS = -Wall -g
+CFLAGS += -Wall -g
 LIBS = -lpcap
 LDFLAGS = $(LIBS)
 
-.PHONY: clean install
+.PHONY: clean install release release/osx release/linux
 
 nmrp-flash: nmrp.o tftp.o ethsock.o main.o
 	$(CC) $(CFLAGS) -o nmrp-flash nmrp.o tftp.o ethsock.o main.o $(LDFLAGS)
@@ -22,8 +22,15 @@ main.o: main.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o main.o main.c
 
 clean:
-	rm -f nmrp.o tftp.o main.o nmrp-flash
+	rm -f nmrp.o tftp.o main.o ethsock.o nmrp-flash nmrp-flash.exe
 
 install: nmrp-flash
 	install -m 755 nmrp-flash $(PREFIX)/bin
 
+release/osx:
+	make clean release CFLAGS="-arch i686 -arch x86_64"
+
+release/linux: release
+
+release: nmrp-flash
+	strip nmrp-flash
