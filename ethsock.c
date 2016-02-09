@@ -13,8 +13,10 @@
 #include <pcap.h>
 #include <ifaddrs.h>
 #if defined(NMRPFLASH_LINUX)
+#define NMRPFLASH_AF_ETHERNET AF_PACKET
 #include <linux/if_packet.h>
 #elif defined (NMRPFLASH_OSX)
+#define NMRPFLASH_AF_ETHERNET AF_LINK
 #include <net/if_dl.h>
 #endif
 #endif
@@ -71,15 +73,12 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 
 	for (ifa = ifas; ifa; ifa = ifa->ifa_next) {
 		if (!strcmp(ifa->ifa_name, intf)) {
-#ifdef NMRPFLASH_LINUX
-			if (ifa->ifa_addr->sa_family != AF_PACKET) {
+			if (ifa->ifa_addr->sa_family != NMRPFLASH_AF_ETHERNET) {
 				continue;
 			}
+#ifdef NMRPFLASH_LINUX
 			src = ((struct sockaddr_ll*)ifa->ifa_addr)->sll_addr;
 #else
-			if (ifa->ifa_addr->sa_family != AF_LINK) {
-				continue;
-			}
 			src = LLADDR((struct sockaddr_dl*)ifa->ifa_addr);
 #endif
 			memcpy(hwaddr, src, 6);
@@ -432,13 +431,30 @@ inline int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
 	return 0;
 }
 
-static bool is_ethernet(const char *intf)
+static bool is_ethernet(const pcap_if_t *dev)
 {
 	pcap_t *pcap;
+	pcap_addr_t *addr;
+	int i;
 	char errbuf[PCAP_ERRBUF_SIZE];
 	bool ret = false;
 
-	if ((pcap = pcap_create(intf, errbuf))) {
+	for (addr = dev->addresses; addr; addr = addr->next) {
+		if (verbosity > 1) {
+			printf("%s: sa_family=%d, sa_data={ ", dev->name,
+					addr->addr->sa_family);
+			for (i = 0; i != sizeof(addr->addr->sa_data); ++i) {
+				printf("%02x ", addr->addr->sa_data[i] & 0xff);
+			}
+			printf("}\n");
+		}
+
+		if (addr->addr->sa_family == NMRPFLASH_AF_ETHERNET) {
+			return true;
+		}
+	}
+
+	if ((pcap = pcap_create(dev->name, errbuf))) {
 		if (pcap_activate(pcap) == 0) {
 			ret = (pcap_datalink(pcap) == DLT_EN10MB);
 		}
@@ -472,7 +488,7 @@ int ethsock_list_all(void)
 			continue;
 		}
 
-		if (!is_ethernet(dev->name)) {
+		if (!is_ethernet(dev)) {
 			if (verbosity) {
 				printf("%-15s  (not an ethernet device)\n",
 						dev->name);
