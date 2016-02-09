@@ -34,8 +34,13 @@
 #endif
 
 #ifndef NMRPFLASH_WINDOWS
+#ifndef NMRPFLASH_LINUX
+#include <net/if_dl.h>
+#endif
 #include <arpa/inet.h>
+#include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <net/if.h>
 #else
 #include <winsock2.h>
