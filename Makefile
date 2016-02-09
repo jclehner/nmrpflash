@@ -1,13 +1,14 @@
 CC ?= gcc
 PREFIX ?= /usr/local
 VERSION = $(shell git describe --always)
-CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 LIBS = -lpcap
+CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
+LDFLAGS += $(LIBS)
 
 .PHONY: clean install release release/osx release/linux release/win32
 
 nmrpflash: nmrp.o tftp.o ethsock.o main.o
-	$(CC) $(CFLAGS) -o nmrpflash nmrp.o tftp.o ethsock.o main.o $(LIBS)
+	$(CC) $(CFLAGS) -o nmrpflash nmrp.o tftp.o ethsock.o main.o $(LDFLAGS)
 
 nmrp.o: nmrp.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o nmrp.o nmrp.c
