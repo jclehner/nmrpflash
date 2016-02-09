@@ -9,6 +9,9 @@ tested with a Netgear EX2700, but is likely to work on many others as well.
 Prebuilt binaries for Linux, OS X and Windows are available
 [here](https://github.com/jclehner/nmrpflash/releases).
 
+To run `nmrpflash` on Windows, install
+[WinPcap](https://www.winpcap.org/install/default.htm).
+
 ````
 Usage: nmrpflash [OPTIONS...]
 
@@ -36,7 +39,7 @@ the Netgear router.
 
 For this example, we'll assume that your network interface is `eth0`.
 First, we have to assign a static IP address to our network interface.
-In this example, we'll use `192.168.1.2`. All available network interfaces 
+In this example, we'll use `192.168.1.2`. All available network interfaces
 can be listed using
 
 ````
@@ -60,18 +63,18 @@ Remote finished. Closing connection.
 ````
 
 ### Common issues
-###### No suitable network interfaces found.
+###### "No suitable network interfaces found."
 
 If you're *not* on Windows, rerun `nmrpflash -L` using `sudo`. In any case,
 use `-vvvL` to see more detailed messages, and file a bug report if applicable.
 
-###### No response after 60 seconds. Bailing out.
+###### "No response after 60 seconds. Bailing out."
 
 The router did not respond. Try running `nmrpflash` with `-m` and specify
 your router's MAC address. It's also entirely possible that your device does
 not support the NMRP protocol.
 
-###### Timeout while waiting for 0x04.
+###### "Timeout while waiting for 0x04."
 
 After a successful file upload, `nmrpflash` waits for up to 120 seconds for an
 answer from your device. You can increase this by specifying a longer timeout
@@ -89,9 +92,9 @@ $ make && sudo make install
 
 ###### Windows
 
-The repository includes a 
+The repository includes a
 [DevCpp](http://sourceforge.net/projects/orwelldevcpp/)
-project file (`nmrpflash.dev`). Download the latest 
-[WinPcap Developer Pack](http://www.winpcap.org/devel.htm) 
+project file (`nmrpflash.dev`). Download the latest
+[WinPcap Developer Pack](https://www.winpcap.org/devel.htm)
 and extract it into the root folder of the nmrpflash sources.
 
