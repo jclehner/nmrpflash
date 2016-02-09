@@ -13,11 +13,11 @@
 #include <pcap.h>
 #include <ifaddrs.h>
 #if defined(NMRPFLASH_LINUX)
-#define NMRPFLASH_AF_ETHERNET AF_PACKET
+#define NMRPFLASH_AF_PACKET AF_PACKET
 #include <linux/if_packet.h>
-#elif defined (NMRPFLASH_OSX)
-#define NMRPFLASH_AF_ETHERNET AF_LINK
-#include <net/if_dl.h>
+#else
+#define NMRPFLASH_AF_PACKET AF_LINK
+#include <net/if_types.h>
 #endif
 #endif
 
@@ -58,10 +58,30 @@ static int x_pcap_findalldevs(pcap_if_t **devs)
 }
 
 #ifndef NMRPFLASH_WINDOWS
-static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
+static inline bool sockaddr_get_hwaddr(struct sockaddr *sa, uint8_t *hwaddr)
+{
+	void *src;
+
+	if (sa->sa_family != NMRPFLASH_AF_PACKET) {
+		return false;
+	}
+
+#ifndef NMRPFLASH_LINUX
+	if (((struct sockaddr_dl*)addr)->sdl_type != IFT_ETHER) {
+		return false;
+	}
+	src = LLADDR((struct sockaddr_dl*)sa);
+#else
+	src = ((struct sockaddr_ll*)sa)->sll_addr;
+#endif
+
+	memcpy(hwaddr, src, 6);
+	return true;
+}
+
+static bool get_hwaddr_from_intf(const char *intf, uint8_t *hwaddr)
 {
 	struct ifaddrs *ifas, *ifa;
-	void *src;
 	bool found;
 
 	if (getifaddrs(&ifas) != 0) {
@@ -73,23 +93,17 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 
 	for (ifa = ifas; ifa; ifa = ifa->ifa_next) {
 		if (!strcmp(ifa->ifa_name, intf)) {
-			if (ifa->ifa_addr->sa_family != NMRPFLASH_AF_ETHERNET) {
-				continue;
+			if (sockaddr_get_hwaddr(ifa->ifa_addr, hwaddr)) {
+				found = true;
+				break;
 			}
-#ifdef NMRPFLASH_LINUX
-			src = ((struct sockaddr_ll*)ifa->ifa_addr)->sll_addr;
-#else
-			src = LLADDR((struct sockaddr_dl*)ifa->ifa_addr);
-#endif
-			memcpy(hwaddr, src, 6);
-			found = true;
-			break;
 		}
 	}
 
 	freeifaddrs(ifas);
 	return found;
 }
+
 #else
 
 void win_perror2(const char *msg, DWORD err)
@@ -109,7 +123,7 @@ void win_perror2(const char *msg, DWORD err)
 	}
 }
 
-static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
+static bool get_hwaddr_from_intf(const char *intf, uint8_t *hwaddr)
 {
 	PIP_ADAPTER_INFO adapters, adapter;
 	DWORD ret;
@@ -133,14 +147,9 @@ static bool get_hwaddr(uint8_t *hwaddr, const char *intf)
 				continue;
 			}
 
-#ifndef NMRPFLASH_WINDOWS
-			if (!strcmp(intf, adapter->AdapterName))
-#else
 			/* Interface names from WinPcap are "\Device\NPF_{GUID}", while
 			 * AdapterName from GetAdaptersInfo is just "{GUID}".*/
-			if (strstr(intf, adapter->AdapterName))
-#endif
-			{
+			if (strstr(intf, adapter->AdapterName)) {
 				if (adapter->AddressLength == 6) {
 					for (i = 0; i != 6; ++i) {
 						hwaddr[i] = adapter->Address[i];
@@ -240,7 +249,6 @@ static const char *intf_get_pretty_name(const char *intf)
 }
 #endif
 
-
 inline uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
 {
 	return sock->hwaddr;
@@ -284,7 +292,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 		goto cleanup_pcap;
 	}
 
-	if (!get_hwaddr(sock->hwaddr, intf)) {
+	if (!get_hwaddr_from_intf(intf, sock->hwaddr)) {
 		fprintf(stderr, "Failed to get MAC address of interface.\n");
 		goto cleanup_malloc;
 	}
@@ -431,13 +439,11 @@ inline int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
 	return 0;
 }
 
-static bool is_ethernet(const pcap_if_t *dev)
+static bool get_hwaddr_from_pcap(const pcap_if_t *dev, uint8_t *hwaddr)
 {
-	pcap_t *pcap;
+#ifndef NMRPFLASH_WINDOWS
 	pcap_addr_t *addr;
 	int i;
-	char errbuf[PCAP_ERRBUF_SIZE];
-	bool ret = false;
 
 	for (addr = dev->addresses; addr; addr = addr->next) {
 		if (verbosity > 1) {
@@ -449,19 +455,13 @@ static bool is_ethernet(const pcap_if_t *dev)
 			printf("}\n");
 		}
 
-		if (addr->addr->sa_family == NMRPFLASH_AF_ETHERNET) {
+		if (sockaddr_get_hwaddr(addr->addr, hwaddr)) {
 			return true;
 		}
 	}
+#endif
 
-	if ((pcap = pcap_create(dev->name, errbuf))) {
-		if (pcap_activate(pcap) == 0) {
-			ret = (pcap_datalink(pcap) == DLT_EN10MB);
-		}
-		pcap_close(pcap);
-	}
-
-	return ret;
+	return get_hwaddr_from_intf(dev->name, hwaddr);
 }
 
 int ethsock_list_all(void)
@@ -488,17 +488,9 @@ int ethsock_list_all(void)
 			continue;
 		}
 
-		if (!is_ethernet(dev)) {
+		if (!get_hwaddr_from_pcap(dev, hwaddr)) {
 			if (verbosity) {
 				printf("%-15s  (not an ethernet device)\n",
-						dev->name);
-			}
-			continue;
-		}
-
-		if (!get_hwaddr(hwaddr, dev->name)) {
-			if (verbosity) {
-				printf("%-15s  (failed to get hardware address)\n",
 						dev->name);
 			}
 			continue;
