@@ -52,6 +52,8 @@ to be a *free* IP address from the same subnet as the one used by your
 network interface. We'll use `192.168.1.254`. The firmware image file
 can usually be downloaded directly from Netgear's FTP servers.
 
+Power on your device immediately after starting `nmrpflash`.
+
 ````
 $ nmrpflash -i eth0 -a 192.168.1.254 -f EX2700-V1.0.1.8.img
 Advertising NMRP server on eth0 ... /
