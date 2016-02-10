@@ -45,12 +45,11 @@ $ nmrpflash -L
 eth0      192.168.1.2  f2:11:a1:02:03:b1
 ````
 
-A firmware image file can usually be downloaded directly from netgear. For
-details on how to do this, see [here](#obtaining-firmware-images).
-
 Now we can `nmrpflash`. The argument for the `-a` option needs
 to be a *free* IP address from the same subnet as the one used by your
-network interface. We'll use `192.168.1.254`. Power on your device immediately 
+network interface. We'll use `192.168.1.254`. Firmware images can usually 
+be downloaded directly from netgear. For details on how to do this, see
+[here](#obtaining-firmware-images). Power on your device immediately 
 after starting `nmrpflash`.
 
 ````
