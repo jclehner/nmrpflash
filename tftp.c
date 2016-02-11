@@ -232,11 +232,15 @@ int tftp_put(struct nmrpd_args *args)
 	sock = -1;
 	ret = -1;
 
-	fd = open(args->filename, O_RDONLY);
-	if (fd < 0) {
-		perror("open");
-		ret = fd;
-		goto cleanup;
+	if (!strcmp(args->filename, "-")) {
+		fd = STDIN_FILENO;
+	} else {
+		fd = open(args->filename, O_RDONLY);
+		if (fd < 0) {
+			perror("open");
+			ret = fd;
+			goto cleanup;
+		}
 	}
 
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
