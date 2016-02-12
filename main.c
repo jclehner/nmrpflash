@@ -41,6 +41,9 @@ void usage(FILE *fp)
 			" -t <timeout>    Timeout (in milliseconds) for regular messages\n"
 			" -T <timeout>    Time (seconds) to wait after successfull TFTP upload\n"
 			" -p <port>       Port to use for TFTP upload\n"
+#ifdef NMRPFLASH_SET_REGION
+			" -R <region>     Set device region\n"
+#endif
 #ifdef NMRPFLASH_TFTP_TEST
 			" -U              Test TFTP upload\n"
 #endif
@@ -94,7 +97,7 @@ int main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "a:c:f:F:i:m:M:p:t:T:hLVvU")) != -1) {
+	while ((c = getopt(argc, argv, "a:c:f:F:i:m:M:p:R:t:T:hLVvU")) != -1) {
 		max = 0x7fffffff;
 		switch (c) {
 			case 'a':
@@ -119,9 +122,17 @@ int main(int argc, char **argv)
 				args.ipmask = optarg;
 				break;
 			case 'p':
-				max = 0xffff;
+#ifdef NMRPFLASH_SET_REGION
+			case 'R':
+#endif
 			case 'T':
 			case 't':
+				if (c == 'p') {
+					max = 0xffff;
+				} else if (c == 'R') {
+					max = 0x0009;
+				}
+
 				val = atoi(optarg);
 				if (val <= 0 || val > max) {
 					fprintf(stderr, "Invalid numeric value for -%c.\n", c);
@@ -132,8 +143,10 @@ int main(int argc, char **argv)
 					args.port = val;
 				} else if (c == 't') {
 					args.rx_timeout = val;
-				} else {
+				} else if (c == 'T') {
 					args.ul_timeout = val * 1000;
+				} else if (c == 'R') {
+					args.region = val;
 				}
 
 				break;

@@ -67,6 +67,7 @@ struct nmrpd_args {
 	const char *mac;
 	enum nmrp_op op;
 	uint16_t port;
+	uint16_t region;
 	int force_root;
 };
 

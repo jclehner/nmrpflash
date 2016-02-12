@@ -67,6 +67,7 @@ struct nmrp_opt {
 	uint16_t len;
 	union {
 		uint8_t magic[4];
+		uint16_t region;
 		struct {
 			uint8_t addr[4];
 			uint8_t mask[4];
@@ -425,6 +426,14 @@ int nmrp_do(struct nmrpd_args *args)
 
 				tx.msg.opts[1].type = NMRP_O_FW_UP;
 				tx.msg.opts[1].len = NMRP_OPT_LEN;
+
+#ifdef NMRPFLASH_SET_REGION
+				tx.msg.num_opts = 3;
+
+				tx.msg.opts[2].type = NMRP_O_DEV_REGION;
+				tx.msg.opts[2].len = NMRP_OPT_LEN + 2;
+				tx.msg.opts[2].val.region = args->region;
+#endif
 
 				expect = NMRP_C_TFTP_UL_REQ;
 
