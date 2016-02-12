@@ -87,8 +87,10 @@ static void pkt_mkwrq(char *pkt, const char *filename)
 
 	filename = leafname(filename);
 	if (!is_netascii(filename) || strlen(filename) > 500) {
-		fprintf(stderr, "Overlong/illegal filename; using 'firmware.bin'.\n");
-		filename = "firmware.bin";
+		fprintf(stderr, "Overlong/illegal filename; using 'firmware'.\n");
+		filename = "firmware";
+	} else if (!strcmp(filename, "-")) {
+		filename = "firmware";
 	}
 
 	pkt_mknum(pkt, WRQ);

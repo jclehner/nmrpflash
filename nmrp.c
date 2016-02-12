@@ -431,7 +431,11 @@ int nmrp_do(struct nmrpd_args *args)
 				}
 
 				if (!err && args->filename) {
-					printf("Uploading %s ... ", args->filename);
+					if (!strcmp(args->filename, "-")) {
+						printf("Uploading from stdin ... ");
+					} else {
+						printf("Uploading %s ... ", args->filename);
+					}
 					fflush(stdout);
 					err = tftp_put(args);
 				}
