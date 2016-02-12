@@ -59,7 +59,7 @@ struct nmrpd_args {
 	unsigned rx_timeout;
 	unsigned ul_timeout;
 	const char *tftpcmd;
-	const char *filename;
+	const char *file_local;
 	const char *ipaddr;
 	const char *ipmask;
 	const char *intf;

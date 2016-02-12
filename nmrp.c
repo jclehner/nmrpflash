@@ -310,8 +310,8 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	if (strcmp(args->filename, "-") && access(args->filename, R_OK) == -1) {
-		fprintf(stderr, "Error accessing file '%s'.\n", args->filename);
+	if (strcmp(args->file_local, "-") && access(args->file_local, R_OK) == -1) {
+		fprintf(stderr, "Error accessing file '%s'.\n", args->file_local);
 		return 1;
 	}
 
@@ -461,11 +461,11 @@ int nmrp_do(struct nmrpd_args *args)
 					}
 				}
 
-				if (!err && args->filename) {
-					if (!strcmp(args->filename, "-")) {
+				if (!err && args->file_local) {
+					if (!strcmp(args->file_local, "-")) {
 						printf("Uploading from stdin ... ");
 					} else {
-						printf("Uploading %s ... ", args->filename);
+						printf("Uploading %s ... ", args->file_local);
 					}
 					fflush(stdout);
 					err = tftp_put(args);

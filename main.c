@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 		.rx_timeout = 200,
 		.ul_timeout = 120000,
 		.tftpcmd = NULL,
-		.filename = NULL,
+		.file_local = NULL,
 		.ipaddr = NULL,
 		.ipmask = "255.255.255.0",
 		.intf = NULL,
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 				args.tftpcmd = optarg;
 				break;
 			case 'f':
-				args.filename = optarg;
+				args.file_local = optarg;
 				break;
 			case 'i':
 				args.intf = optarg;
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 				goto out;
 #ifdef NMRPFLASH_TFTP_TEST
 			case 'U':
-				if (args.ipaddr && args.filename) {
+				if (args.ipaddr && args.file_local) {
 					val = tftp_put(&args);
 					goto out;
 				}
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if ((!args.filename && !args.tftpcmd) || !args.intf || !args.ipaddr) {
+	if ((!args.file_local && !args.tftpcmd) || !args.intf || !args.ipaddr) {
 		usage(stderr);
 		return 1;
 	}

@@ -234,10 +234,10 @@ int tftp_put(struct nmrpd_args *args)
 	sock = -1;
 	ret = -1;
 
-	if (!strcmp(args->filename, "-")) {
+	if (!strcmp(args->file_local, "-")) {
 		fd = STDIN_FILENO;
 	} else {
-		fd = open(args->filename, O_RDONLY);
+		fd = open(args->file_local, O_RDONLY);
 		if (fd < 0) {
 			perror("open");
 			ret = fd;
@@ -267,7 +267,7 @@ int tftp_put(struct nmrpd_args *args)
 	/* Not really, but this way the loop sends our WRQ before receiving */
 	timeout = 1;
 
-	pkt_mkwrq(tx, args->filename);
+	pkt_mkwrq(tx, args->file_local);
 
 	do {
 		if (!timeout && pkt_num(rx) == ACK) {
