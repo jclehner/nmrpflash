@@ -189,6 +189,24 @@ static int msg_ntoh(struct nmrp_msg *msg)
 	return 1;
 }
 
+static void *msg_opt_data(struct nmrp_msg *msg, int type, uint16_t *len)
+{
+	struct nmrp_opt *opt = msg->opts;
+	int remaining = msg->len - NMRP_HDR_LEN;
+
+	while (remaining > 0) {
+		if (opt->type == type) {
+			*len = opt->len - NMRP_OPT_LEN;
+			return (char*)&opt->val;
+		}
+
+		remaining -= opt->len;
+		opt = (struct nmrp_opt*)((char*)opt) + opt->len;
+	}
+
+	return NULL;
+}
+
 static int pkt_send(struct ethsock *sock, struct nmrp_pkt *pkt)
 {
 	size_t len = ntohs(pkt->msg.len) + sizeof(pkt->eh);
@@ -264,6 +282,8 @@ int nmrp_do(struct nmrpd_args *args)
 {
 	struct nmrp_pkt tx, rx;
 	uint8_t *src, dest[6];
+	uint16_t len;
+	char *filename;
 	struct in_addr ipaddr, ipmask;
 	time_t beg;
 	int i, err, ulreqs, expect;
@@ -415,6 +435,17 @@ int nmrp_do(struct nmrpd_args *args)
 							"times; aborting.\n", ulreqs);
 					tx.msg.code = NMRP_C_CLOSE_REQ;
 					break;
+				}
+
+				if (verbosity) {
+					len = 0;
+					filename = msg_opt_data(&rx.msg, NMRP_O_FILE_NAME, &len);
+					if (filename) {
+						printf("Received upload request for '%.*s'.\n", len,
+								filename);
+					} else {
+						printf("No filename specified in upload request.");
+					}
 				}
 
 				err = 0;
