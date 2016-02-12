@@ -34,6 +34,7 @@ void usage(FILE *fp)
 			" -a <ipaddr>     IP address to assign to target device\n"
 			" -c <command>    Command to run before (or instead of) TFTP upload\n"
 			" -f <firmware>   Firmware file\n"
+			" -F <filename>   Remote filename to use during TFTP upload\n"
 			" -i <interface>  Network interface directly connected to device\n"
 			" -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)\n"
 			" -M <netmask>    Subnet mask to assign to target device\n"
@@ -93,7 +94,7 @@ int main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "a:c:f:i:m:M:p:t:T:hLVvU")) != -1) {
+	while ((c = getopt(argc, argv, "a:c:f:F:i:m:M:p:t:T:hLVvU")) != -1) {
 		max = 0x7fffffff;
 		switch (c) {
 			case 'a':
@@ -104,6 +105,9 @@ int main(int argc, char **argv)
 				break;
 			case 'f':
 				args.file_local = optarg;
+				break;
+			case 'F':
+				args.file_remote = optarg;
 				break;
 			case 'i':
 				args.intf = optarg;
