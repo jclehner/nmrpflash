@@ -30,8 +30,9 @@ void usage(FILE *fp)
 	fprintf(fp,
 			"Usage: nmrpflash [OPTIONS...]\n"
 			"\n"
-			"Options (-a, -i and -f are mandatory):\n"
+			"Options (-a, -i and -f and/or -c are mandatory):\n"
 			" -a <ipaddr>     IP address to assign to target device\n"
+			" -c <command>    Command to run before (or instead of) TFTP upload\n"
 			" -f <firmware>   Firmware file\n"
 			" -i <interface>  Network interface directly connected to device\n"
 			" -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)\n"
@@ -91,11 +92,14 @@ int main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "a:f:i:m:M:p:t:T:hLVvU")) != -1) {
+	while ((c = getopt(argc, argv, "a:c:f:i:m:M:p:t:T:hLVvU")) != -1) {
 		max = 0x7fffffff;
 		switch (c) {
 			case 'a':
 				args.ipaddr = optarg;
+				break;
+			case 'c':
+				args.tftpcmd = optarg;
 				break;
 			case 'f':
 				args.filename = optarg;
@@ -157,7 +161,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (!args.filename || !args.intf || !args.ipaddr) {
+	if ((!args.filename && !args.tftpcmd) || !args.intf || !args.ipaddr) {
 		usage(stderr);
 		return 1;
 	}
