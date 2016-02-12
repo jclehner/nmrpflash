@@ -491,6 +491,8 @@ int nmrp_do(struct nmrpd_args *args)
 
 	err = 0;
 
+	printf("Reboot your device now.\n");
+
 out:
 	signal(SIGINT, sigh_orig);
 	gsock = NULL;
