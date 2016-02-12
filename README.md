@@ -45,24 +45,11 @@ $ nmrpflash -L
 eth0      192.168.1.2  f2:11:a1:02:03:b1
 ````
 
-A firmware image file can usually be downloaded directly from 
-Netgear's FTP servers: for the Netgear EX2700 for example, download
-ftp://updates1.netgear.com/ex2700/ww/fileinfo.txt. At the top there 
-should be an entry like this:
-
-```
-[Major1]
-file=EX2700-V1.0.1.8.img
-...
-```
-
-The download link for the latest firmware image for this device is thus:
-ftp://updates1.netgear.com/ex2700/ww/EX2700-V1.0.1.8.img. Substitute 
-`ex2700` for your device (`wndr4300`, `wndr3700`, `r6100`, etc.).
-
-Now we can start `nmrpflash`. The argument for the `-a` option needs
+Now we can `nmrpflash`. The argument for the `-a` option needs
 to be a *free* IP address from the same subnet as the one used by your
-network interface. We'll use `192.168.1.254`. Power on your device immediately 
+network interface. We'll use `192.168.1.254`. Firmware images can usually 
+be downloaded directly from netgear. For details on how to do this, see
+[here](#obtaining-firmware-images). Power on your device immediately 
 after starting `nmrpflash`.
 
 ````
@@ -110,4 +97,22 @@ The repository includes a
 project file (`nmrpflash.dev`). Download the latest
 [WinPcap Developer Pack](https://www.winpcap.org/devel.htm)
 and extract it into the root folder of the nmrpflash sources.
+
+### Obtaining firmware images
+
+Firmware images can be downloaded directly from Netgear's FTP servers. 
+For the Netgear EX2700 for example, download 
+ftp://updates1.netgear.com/ex2700/ww/fileinfo.txt. At the top there 
+should be an entry like this:
+
+```
+[Major1]
+file=EX2700-V1.0.1.8.img
+...
+```
+
+The download link for the latest firmware image for this device is thus:
+ftp://updates1.netgear.com/ex2700/ww/EX2700-V1.0.1.8.img. Substitute 
+`ex2700` for your device (`wndr4300`, `wndr3700`, `r6100`, etc.). If
+neccessary, substitute `ww` (world-wide) for a specific region.
 

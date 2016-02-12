@@ -67,7 +67,7 @@ static inline bool sockaddr_get_hwaddr(struct sockaddr *sa, uint8_t *hwaddr)
 	}
 
 #ifndef NMRPFLASH_LINUX
-	if (((struct sockaddr_dl*)addr)->sdl_type != IFT_ETHER) {
+	if (((struct sockaddr_dl*)sa)->sdl_type != IFT_ETHER) {
 		return false;
 	}
 	src = LLADDR((struct sockaddr_dl*)sa);
