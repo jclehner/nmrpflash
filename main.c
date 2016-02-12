@@ -72,6 +72,7 @@ int main(int argc, char **argv)
 		.ul_timeout = 120000,
 		.tftpcmd = NULL,
 		.file_local = NULL,
+		.file_remote = NULL,
 		.ipaddr = NULL,
 		.ipmask = "255.255.255.0",
 		.intf = NULL,

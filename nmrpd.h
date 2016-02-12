@@ -60,6 +60,7 @@ struct nmrpd_args {
 	unsigned ul_timeout;
 	const char *tftpcmd;
 	const char *file_local;
+	const char *file_remote;
 	const char *ipaddr;
 	const char *ipmask;
 	const char *intf;
@@ -70,6 +71,8 @@ struct nmrpd_args {
 };
 
 int tftp_put(struct nmrpd_args *args);
+bool tftp_is_valid_filename(const char *filename);
+
 int nmrp_do(struct nmrpd_args *args);
 
 int select_fd(int fd, unsigned timeout);

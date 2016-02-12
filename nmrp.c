@@ -315,6 +315,14 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
+	if (args->file_remote) {
+		if (!tftp_is_valid_filename(args->file_remote)) {
+			fprintf(stderr, "Invalid remote filename '%s'.\n",
+					args->file_remote);
+			return 1;
+		}
+	}
+
 	err = 1;
 
 	sock = ethsock_create(args->intf, ETH_P_NMRP);
@@ -437,15 +445,21 @@ int nmrp_do(struct nmrpd_args *args)
 					break;
 				}
 
-				if (verbosity) {
-					len = 0;
-					filename = msg_opt_data(&rx.msg, NMRP_O_FILE_NAME, &len);
-					if (filename) {
-						printf("Received upload request for '%.*s'.\n", len,
-								filename);
-					} else {
-						printf("No filename specified in upload request.");
+				len = 0;
+				filename = msg_opt_data(&rx.msg, NMRP_O_FILE_NAME, &len);
+				if (filename) {
+					if (!args->file_remote) {
+						args->file_remote = filename;
 					}
+					printf("Received upload request: filename '%.*s'.\n",
+							len, filename);
+				} else if (!args->file_remote) {
+					if (tftp_is_valid_filename(args->file_local)) {
+						args->file_remote = args->file_local;
+					} else {
+						args->file_remote = "firmware";
+					}
+					printf("Received upload request with empty filename.");
 				}
 
 				err = 0;
@@ -462,6 +476,11 @@ int nmrp_do(struct nmrpd_args *args)
 				}
 
 				if (!err && args->file_local) {
+					if (verbosity) {
+						printf("Using remote filename '%s'.\n",
+								args->file_remote);
+					}
+
 					if (!strcmp(args->file_local, "-")) {
 						printf("Uploading from stdin ... ");
 					} else {

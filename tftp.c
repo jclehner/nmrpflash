@@ -86,7 +86,7 @@ static void pkt_mkwrq(char *pkt, const char *filename)
 	size_t len = 2;
 
 	filename = leafname(filename);
-	if (!is_netascii(filename) || strlen(filename) > 500) {
+	if (!tftp_is_valid_filename(filename)) {
 		fprintf(stderr, "Overlong/illegal filename; using 'firmware'.\n");
 		filename = "firmware";
 	} else if (!strcmp(filename, "-")) {
@@ -223,6 +223,11 @@ inline void sock_perror(const char *msg)
 }
 #endif
 
+inline bool tftp_is_valid_filename(const char *filename)
+{
+	return strlen(filename) <= 500 && is_netascii(filename);
+}
+
 int tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
@@ -267,7 +272,7 @@ int tftp_put(struct nmrpd_args *args)
 	/* Not really, but this way the loop sends our WRQ before receiving */
 	timeout = 1;
 
-	pkt_mkwrq(tx, args->file_local);
+	pkt_mkwrq(tx, args->file_remote);
 
 	do {
 		if (!timeout && pkt_num(rx) == ACK) {
