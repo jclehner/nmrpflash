@@ -97,5 +97,6 @@ ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len);
 int ethsock_set_timeout(struct ethsock *sock, unsigned msec);
 uint8_t *ethsock_get_hwaddr(struct ethsock *sock);
 int ethsock_list_all(void);
+int ethsock_is_same_subnet(struct ethsock *sock, struct in_addr* ip, struct in_addr *mask);
 
 #endif

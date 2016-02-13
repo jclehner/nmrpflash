@@ -28,6 +28,7 @@
 
 struct ethsock
 {
+	const char *intf;
 	pcap_t *pcap;
 #ifndef NMRPFLASH_WINDOWS
 	int fd;
@@ -276,7 +277,8 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 
 	buf[0] = '\0';
 
-	sock->pcap = pcap_open_live(intf, BUFSIZ, 1, 1, buf);
+	sock->intf = intf;
+	sock->pcap = pcap_open_live(sock->intf, BUFSIZ, 1, 1, buf);
 	if (!sock->pcap) {
 		fprintf(stderr, "%s.\n", buf);
 		goto cleanup_malloc;
@@ -537,6 +539,38 @@ int ethsock_list_all(void)
 
 	if (!dev_ok) {
 		printf("No suitable network interfaces found.\n");
+	}
+
+	return 0;
+}
+
+int ethsock_is_same_subnet(struct ethsock *sock, struct in_addr *ipaddr,
+		struct in_addr *ipmask)
+{
+	pcap_if_t *devs, *dev;
+	pcap_addr_t *addr;
+	uint32_t ip, mask, net;
+
+	if (x_pcap_findalldevs(&devs) != 0) {
+		return -1;
+	}
+
+	net = ipaddr->s_addr & ipmask->s_addr;
+
+	for (dev = devs; dev; dev = dev->next) {
+		if (strcmp(sock->intf, dev->name)) {
+			continue;
+		}
+
+		for (addr = dev->addresses; addr; addr = addr->next) {
+			if (addr->addr->sa_family == AF_INET) {
+				ip = ((struct sockaddr_in*)addr->addr)->sin_addr.s_addr;
+				mask = ((struct sockaddr_in*)addr->netmask)->sin_addr.s_addr;
+				if ((ip & mask) == net) {
+					return 1;
+				}
+			}
+		}
 	}
 
 	return 0;

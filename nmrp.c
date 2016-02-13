@@ -287,7 +287,7 @@ int nmrp_do(struct nmrpd_args *args)
 	char *filename;
 	struct in_addr ipaddr, ipmask;
 	time_t beg;
-	int i, err, ulreqs, expect;
+	int i, status, ulreqs, expect;
 	struct ethsock *sock;
 	void (*sigh_orig)(int);
 
@@ -324,10 +324,19 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 	}
 
-	err = 1;
+	status = 1;
 
 	sock = ethsock_create(args->intf, ETH_P_NMRP);
 	if (!sock) {
+		return 1;
+	}
+
+	status = ethsock_is_same_subnet(sock, &ipaddr, &ipmask);
+	if (status <= 0) {
+		if (!status) {
+			fprintf(stderr, "Address %s/%s invalid for interface %s.\n",
+					args->ipaddr, args->ipmask, args->intf);
+		}
 		return 1;
 	}
 
@@ -375,10 +384,10 @@ int nmrp_do(struct nmrpd_args *args)
 			goto out;
 		}
 
-		err = pkt_recv(sock, &rx);
-		if (err == 0 && memcmp(rx.eh.ether_dhost, src, 6) == 0) {
+		status = pkt_recv(sock, &rx);
+		if (status == 0 && memcmp(rx.eh.ether_dhost, src, 6) == 0) {
 			break;
-		} else if (err == 1) {
+		} else if (status == 1) {
 			printf("ERR\n");
 			goto out;
 		} else {
@@ -406,13 +415,13 @@ int nmrp_do(struct nmrpd_args *args)
 		tx.msg.num_opts = 0;
 		tx.msg.len = 0;
 
-		err = 1;
+		status = 1;
 
 		switch (rx.msg.code) {
 			case NMRP_C_ADVERTISE:
 				printf("Received NMRP advertisement from %s.\n",
 						mac_to_str(rx.eh.ether_shost));
-				err = 1;
+				status = 1;
 				goto out;
 			case NMRP_C_CONF_REQ:
 				tx.msg.code = NMRP_C_CONF_ACK;
@@ -471,20 +480,20 @@ int nmrp_do(struct nmrpd_args *args)
 					printf("Received upload request with empty filename.");
 				}
 
-				err = 0;
+				status = 0;
 
 				if (args->tftpcmd) {
 					printf("Executing '%s' ... ", args->tftpcmd);
 					fflush(stdout);
-					err = system(args->tftpcmd);
-					if (!err) {
+					status = system(args->tftpcmd);
+					if (!status) {
 						printf("OK\n");
 					} else {
 						printf("ERR\n");
 					}
 				}
 
-				if (!err && args->file_local) {
+				if (!status && args->file_local) {
 					if (verbosity) {
 						printf("Using remote filename '%s'.\n",
 								args->file_remote);
@@ -496,14 +505,14 @@ int nmrp_do(struct nmrpd_args *args)
 						printf("Uploading %s ... ", args->file_local);
 					}
 					fflush(stdout);
-					err = tftp_put(args);
+					status = tftp_put(args);
 				}
 
-				if (!err) {
+				if (!status) {
 					printf("OK\nWaiting for remote to respond.\n");
 					ethsock_set_timeout(sock, args->ul_timeout);
 					expect = NMRP_C_CLOSE_REQ;
-				} else if (err == -2) {
+				} else if (status == -2) {
 					expect = NMRP_C_TFTP_UL_REQ;
 				} else {
 					goto out;
@@ -517,7 +526,7 @@ int nmrp_do(struct nmrpd_args *args)
 				tx.msg.code = NMRP_C_CLOSE_ACK;
 				break;
 			case NMRP_C_CLOSE_ACK:
-				err = 0;
+				status = 0;
 				goto out;
 			default:
 				fprintf(stderr, "Unknown message code 0x%02x!\n",
@@ -540,9 +549,9 @@ int nmrp_do(struct nmrpd_args *args)
 			break;
 		}
 
-		err = pkt_recv(sock, &rx);
-		if (err) {
-			if (err == 2) {
+		status = pkt_recv(sock, &rx);
+		if (status) {
+			if (status == 2) {
 				fprintf(stderr, "Timeout while waiting for 0x%02x.\n", expect);
 			}
 			goto out;
@@ -552,7 +561,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 	} while (1);
 
-	err = 0;
+	status = 0;
 
 	printf("Reboot your device now.\n");
 
@@ -560,5 +569,5 @@ out:
 	signal(SIGINT, sigh_orig);
 	gsock = NULL;
 	ethsock_close(sock);
-	return err;
+	return status;
 }
