@@ -365,8 +365,8 @@ int nmrp_do(struct nmrpd_args *args)
 	beg = time(NULL);
 
 	while (1) {
-		printf("\rAdvertising NMRP server on interface ... %c",
-				spinner[i]);
+		printf("\rAdvertising NMRP server on %s ... %c",
+				args->intf, spinner[i]);
 		fflush(stdout);
 		i = (i + 1) & 3;
 
