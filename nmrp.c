@@ -586,6 +586,8 @@ int nmrp_do(struct nmrpd_args *args)
 				break;
 			case NMRP_C_KEEP_ALIVE_REQ:
 				tx.msg.code = NMRP_C_KEEP_ALIVE_ACK;
+				ethsock_set_timeout(sock, 15000);
+				printf("Received keep-alive request.\n");
 				break;
 			case NMRP_C_CLOSE_REQ:
 				tx.msg.code = NMRP_C_CLOSE_ACK;
