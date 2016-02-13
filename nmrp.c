@@ -634,7 +634,11 @@ int nmrp_do(struct nmrpd_args *args)
 
 	status = 0;
 
-	printf("Reboot your device now.\n");
+	if (ulreqs) {
+		printf("Reboot your device now.\n");
+	} else {
+		printf("No upload request received.\n");
+	}
 
 out:
 	signal(SIGINT, sigh_orig);
