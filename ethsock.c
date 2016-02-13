@@ -544,18 +544,19 @@ int ethsock_list_all(void)
 	return 0;
 }
 
-int ethsock_is_same_subnet(struct ethsock *sock, struct in_addr *ipaddr,
-		struct in_addr *ipmask)
+int ethsock_for_each_ip(struct ethsock *sock, ethsock_ip_callback_t callback,
+		void *arg)
 {
+	struct ethsock_ip_callback_args args;
 	pcap_if_t *devs, *dev;
 	pcap_addr_t *addr;
-	uint32_t ip, mask, net;
+	int status;
 
 	if (x_pcap_findalldevs(&devs) != 0) {
 		return -1;
 	}
 
-	net = ipaddr->s_addr & ipmask->s_addr;
+	args.arg = arg;
 
 	for (dev = devs; dev; dev = dev->next) {
 		if (strcmp(sock->intf, dev->name)) {
@@ -564,14 +565,20 @@ int ethsock_is_same_subnet(struct ethsock *sock, struct in_addr *ipaddr,
 
 		for (addr = dev->addresses; addr; addr = addr->next) {
 			if (addr->addr->sa_family == AF_INET) {
-				ip = ((struct sockaddr_in*)addr->addr)->sin_addr.s_addr;
-				mask = ((struct sockaddr_in*)addr->netmask)->sin_addr.s_addr;
-				if ((ip & mask) == net) {
-					return 1;
+				args.ipaddr = &((struct sockaddr_in*)addr->addr)->sin_addr;
+				args.ipmask = &((struct sockaddr_in*)addr->netmask)->sin_addr;
+
+				status = callback(&args);
+				if (status <= 0) {
+					break;
 				}
 			}
 		}
+
+		break;
 	}
 
-	return 0;
+	pcap_freealldevs(devs);
+
+	return status <= 0 ? status : 0;
 }

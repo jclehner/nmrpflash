@@ -265,6 +265,40 @@ static int mac_parse(const char *str, uint8_t *hwaddr)
 	return 0;
 }
 
+struct is_valid_ip_arg
+{
+	struct in_addr *ipaddr;
+	struct in_addr *ipmask;
+	int result;
+};
+
+static int is_valid_ip_cb(struct ethsock_ip_callback_args *args)
+{
+#define SUBNET(x) ((x)->ipaddr->s_addr & (x)->ipmask->s_addr)
+	struct is_valid_ip_arg *arg = args->arg;
+	if (SUBNET(args) == SUBNET(arg)) {
+		arg->result = args->ipaddr->s_addr != arg->ipaddr->s_addr;
+		return 0;
+	}
+
+	return 1;
+#undef SUBNET
+}
+
+static int is_valid_ip(struct ethsock *sock, struct in_addr *ipaddr,
+		struct in_addr *ipmask)
+{
+	int status;
+	struct is_valid_ip_arg arg = {
+		.ipaddr = ipaddr,
+		.ipmask = ipmask,
+		.result = 0
+	};
+
+	status = ethsock_for_each_ip(sock, is_valid_ip_cb, &arg);
+	return status < 0 ? status : arg.result;
+}
+
 static struct ethsock *gsock = NULL;
 
 static void sigh(int sig)
@@ -331,13 +365,13 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	status = ethsock_is_same_subnet(sock, &ipaddr, &ipmask);
+	status = is_valid_ip(sock, &ipaddr, &ipmask);
 	if (status <= 0) {
 		if (!status) {
-			fprintf(stderr, "Address %s/%s invalid for interface %s.\n",
+			fprintf(stderr, "Address %s/%s cannot be used on interface %s.\n",
 					args->ipaddr, args->ipmask, args->intf);
 		}
-		return 1;
+		goto out;
 	}
 
 	gsock = sock;
@@ -494,6 +528,16 @@ int nmrp_do(struct nmrpd_args *args)
 				}
 
 				if (!status && args->file_local) {
+					status = is_valid_ip(sock, &ipaddr, &ipmask);
+					if (status < 0) {
+						goto out;
+					} else if (!status) {
+						printf("IP address of %s has changed. Please assign a "
+								"static ip to the interface.\n", args->intf);
+						tx.msg.code = NMRP_C_CLOSE_REQ;
+						break;
+					}
+
 					if (verbosity) {
 						printf("Using remote filename '%s'.\n",
 								args->file_remote);
