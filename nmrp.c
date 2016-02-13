@@ -576,7 +576,7 @@ int nmrp_do(struct nmrpd_args *args)
 				if (!status) {
 					printf("OK\nWaiting for remote to respond.\n");
 					ethsock_set_timeout(sock, args->ul_timeout);
-					expect = NMRP_C_CLOSE_REQ;
+					expect = NMRP_C_NONE;
 				} else if (status == -2) {
 					expect = NMRP_C_TFTP_UL_REQ;
 				} else {
