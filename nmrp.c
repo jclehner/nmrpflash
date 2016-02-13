@@ -218,6 +218,9 @@ static void *msg_opt_data(struct nmrp_msg *msg, int type, uint16_t *len)
 
 	while (remaining > 0) {
 		if (opt->type == type) {
+			if (opt->len == NMRP_OPT_LEN) {
+				return NULL;
+			}
 			*len = opt->len - NMRP_OPT_LEN;
 			return (char*)&opt->val;
 		}
