@@ -70,9 +70,9 @@ use `-vvvL` to see more detailed messages, and file a bug report if applicable.
 
 ###### "No response after 60 seconds. Bailing out."
 
-The router did not respond. Try running `nmrpflash` with `-m` and specify
-your router's MAC address. It's also entirely possible that your device does
-not support the NMRP protocol.
+The router did not respond. Try rebooting the device and run `nmrpflash` again.
+You could also try running `nmrpflash` with `-m` and specify your router's
+MAC address. It's also possible that your device does not support the NMRP protocol.
 
 ###### "Timeout while waiting for 0x04."
 
