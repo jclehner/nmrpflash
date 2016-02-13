@@ -95,6 +95,27 @@ struct nmrp_pkt {
 	struct nmrp_msg msg;
 } PACKED;
 
+static const char *msg_code_str(uint16_t code)
+{
+#define CASE_CODE(x) case NMRP_C_ ## x: return #x
+	static char buf[16];
+
+	switch (code) {
+		CASE_CODE(ADVERTISE);
+		CASE_CODE(CONF_REQ);
+		CASE_CODE(CONF_ACK);
+		CASE_CODE(CLOSE_REQ);
+		CASE_CODE(CLOSE_ACK);
+		CASE_CODE(KEEP_ALIVE_REQ);
+		CASE_CODE(KEEP_ALIVE_ACK);
+		CASE_CODE(TFTP_UL_REQ);
+		default:
+			snprintf(buf, sizeof(buf), "%04x", code);
+			return buf;
+	}
+#undef CASE_CODE
+}
+
 static void msg_update_len(struct nmrp_msg *msg)
 {
 	uint32_t i = 0;
@@ -439,8 +460,8 @@ int nmrp_do(struct nmrpd_args *args)
 
 	do {
 		if (expect != NMRP_C_NONE && rx.msg.code != expect) {
-			fprintf(stderr, "Received code 0x%02x while waiting for 0x%02x!\n",
-					rx.msg.code, expect);
+			fprintf(stderr, "Received %s while waiting for %s!\n",
+					msg_code_str(rx.msg.code), msg_code_str(expect));
 		}
 
 		tx.msg.code = NMRP_C_NONE;
@@ -596,7 +617,8 @@ int nmrp_do(struct nmrpd_args *args)
 		status = pkt_recv(sock, &rx);
 		if (status) {
 			if (status == 2) {
-				fprintf(stderr, "Timeout while waiting for 0x%02x.\n", expect);
+				fprintf(stderr, "Timeout while waiting for %s.\n",
+						msg_code_str(expect));
 			}
 			goto out;
 		}
