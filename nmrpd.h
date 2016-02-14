@@ -49,6 +49,10 @@
 #include <windows.h>
 #endif
 
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
 enum nmrp_op {
 	NMRP_UPLOAD_FW = 0,
 	NMRP_UPLOAD_ST = 1,

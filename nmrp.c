@@ -213,8 +213,11 @@ static int msg_ntoh(struct nmrp_msg *msg)
 
 static void *msg_opt_data(struct nmrp_msg *msg, int type, uint16_t *len)
 {
+	static char buf[128];
 	struct nmrp_opt *opt = msg->opts;
 	int remaining = msg->len - NMRP_HDR_LEN;
+
+	memset(buf, 0, sizeof(buf));
 
 	while (remaining > 0) {
 		if (opt->type == type) {
@@ -222,7 +225,8 @@ static void *msg_opt_data(struct nmrp_msg *msg, int type, uint16_t *len)
 				return NULL;
 			}
 			*len = opt->len - NMRP_OPT_LEN;
-			return (char*)&opt->val;
+			memcpy(buf, &opt->val, MIN(*len, sizeof(buf)-1));
+			return buf;
 		}
 
 		remaining -= opt->len;
