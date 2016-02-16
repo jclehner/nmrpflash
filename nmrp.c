@@ -534,11 +534,7 @@ int nmrp_do(struct nmrpd_args *args)
 					printf("Received upload request: filename '%.*s'.\n",
 							len, filename);
 				} else if (!args->file_remote) {
-					if (tftp_is_valid_filename(args->file_local)) {
-						args->file_remote = args->file_local;
-					} else {
-						args->file_remote = "firmware";
-					}
+					args->file_remote = args->file_local;
 					printf("Received upload request with empty filename.");
 				}
 
