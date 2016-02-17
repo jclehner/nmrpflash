@@ -545,7 +545,7 @@ int ethsock_for_each_ip(struct ethsock *sock, ethsock_ip_callback_t callback,
 	struct ethsock_ip_callback_args args;
 	pcap_if_t *devs, *dev;
 	pcap_addr_t *addr;
-	int status;
+	int status = 0;
 
 	if (x_pcap_findalldevs(&devs) != 0) {
 		return -1;
