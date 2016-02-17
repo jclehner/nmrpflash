@@ -322,7 +322,7 @@ int tftp_put(struct nmrpd_args *args)
 		if (ret < 0) {
 			goto cleanup;
 		} else if (!ret) {
-			if (++timeout < 5) {
+			if (++timeout < 5 || (!block && timeout < 10)) {
 				continue;
 			} else if (block) {
 				fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);
