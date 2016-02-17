@@ -518,10 +518,11 @@ int nmrp_do(struct nmrpd_args *args)
 
 				break;
 			case NMRP_C_TFTP_UL_REQ:
-				if (++ulreqs > 5) {
-					fprintf(stderr, "Device re-requested file upload %d "
-							"times; aborting.\n", ulreqs);
-					tx.msg.code = NMRP_C_CLOSE_REQ;
+				if (++ulreqs > 1) {
+					if (verbosity) {
+						printf("Ignoring upload request %d.\n", ulreqs);
+					}
+					ethsock_set_timeout(sock, args->ul_timeout);
 					break;
 				}
 
