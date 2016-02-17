@@ -530,6 +530,7 @@ int nmrp_do(struct nmrpd_args *args)
 					if (verbosity) {
 						printf("Ignoring extra upload request.\n");
 					}
+					ethsock_set_timeout(sock, args->ul_timeout);
 					break;
 				}
 
