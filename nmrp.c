@@ -349,7 +349,7 @@ int nmrp_do(struct nmrpd_args *args)
 	char *filename;
 	struct in_addr ipaddr, ipmask;
 	time_t beg;
-	int i, status, ulreqs, expect, unexpected;
+	int i, status, ulreqs, expect, upload_ok;
 	struct ethsock *sock;
 	void (*sigh_orig)(int);
 
@@ -433,6 +433,7 @@ int nmrp_do(struct nmrpd_args *args)
 	msg_hton(&tx.msg);
 
 	i = 0;
+	upload_ok = 0;
 	beg = time(NULL);
 
 	while (1) {
@@ -469,9 +470,6 @@ int nmrp_do(struct nmrpd_args *args)
 		if (expect != NMRP_C_NONE && rx.msg.code != expect) {
 			fprintf(stderr, "Received %s while waiting for %s!\n",
 					msg_code_str(rx.msg.code), msg_code_str(expect));
-			unexpected = 1;
-		} else {
-			unexpected = 0;
 		}
 
 		tx.msg.code = NMRP_C_NONE;
@@ -521,7 +519,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 				break;
 			case NMRP_C_TFTP_UL_REQ:
-				if (!unexpected) {
+				if (!upload_ok) {
 					if (++ulreqs > 5) {
 						printf("Bailing out after %d upload requests.\n",
 								ulreqs);
@@ -588,6 +586,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 				if (!status) {
 					printf("OK\nWaiting for remote to respond.\n");
+					upload_ok = 1;
 					ethsock_set_timeout(sock, args->ul_timeout);
 					expect = NMRP_C_NONE;
 				} else if (status == -2) {
