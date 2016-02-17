@@ -40,24 +40,6 @@ enum tftp_opcode {
 	ERR  = 5
 };
 
-static const char *leafname(const char *path)
-{
-	const char *slash, *bslash;
-
-	slash = strrchr(path, '/');
-	bslash = strrchr(path, '\\');
-
-	if (slash && bslash) {
-		path = 1 + (slash > bslash ? slash : bslash);
-	} else if (slash) {
-		path = 1 + slash;
-	} else if (bslash) {
-		path = 1 + bslash;
-	}
-
-	return path;
-}
-
 static bool is_netascii(const char *str)
 {
 	uint8_t *p = (uint8_t*)str;
@@ -209,6 +191,24 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 	}
 
 	return sent;
+}
+
+const char *leafname(const char *path)
+{
+	const char *slash, *bslash;
+
+	slash = strrchr(path, '/');
+	bslash = strrchr(path, '\\');
+
+	if (slash && bslash) {
+		path = 1 + (slash > bslash ? slash : bslash);
+	} else if (slash) {
+		path = 1 + slash;
+	} else if (bslash) {
+		path = 1 + bslash;
+	}
+
+	return path;
 }
 
 #ifdef NMRPFLASH_WINDOWS

@@ -75,6 +75,7 @@ struct nmrpd_args {
 	int force_root;
 };
 
+const char *leafname(const char *path);
 int tftp_put(struct nmrpd_args *args);
 bool tftp_is_valid_filename(const char *filename);
 
