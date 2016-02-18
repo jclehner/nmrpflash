@@ -33,6 +33,8 @@
 #define NMRP_MAX_OPT_SIZE 12
 #define NMRP_MAX_OPT_NUM 3
 
+#define NMRP_OPT_NEXT(x) ((struct nmrp_opt*)(((char*)x) + x->len))
+
 #define ETH_P_NMRP 0x0912
 #define IP_LEN 4
 #define MAX_LOOP_RECV 1024
@@ -116,15 +118,6 @@ static const char *msg_code_str(uint16_t code)
 #undef CASE_CODE
 }
 
-static void msg_update_len(struct nmrp_msg *msg)
-{
-	uint32_t i = 0;
-	msg->len = NMRP_HDR_LEN;
-	for (; i != msg->num_opts; ++i) {
-		msg->len += msg->opts[i].len;
-	}
-}
-
 static void msg_dump(struct nmrp_msg *msg, int dump_opts)
 {
 	struct nmrp_opt *opt;
@@ -153,7 +146,7 @@ static void msg_dump(struct nmrp_msg *msg, int dump_opts)
 				fprintf(stderr, "\n");
 			}
 			remain_len -= len;
-			opt = (struct nmrp_opt*)(((char*)opt) + len);
+			opt = NMRP_OPT_NEXT(opt);
 		}
 	}
 }
@@ -161,13 +154,16 @@ static void msg_dump(struct nmrp_msg *msg, int dump_opts)
 static void msg_hton(struct nmrp_msg *msg)
 {
 	uint32_t i = 0;
+	struct nmrp_opt *opt = msg->opts, *next;
 
 	msg->reserved = htons(msg->reserved);
 	msg->len = htons(msg->len);
 
 	for (; i != msg->num_opts; ++i) {
-		msg->opts[i].len = htons(msg->opts[i].len);
-		msg->opts[i].type = htons(msg->opts[i].type);
+		next = NMRP_OPT_NEXT(opt);
+		opt->len = htons(opt->len);
+		opt->type = htons(opt->type);
+		opt = next;
 	}
 }
 
@@ -200,7 +196,7 @@ static int msg_ntoh(struct nmrp_msg *msg)
 			}
 
 			remaining -= opt->len;
-			++opt;
+			opt = NMRP_OPT_NEXT(opt);
 		}
 
 		if (!remaining) {
@@ -232,7 +228,7 @@ static void *msg_opt_data(struct nmrp_msg *msg, uint16_t type, uint16_t *len)
 		}
 
 		remaining -= opt->len;
-		opt = (struct nmrp_opt*)((char*)opt) + opt->len;
+		opt = NMRP_OPT_NEXT(opt);
 	}
 
 	return NULL;
@@ -249,8 +245,8 @@ static void msg_opt_add(struct nmrp_msg *msg, uint16_t type, void *data,
 		fprintf(stderr, "Invalid option - this is a bug.\n");
 	}
 
-	for (; i != msg->num_opts; ++i) {
-		opt = (struct nmrp_opt*)(((char*)opt) + msg->len);
+	for (; i <= msg->num_opts; ++i) {
+		opt = NMRP_OPT_NEXT(opt);
 	}
 
 	opt->len = NMRP_OPT_HDR_LEN + len;
@@ -260,9 +256,15 @@ static void msg_opt_add(struct nmrp_msg *msg, uint16_t type, void *data,
 		memcpy(&opt->val, data, len);
 	}
 
+	msg->len += opt->len;
 	++msg->num_opts;
+}
 
-	return true;
+static inline void msg_init(struct nmrp_msg *msg, uint16_t code)
+{
+	memset(msg, 0, sizeof(*msg));
+	msg->len = NMRP_HDR_LEN;
+	msg->code = code;
 }
 
 static int pkt_send(struct ethsock *sock, struct nmrp_pkt *pkt)
@@ -376,11 +378,14 @@ int nmrp_do(struct nmrpd_args *args)
 	uint8_t *src, dest[6];
 	uint16_t len;
 	char *filename;
-	struct in_addr ipaddr, ipmask;
 	time_t beg;
 	int i, status, ulreqs, expect, upload_ok;
 	struct ethsock *sock;
 	void (*sigh_orig)(int);
+	struct {
+		struct in_addr addr;
+		struct in_addr mask;
+	} PACKED ipconf;
 
 	if (args->op != NMRP_UPLOAD_FW) {
 		fprintf(stderr, "Operation not implemented.\n");
@@ -392,12 +397,12 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	if ((ipaddr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
+	if ((ipconf.addr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
 		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
 		return 1;
 	}
 
-	if ((ipmask.s_addr = inet_addr(args->ipmask)) == INADDR_NONE) {
+	if ((ipconf.mask.s_addr = inet_addr(args->ipmask)) == INADDR_NONE) {
 		fprintf(stderr, "Invalid subnet mask '%s'.\n", args->ipmask);
 		return 1;
 	}
@@ -422,7 +427,7 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	status = is_valid_ip(sock, &ipaddr, &ipmask);
+	status = is_valid_ip(sock, &ipconf.addr, &ipconf.mask);
 	if (status <= 0) {
 		if (!status) {
 			fprintf(stderr, "Address %s/%s cannot be used on interface %s.\n",
@@ -447,19 +452,8 @@ int nmrp_do(struct nmrpd_args *args)
 	memcpy(tx.eh.ether_dhost, dest, 6);
 	tx.eh.ether_type = htons(ETH_P_NMRP);
 
-	tx.msg.reserved = 0;
-	tx.msg.code = NMRP_C_ADVERTISE;
-	tx.msg.id = 0;
-	tx.msg.num_opts = 0;
-
-	tx.msg.opts[0].type = NMRP_O_MAGIC_NO;
-	tx.msg.opts[0].len = NMRP_OPT_HDR_LEN + 4;
-	tx.msg.opts[0].val.magic[0] = 'N';
-	tx.msg.opts[0].val.magic[1] = 'T';
-	tx.msg.opts[0].val.magic[2] = 'G';
-	tx.msg.opts[0].val.magic[3] = 'R';
-
-	msg_update_len(&tx.msg);
+	msg_init(&tx.msg, NMRP_C_ADVERTISE);
+	msg_opt_add(&tx.msg, NMRP_O_MAGIC_NO, "NTGR", 4);
 	msg_hton(&tx.msg);
 
 	i = 0;
@@ -502,11 +496,7 @@ int nmrp_do(struct nmrpd_args *args)
 					msg_code_str(rx.msg.code), msg_code_str(expect));
 		}
 
-		tx.msg.code = NMRP_C_NONE;
-		tx.msg.reserved = 0;
-		tx.msg.id = 0;
-		tx.msg.num_opts = 0;
-		tx.msg.len = 0;
+		msg_init(&tx.msg, NMRP_C_NONE);
 
 		status = 1;
 
@@ -518,23 +508,14 @@ int nmrp_do(struct nmrpd_args *args)
 				goto out;
 			case NMRP_C_CONF_REQ:
 				tx.msg.code = NMRP_C_CONF_ACK;
-				tx.msg.num_opts = 2;
 
-				tx.msg.opts[0].type = NMRP_O_DEV_IP;
-				tx.msg.opts[0].len = NMRP_OPT_HDR_LEN + 2 * 4;
-
-				memcpy(tx.msg.opts[0].val.ip.addr, &ipaddr, 4);
-				memcpy(tx.msg.opts[0].val.ip.mask, &ipmask, 4);
-
-				tx.msg.opts[1].type = NMRP_O_FW_UP;
-				tx.msg.opts[1].len = NMRP_OPT_HDR_LEN;
+				msg_opt_add(&tx.msg, NMRP_O_DEV_IP, &ipconf, 8);
+				msg_opt_add(&tx.msg, NMRP_O_FW_UP, NULL, 0);
 
 #ifdef NMRPFLASH_SET_REGION
-				tx.msg.num_opts = 3;
-
-				tx.msg.opts[2].type = NMRP_O_DEV_REGION;
-				tx.msg.opts[2].len = NMRP_OPT_HDR_LEN + 2;
-				tx.msg.opts[2].val.region = args->region;
+				if (args->region) {
+					msg_opt_add(&tx.msg, NMRP_O_DEV_REGION, &args->region, 2);
+				}
 #endif
 
 				expect = NMRP_C_TFTP_UL_REQ;
@@ -575,7 +556,7 @@ int nmrp_do(struct nmrpd_args *args)
 							len, filename);
 				} else if (!args->file_remote) {
 					args->file_remote = args->file_local;
-					printf("Received upload request with empty filename.");
+					printf("Received upload request with empty filename.\n");
 				}
 
 				status = 0;
@@ -592,7 +573,7 @@ int nmrp_do(struct nmrpd_args *args)
 				}
 
 				if (!status && args->file_local) {
-					status = is_valid_ip(sock, &ipaddr, &ipmask);
+					status = is_valid_ip(sock, &ipconf.addr, &ipconf.mask);
 					if (status < 0) {
 						goto out;
 					} else if (!status) {
@@ -647,7 +628,6 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 
 		if (tx.msg.code != NMRP_C_NONE) {
-			msg_update_len(&tx.msg);
 			msg_hton(&tx.msg);
 
 			if (pkt_send(sock, &tx) < 0) {
