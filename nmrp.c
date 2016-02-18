@@ -142,14 +142,16 @@ static void msg_dump(struct nmrp_msg *msg, int dump_opts)
 		while (remain_len > 0) {
 			len = opt->len;
 			fprintf(stderr, "  opt type=%u, len=%u", opt->type, len);
-			for (i = 0; i != len - NMRP_OPT_HDR_LEN; ++i) {
-				if (!(i % 16)) {
-					fprintf(stderr, "\n  ");
-				}
+			if (len) {
+				for (i = 0; i != len - NMRP_OPT_HDR_LEN; ++i) {
+					if (!(i % 16)) {
+						fprintf(stderr, "\n  ");
+					}
 
-				fprintf(stderr, "%02x ", ((char*)&opt->val)[i] & 0xff);
+					fprintf(stderr, "%02x ", ((char*)&opt->val)[i] & 0xff);
+				}
+				fprintf(stderr, "\n");
 			}
-			fprintf(stderr, "\n");
 			remain_len -= len;
 			opt = (struct nmrp_opt*)(((char*)opt) + len);
 		}
