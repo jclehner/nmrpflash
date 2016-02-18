@@ -10,24 +10,25 @@ Prebuilt binaries for Linux, OS X and Windows are available
 [here](https://github.com/jclehner/nmrpflash/releases)
 ([WinPcap](https://www.winpcap.org/install/default.htm) is required on Windows).
 
-````
+```
 Usage: nmrpflash [OPTIONS...]
 
-Options (-a, -i and -f are mandatory):
+Options (-a, -i and -f and/or -c are mandatory):
  -a <ipaddr>     IP address to assign to target device
+ -c <command>    Command to run before (or instead of) TFTP upload
  -f <firmware>   Firmware file
+ -F <filename>   Remote filename to use during TFTP upload
  -i <interface>  Network interface directly connected to device
  -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)
  -M <netmask>    Subnet mask to assign to target device
  -t <timeout>    Timeout (in milliseconds) for regular messages
- -T <timeout>    Time to wait after successfull TFTP upload
+ -T <timeout>    Time (seconds) to wait after successfull TFTP upload
  -p <port>       Port to use for TFTP upload
- -U              Test TFTP upload
  -v              Be verbose
  -V              Print version and exit
  -L              List network interfaces
  -h              Show this screen
-````
+```
 
 ### Using nmrpflash
 
@@ -40,10 +41,10 @@ First, we have to assign a static IP address to our network interface.
 In this example, we'll use `192.168.1.2`. All available network interfaces
 can be listed using
 
-````
+```
 $ nmrpflash -L
 eth0      192.168.1.2  f2:11:a1:02:03:b1
-````
+```
 
 Now we can `nmrpflash`. The argument for the `-a` option needs
 to be a *free* IP address from the same subnet as the one used by your
@@ -52,7 +53,7 @@ be downloaded directly from netgear. For details on how to do this, see
 [here](#obtaining-firmware-images). Power on your device immediately 
 after starting `nmrpflash`.
 
-````
+```
 $ nmrpflash -i eth0 -a 192.168.1.254 -f EX2700-V1.0.1.8.img
 Advertising NMRP server on eth0 ... /
 Received configuration request from a4:2b:8c:00:00:01.
@@ -60,7 +61,7 @@ Sending configuration: ip 192.168.1.254, mask 255.255.255.0.
 Uploading EX2700-V1.0.1.8.img ... OK
 Waiting for remote to respond.
 Remote finished. Closing connection.
-````
+```
 
 ### Common issues
 ###### "No suitable network interfaces found."
@@ -109,9 +110,9 @@ this case setting the IP address to 192.168.1.2).
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
 
-````
+```
 $ make && sudo make install
-````
+```
 
 ###### Windows
 
