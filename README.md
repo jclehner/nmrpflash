@@ -87,8 +87,8 @@ operation took longer than 120 seconds.
 
 `nmrpflash` refuses to use an IP address / subnet mask combination that would
 make the remote device unreachable from the device running `nmrpflash`. For
-example, if interface Z uses 192.168.0.1/255.255.255.0, assigning
-192.168.2.100/255.255.255.0 makes no sense, because the TFTP upload will
+example, if the IP address of your computer is 192.168.0.1/255.255.255.0, assigning
+192.168.2.1/255.255.255.0 to the router makes no sense, because the TFTP upload will
 fail.
 
 ###### "IP address of X has changed. Please assign a static IP to the interface."
