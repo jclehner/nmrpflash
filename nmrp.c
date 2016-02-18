@@ -82,7 +82,9 @@ struct nmrp_msg {
 	uint8_t code;
 	uint8_t id;
 	uint16_t len;
+	/* only opts[0] is valid! think of this as a char* */
 	struct nmrp_opt opts[NMRP_MAX_OPT_NUM];
+	/* this is NOT part of the transmitted packet */
 	uint32_t num_opts;
 } PACKED;
 
