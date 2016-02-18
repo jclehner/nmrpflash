@@ -42,7 +42,7 @@ void usage(FILE *fp)
 			" -T <timeout>    Time (seconds) to wait after successfull TFTP upload\n"
 			" -p <port>       Port to use for TFTP upload\n"
 #ifdef NMRPFLASH_SET_REGION
-			" -R <region>     Set device region\n"
+			" -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP)\n"
 #endif
 #ifdef NMRPFLASH_TFTP_TEST
 			" -U              Test TFTP upload\n"
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 		.mac = "ff:ff:ff:ff:ff:ff",
 		.op = NMRP_UPLOAD_FW,
 		.port = 69,
-		.force_root = 1
+		.region = NULL,
 	};
 #ifdef NMRPFLASH_WINDOWS
 	WSADATA wsa;
@@ -121,16 +121,16 @@ int main(int argc, char **argv)
 			case 'M':
 				args.ipmask = optarg;
 				break;
-			case 'p':
 #ifdef NMRPFLASH_SET_REGION
 			case 'R':
+				args.region = optarg;
+				break;
 #endif
+			case 'p':
 			case 'T':
 			case 't':
 				if (c == 'p') {
 					max = 0xffff;
-				} else if (c == 'R') {
-					max = 0x0009;
 				}
 
 				val = atoi(optarg);
@@ -145,8 +145,6 @@ int main(int argc, char **argv)
 					args.rx_timeout = val;
 				} else if (c == 'T') {
 					args.ul_timeout = val * 1000;
-				} else if (c == 'R') {
-					args.region = val;
 				}
 
 				break;

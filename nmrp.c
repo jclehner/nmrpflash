@@ -118,6 +118,22 @@ static const char *msg_code_str(uint16_t code)
 #undef CASE_CODE
 }
 
+static uint16_t to_region_code(const char *region)
+{
+#define REGION_CODE(r, c) if (!strcasecmp(region, r)) return c
+	REGION_CODE("NA", 0x0001);
+	REGION_CODE("WW", 0x0002);
+	REGION_CODE("GR", 0x0003);
+	REGION_CODE("PR", 0x0004);
+	REGION_CODE("RU", 0x0005);
+	REGION_CODE("BZ", 0x0006);
+	REGION_CODE("IN", 0x0007);
+	REGION_CODE("KO", 0x0008);
+	REGION_CODE("JP", 0x0009);
+#undef REGION_CODE
+	return 0;
+}
+
 static void msg_dump(struct nmrp_msg *msg, int dump_opts)
 {
 	struct nmrp_opt *opt;
@@ -420,6 +436,16 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 	}
 
+	if (args->region) {
+		region = htons(to_region_code(args->region));
+		if (!region) {
+			fprintf(stderr, "Invalid region code '%s'.\n", args->region);
+			return 1;
+		}
+	} else {
+		region = 0;
+	}
+
 	status = 1;
 
 	sock = ethsock_create(args->intf, ETH_P_NMRP);
@@ -513,8 +539,7 @@ int nmrp_do(struct nmrpd_args *args)
 				msg_opt_add(&tx.msg, NMRP_O_FW_UP, NULL, 0);
 
 #ifdef NMRPFLASH_SET_REGION
-				if (args->region) {
-					region = htons(args->region);
+				if (region) {
 					msg_opt_add(&tx.msg, NMRP_O_DEV_REGION, &region, 2);
 				}
 #endif
