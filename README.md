@@ -103,7 +103,8 @@ for example:
 
 `nmrpflash -i eth0 -a 192.168.1.1 -f firmware.bin -c 'ifconfig eth0 192.168.1.2'`
 
-This will execute the command specified by `-c` prior to starting the TFTP upload.
+This will execute the command specified by `-c` prior to starting the TFTP upload (in
+this case setting the IP address to 192.168.1.2).
 
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
