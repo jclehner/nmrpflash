@@ -24,6 +24,7 @@ Options (-a, -i and -f and/or -c are mandatory):
  -t <timeout>    Timeout (in milliseconds) for regular messages
  -T <timeout>    Time (seconds) to wait after successfull TFTP upload
  -p <port>       Port to use for TFTP upload
+ -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP)
  -v              Be verbose
  -V              Print version and exit
  -L              List network interfaces
