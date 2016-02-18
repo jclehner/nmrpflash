@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include "nmrpd.h"
 
+#define NMRPFLASH_SET_REGION
+
 int verbosity = 0;
 
 void usage(FILE *fp)
