@@ -59,9 +59,11 @@ $ nmrpflash -i eth0 -a 192.168.1.254 -f EX2700-V1.0.1.8.img
 Advertising NMRP server on eth0 ... /
 Received configuration request from a4:2b:8c:00:00:01.
 Sending configuration: ip 192.168.1.254, mask 255.255.255.0.
+Received upload request: filename 'firmware'.
 Uploading EX2700-V1.0.1.8.img ... OK
 Waiting for remote to respond.
 Remote finished. Closing connection.
+Reboot your device now.
 ```
 
 ### Common issues
