@@ -74,7 +74,7 @@ The router did not respond. Try rebooting the device and run `nmrpflash` again.
 You could also try running `nmrpflash` with `-m` and specify your router's
 MAC address. It's also possible that your device does not support the NMRP protocol.
 
-###### "Timeout while waiting for 0x04."
+###### "Timeout while waiting for CLOSE_REQ."
 
 After a successful file upload, `nmrpflash` waits for up to 120 seconds for an
 answer from your device. You can increase this by specifying a longer timeout
@@ -82,6 +82,28 @@ using `-T` switch (argument is in seconds).
 
 It's entirely possible that the image was flashed successfully, but the
 operation took longer than 120 seconds.
+
+###### "Address X/Y cannot be used on interface Z."
+
+`nmrpflash` refuses to use an IP address / subnet mask combination that would
+make the remote device unreachable from the device running `nmrpflash`. For
+example, if interface Z uses 192.168.0.1/255.255.255.0, assigning
+192.168.2.100/255.255.255.0 makes no sense, because the TFTP upload will
+fail.
+
+###### "IP address of X has changed. Please assign a static IP to the interface."
+
+This can happen if the network interface in question automatically detects that
+the network cable has been connected, and your computer tries to reconfigure that
+interface (NetworkManager on Linux does this for example) - this can usually be
+disabled.
+
+An alternative would be to add `-c 'ifconfig <interface> <ip>'` to the command line,
+for example:
+
+`nmrpflash -i eth0 -a 192.168.1.1 -f firmware.bin -c 'ifconfig eth0 192.168.1.2'`
+
+This will execute the command specified by `-c` prior to starting the TFTP upload.
 
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
