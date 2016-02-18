@@ -27,11 +27,11 @@
 #include "nmrpd.h"
 
 #define NMRP_HDR_LEN 6
-#define NMRP_OPT_LEN 4
+#define NMRP_OPT_HDR_LEN 4
 #define NMRP_MIN_PKT_LEN (sizeof(struct eth_hdr) +  NMRP_HDR_LEN)
 
 #define NMRP_MAX_OPT_SIZE 12
-#define NMRP_MAX_OPT_NUM 2
+#define NMRP_MAX_OPT_NUM 3
 
 #define ETH_P_NMRP 0x0912
 #define IP_LEN 4
@@ -80,7 +80,7 @@ struct nmrp_msg {
 	uint8_t code;
 	uint8_t id;
 	uint16_t len;
-	struct nmrp_opt opts[2];
+	struct nmrp_opt opts[NMRP_MAX_OPT_NUM];
 	uint32_t num_opts;
 } PACKED;
 
@@ -142,7 +142,7 @@ static void msg_dump(struct nmrp_msg *msg, int dump_opts)
 		while (remain_len > 0) {
 			len = opt->len;
 			fprintf(stderr, "  opt type=%u, len=%u", opt->type, len);
-			for (i = 0; i != len - NMRP_OPT_LEN; ++i) {
+			for (i = 0; i != len - NMRP_OPT_HDR_LEN; ++i) {
 				if (!(i % 16)) {
 					fprintf(stderr, "\n  ");
 				}
@@ -186,7 +186,7 @@ static int msg_ntoh(struct nmrp_msg *msg)
 	// size is 12
 	if (remaining < NMRP_MAX_OPT_NUM * NMRP_MAX_OPT_SIZE) {
 		while (remaining > 0) {
-			if (remaining < NMRP_OPT_LEN) {
+			if (remaining < NMRP_OPT_HDR_LEN) {
 				break;
 			}
 
@@ -211,7 +211,7 @@ static int msg_ntoh(struct nmrp_msg *msg)
 	return 1;
 }
 
-static void *msg_opt_data(struct nmrp_msg *msg, int type, uint16_t *len)
+static void *msg_opt_data(struct nmrp_msg *msg, uint16_t type, uint16_t *len)
 {
 	static char buf[128];
 	struct nmrp_opt *opt = msg->opts;
@@ -221,10 +221,10 @@ static void *msg_opt_data(struct nmrp_msg *msg, int type, uint16_t *len)
 
 	while (remaining > 0) {
 		if (opt->type == type) {
-			if (opt->len == NMRP_OPT_LEN) {
+			if (opt->len == NMRP_OPT_HDR_LEN) {
 				return NULL;
 			}
-			*len = opt->len - NMRP_OPT_LEN;
+			*len = opt->len - NMRP_OPT_HDR_LEN;
 			memcpy(buf, &opt->val, MIN(*len, sizeof(buf)-1));
 			return buf;
 		}
@@ -234,6 +234,33 @@ static void *msg_opt_data(struct nmrp_msg *msg, int type, uint16_t *len)
 	}
 
 	return NULL;
+}
+
+static void msg_opt_add(struct nmrp_msg *msg, uint16_t type, void *data,
+		uint16_t len)
+{
+	uint32_t i = 0;
+	struct nmrp_opt *opt = msg->opts;
+
+	if (len + NMRP_OPT_HDR_LEN > NMRP_MAX_OPT_SIZE
+			|| msg->num_opts == NMRP_MAX_OPT_NUM) {
+		fprintf(stderr, "Invalid option - this is a bug.\n");
+	}
+
+	for (; i != msg->num_opts; ++i) {
+		opt = (struct nmrp_opt*)(((char*)opt) + msg->len);
+	}
+
+	opt->len = NMRP_OPT_HDR_LEN + len;
+	opt->type = type;
+
+	if (len) {
+		memcpy(&opt->val, data, len);
+	}
+
+	++msg->num_opts;
+
+	return true;
 }
 
 static int pkt_send(struct ethsock *sock, struct nmrp_pkt *pkt)
@@ -421,9 +448,10 @@ int nmrp_do(struct nmrpd_args *args)
 	tx.msg.reserved = 0;
 	tx.msg.code = NMRP_C_ADVERTISE;
 	tx.msg.id = 0;
-	tx.msg.num_opts = 1;
+	tx.msg.num_opts = 0;
+
 	tx.msg.opts[0].type = NMRP_O_MAGIC_NO;
-	tx.msg.opts[0].len = NMRP_OPT_LEN + 4;
+	tx.msg.opts[0].len = NMRP_OPT_HDR_LEN + 4;
 	tx.msg.opts[0].val.magic[0] = 'N';
 	tx.msg.opts[0].val.magic[1] = 'T';
 	tx.msg.opts[0].val.magic[2] = 'G';
@@ -491,19 +519,19 @@ int nmrp_do(struct nmrpd_args *args)
 				tx.msg.num_opts = 2;
 
 				tx.msg.opts[0].type = NMRP_O_DEV_IP;
-				tx.msg.opts[0].len = NMRP_OPT_LEN + 2 * 4;
+				tx.msg.opts[0].len = NMRP_OPT_HDR_LEN + 2 * 4;
 
 				memcpy(tx.msg.opts[0].val.ip.addr, &ipaddr, 4);
 				memcpy(tx.msg.opts[0].val.ip.mask, &ipmask, 4);
 
 				tx.msg.opts[1].type = NMRP_O_FW_UP;
-				tx.msg.opts[1].len = NMRP_OPT_LEN;
+				tx.msg.opts[1].len = NMRP_OPT_HDR_LEN;
 
 #ifdef NMRPFLASH_SET_REGION
 				tx.msg.num_opts = 3;
 
 				tx.msg.opts[2].type = NMRP_O_DEV_REGION;
-				tx.msg.opts[2].len = NMRP_OPT_LEN + 2;
+				tx.msg.opts[2].len = NMRP_OPT_HDR_LEN + 2;
 				tx.msg.opts[2].val.region = args->region;
 #endif
 
