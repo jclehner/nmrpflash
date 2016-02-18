@@ -216,11 +216,6 @@ void sock_perror(const char *msg)
 {
 	win_perror2(msg, WSAGetLastError());
 }
-#else
-inline void sock_perror(const char *msg)
-{
-	perror(msg);
-}
 #endif
 
 inline bool tftp_is_valid_filename(const char *filename)
