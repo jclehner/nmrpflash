@@ -376,7 +376,7 @@ int nmrp_do(struct nmrpd_args *args)
 {
 	struct nmrp_pkt tx, rx;
 	uint8_t *src, dest[6];
-	uint16_t len;
+	uint16_t len, region;
 	char *filename;
 	time_t beg;
 	int i, status, ulreqs, expect, upload_ok;
@@ -514,7 +514,8 @@ int nmrp_do(struct nmrpd_args *args)
 
 #ifdef NMRPFLASH_SET_REGION
 				if (args->region) {
-					msg_opt_add(&tx.msg, NMRP_O_DEV_REGION, &args->region, 2);
+					region = htons(args->region);
+					msg_opt_add(&tx.msg, NMRP_O_DEV_REGION, &region, 2);
 				}
 #endif
 
