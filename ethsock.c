@@ -297,13 +297,13 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 #ifndef NMRPFLASH_WINDOWS
 	sock->fd = pcap_get_selectable_fd(sock->pcap);
 	if (sock->fd == -1) {
-		fprintf(stderr, "No selectable file descriptor available.\n");
+		pcap_perror(sock->pcap, "pcap_get_selectable_fd");
 		goto cleanup_pcap;
 	}
 #else
 	sock->handle = pcap_getevent(sock->pcap);
 	if (!sock->handle) {
-		fprintf(stderr, "No event handle available.\n");
+		pcap_perror(sock->pcap, "pcap_getevent");
 		goto cleanup_pcap;
 	}
 
