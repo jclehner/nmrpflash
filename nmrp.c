@@ -393,6 +393,8 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
+	sigh_orig = signal(SIGINT, sigh);
+
 	status = is_valid_ip(sock, &ipaddr, &ipmask);
 	if (status <= 0) {
 		if (!status) {
@@ -403,7 +405,6 @@ int nmrp_do(struct nmrpd_args *args)
 	}
 
 	gsock = sock;
-	sigh_orig = signal(SIGINT, sigh);
 
 	if (ethsock_set_timeout(sock, args->rx_timeout)) {
 		goto out;
