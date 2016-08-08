@@ -95,7 +95,7 @@ where `<interface>` is the pretty interface name (e.g. "Local Area Connection"; 
 `nmrpflash -L`), `<ip>` is the same IP address you'd use for `nmrpflash`'s `-a` flag, and `<mac>`
 is the target device's mac address.
 
-Cheers to @ntadmin for this info!
+Cheers to [@ntadmin](https://github.com/ntadmin) for this info!
 
 ###### "Timeout while waiting for CLOSE_REQ."
 
