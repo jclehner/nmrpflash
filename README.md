@@ -78,6 +78,25 @@ The router did not respond. Try rebooting the device and run `nmrpflash` again.
 You could also try running `nmrpflash` with `-m` and specify your router's
 MAC address. It's also possible that your device does not support the NMRP protocol.
 
+###### "Timeout while waiting for initial reply."
+
+The device did not respond to `nmrpflash`'s TFTP upload request. This could indicate a bug
+in the TFTP code; try using an external tftp client (busybox in this example), by specifying
+the `-c` flag instead of the `-f` flag:
+
+`$ nmrpflash -i eth0 -a 192.168.1.254 -c "busybox tftp -p -l EX2700-V1.0.1.8.img 192.168.1.254"`
+
+If the upload still fails, and you're on Windows, try executing the following command before
+running `nmrpflash`:
+
+`C:\> netsh interface ip add neighbors <interface> <ip> <mac>`
+
+where `<interface>` is the pretty interface name (e.g. "Local Area Connection"; as displayed by
+`nmrpflash -L`), `<ip>` is the same IP address you'd use for `nmrpflash`'s `-a` flag, and `<mac>`
+is the target device's mac address.
+
+Cheers to @ntadmin for this info!
+
 ###### "Timeout while waiting for CLOSE_REQ."
 
 After a successful file upload, `nmrpflash` waits for up to 120 seconds for an
