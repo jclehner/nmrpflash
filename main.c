@@ -88,7 +88,7 @@ void require_admin()
 	if (success) {
 		if (CheckTokenMembership(NULL, adminGroup, &success)) {
 			if (!success) {
-				fprintf(stderr, "Error: must be run as administrator");
+				fprintf(stderr, "Error: must be run as administrator\n");
 				exit(1);
 			} else {
 				return;
@@ -97,13 +97,13 @@ void require_admin()
 		FreeSid(adminGroup);
 	}
 
-	fprintf(stderr, "Warning: failed to check administrator privileges");
+	fprintf(stderr, "Warning: failed to check administrator privileges\n");
 }
 #else
 void require_admin()
 {
 	if (getuid() != 0) {
-		fprintf(stderr, "Error: must be run as root");
+		fprintf(stderr, "Error: must be run as root\n");
 		exit(1);
 	}
 }
