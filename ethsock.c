@@ -442,6 +442,50 @@ inline int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
 	return 0;
 }
 
+#ifndef NMRPFLASH_WINDOWS
+int ethsock_arp_add(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr)
+{
+	return 0;
+}
+
+int ethsock_arp_del(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr)
+{
+	return 0;
+}
+#else
+static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr, int add, int nofail)
+{
+	DWORD ret;
+	MIB_IPNETROW arp = {
+		.dwIndex = sock->index,
+		.dwPhysAddrLen = 6,
+		.dwAddr = ipaddr->s_addr,
+		.dwType = MIB_IPNET_TYPE_STATIC
+	};
+	
+	memcpy(arp.bPhysAddr, hwaddr, 6);
+	
+	ret = add ? CreateIpNetEntry(&arp) : DeleteIpNetEntry(&arp);
+	if (ret != NO_ERROR && !nofail) {
+		win_perror2(add ? "CreateIpNetEntry" : "DeleteIpNetEntry", ret);
+		return -1;
+	}
+	
+	return 0;
+}
+
+int ethsock_arp_add(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr)
+{
+	ethsock_arp(sock, hwaddr, ipaddr, 0, 1);
+	return ethsock_arp(sock, hwaddr, ipaddr, 1, 0);
+}
+
+int ethsock_arp_del(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr)
+{
+	return ethsock_arp(sock, hwaddr, ipaddr, 0, 0);
+}
+#endif
+
 static bool get_hwaddr_from_pcap(const pcap_if_t *dev, uint8_t *hwaddr)
 {
 #ifndef NMRPFLASH_WINDOWS
