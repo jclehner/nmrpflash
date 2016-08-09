@@ -10,24 +10,26 @@ Prebuilt binaries for Linux, OS X and Windows are available
 [here](https://github.com/jclehner/nmrpflash/releases)
 ([WinPcap](https://www.winpcap.org/install/default.htm) is required on Windows).
 
-````
+```
 Usage: nmrpflash [OPTIONS...]
 
-Options (-a, -i and -f are mandatory):
+Options (-a, -i and -f and/or -c are mandatory):
  -a <ipaddr>     IP address to assign to target device
+ -c <command>    Command to run before (or instead of) TFTP upload
  -f <firmware>   Firmware file
+ -F <filename>   Remote filename to use during TFTP upload
  -i <interface>  Network interface directly connected to device
  -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)
  -M <netmask>    Subnet mask to assign to target device
  -t <timeout>    Timeout (in milliseconds) for regular messages
- -T <timeout>    Time to wait after successfull TFTP upload
+ -T <timeout>    Time (seconds) to wait after successfull TFTP upload
  -p <port>       Port to use for TFTP upload
- -U              Test TFTP upload
+ -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP)
  -v              Be verbose
  -V              Print version and exit
  -L              List network interfaces
  -h              Show this screen
-````
+```
 
 ### Using nmrpflash
 
@@ -40,10 +42,10 @@ First, we have to assign a static IP address to our network interface.
 In this example, we'll use `192.168.1.2`. All available network interfaces
 can be listed using
 
-````
+```
 $ nmrpflash -L
 eth0      192.168.1.2  f2:11:a1:02:03:b1
-````
+```
 
 Now we can `nmrpflash`. The argument for the `-a` option needs
 to be a *free* IP address from the same subnet as the one used by your
@@ -52,15 +54,17 @@ be downloaded directly from netgear. For details on how to do this, see
 [here](#obtaining-firmware-images). Power on your device immediately 
 after starting `nmrpflash`.
 
-````
+```
 $ nmrpflash -i eth0 -a 192.168.1.254 -f EX2700-V1.0.1.8.img
 Advertising NMRP server on eth0 ... /
 Received configuration request from a4:2b:8c:00:00:01.
 Sending configuration: ip 192.168.1.254, mask 255.255.255.0.
+Received upload request: filename 'firmware'.
 Uploading EX2700-V1.0.1.8.img ... OK
 Waiting for remote to respond.
 Remote finished. Closing connection.
-````
+Reboot your device now.
+```
 
 ### Common issues
 ###### "No suitable network interfaces found."
@@ -74,7 +78,26 @@ The router did not respond. Try rebooting the device and run `nmrpflash` again.
 You could also try running `nmrpflash` with `-m` and specify your router's
 MAC address. It's also possible that your device does not support the NMRP protocol.
 
-###### "Timeout while waiting for 0x04."
+###### "Timeout while waiting for initial reply."
+
+The device did not respond to `nmrpflash`'s TFTP upload request. This could indicate a bug
+in the TFTP code; try using an external tftp client (busybox in this example), by specifying
+the `-c` flag instead of the `-f` flag:
+
+`$ nmrpflash -i eth0 -a 192.168.1.254 -c "busybox tftp -p -l EX2700-V1.0.1.8.img 192.168.1.254"`
+
+If the upload still fails, and you're on Windows, try executing the following command before
+running `nmrpflash`:
+
+`C:\> netsh interface ip add neighbors <interface> <ip> <mac>`
+
+where `<interface>` is the pretty interface name (e.g. "Local Area Connection"; as displayed by
+`nmrpflash -L`), `<ip>` is the same IP address you'd use for `nmrpflash`'s `-a` flag, and `<mac>`
+is the target device's mac address.
+
+Cheers to [@ntadmin](https://github.com/ntadmin) for this info!
+
+###### "Timeout while waiting for CLOSE_REQ."
 
 After a successful file upload, `nmrpflash` waits for up to 120 seconds for an
 answer from your device. You can increase this by specifying a longer timeout
@@ -83,12 +106,35 @@ using `-T` switch (argument is in seconds).
 It's entirely possible that the image was flashed successfully, but the
 operation took longer than 120 seconds.
 
+###### "Address X/Y cannot be used on interface Z."
+
+`nmrpflash` refuses to use an IP address / subnet mask combination that would
+make the remote device unreachable from the device running `nmrpflash`. For
+example, if the IP address of your computer is 192.168.0.1/255.255.255.0, assigning
+192.168.2.1/255.255.255.0 to the router makes no sense, because the TFTP upload will
+fail.
+
+###### "IP address of X has changed. Please assign a static IP to the interface."
+
+This can happen if the network interface in question automatically detects that
+the network cable has been connected, and your computer tries to reconfigure that
+interface (NetworkManager on Linux does this for example) - this can usually be
+disabled.
+
+An alternative would be to add `-c 'ifconfig <interface> <ip>'` to the command line,
+for example:
+
+`nmrpflash -i eth0 -a 192.168.1.1 -f firmware.bin -c 'ifconfig eth0 192.168.1.2'`
+
+This will execute the command specified by `-c` prior to starting the TFTP upload (in
+this case setting the IP address to 192.168.1.2).
+
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
 
-````
+```
 $ make && sudo make install
-````
+```
 
 ###### Windows
 

@@ -27,11 +27,13 @@
 #include "nmrpd.h"
 
 #define NMRP_HDR_LEN 6
-#define NMRP_OPT_LEN 4
+#define NMRP_OPT_HDR_LEN 4
 #define NMRP_MIN_PKT_LEN (sizeof(struct eth_hdr) +  NMRP_HDR_LEN)
 
 #define NMRP_MAX_OPT_SIZE 12
-#define NMRP_MAX_OPT_NUM 2
+#define NMRP_MAX_OPT_NUM 3
+
+#define NMRP_OPT_NEXT(x) ((struct nmrp_opt*)(((char*)x) + x->len))
 
 #define ETH_P_NMRP 0x0912
 #define IP_LEN 4
@@ -80,7 +82,9 @@ struct nmrp_msg {
 	uint8_t code;
 	uint8_t id;
 	uint16_t len;
-	struct nmrp_opt opts[2];
+	/* only opts[0] is valid! think of this as a char* */
+	struct nmrp_opt opts[NMRP_MAX_OPT_NUM];
+	/* this is NOT part of the transmitted packet */
 	uint32_t num_opts;
 } PACKED;
 
@@ -116,13 +120,20 @@ static const char *msg_code_str(uint16_t code)
 #undef CASE_CODE
 }
 
-static void msg_update_len(struct nmrp_msg *msg)
+static uint16_t to_region_code(const char *region)
 {
-	uint32_t i = 0;
-	msg->len = NMRP_HDR_LEN;
-	for (; i != msg->num_opts; ++i) {
-		msg->len += msg->opts[i].len;
-	}
+#define REGION_CODE(r, c) if (!strcasecmp(region, r)) return c
+	REGION_CODE("NA", 0x0001);
+	REGION_CODE("WW", 0x0002);
+	REGION_CODE("GR", 0x0003);
+	REGION_CODE("PR", 0x0004);
+	REGION_CODE("RU", 0x0005);
+	REGION_CODE("BZ", 0x0006);
+	REGION_CODE("IN", 0x0007);
+	REGION_CODE("KO", 0x0008);
+	REGION_CODE("JP", 0x0009);
+#undef REGION_CODE
+	return 0;
 }
 
 static void msg_dump(struct nmrp_msg *msg, int dump_opts)
@@ -142,16 +153,18 @@ static void msg_dump(struct nmrp_msg *msg, int dump_opts)
 		while (remain_len > 0) {
 			len = opt->len;
 			fprintf(stderr, "  opt type=%u, len=%u", opt->type, len);
-			for (i = 0; i != len - NMRP_OPT_LEN; ++i) {
-				if (!(i % 16)) {
-					fprintf(stderr, "\n  ");
-				}
+			if (len) {
+				for (i = 0; i != len - NMRP_OPT_HDR_LEN; ++i) {
+					if (!(i % 16)) {
+						fprintf(stderr, "\n  ");
+					}
 
-				fprintf(stderr, "%02x ", ((char*)&opt->val)[i] & 0xff);
+					fprintf(stderr, "%02x ", ((char*)&opt->val)[i] & 0xff);
+				}
+				fprintf(stderr, "\n");
 			}
-			fprintf(stderr, "\n");
 			remain_len -= len;
-			opt = (struct nmrp_opt*)(((char*)opt) + len);
+			opt = NMRP_OPT_NEXT(opt);
 		}
 	}
 }
@@ -159,13 +172,16 @@ static void msg_dump(struct nmrp_msg *msg, int dump_opts)
 static void msg_hton(struct nmrp_msg *msg)
 {
 	uint32_t i = 0;
+	struct nmrp_opt *opt = msg->opts, *next;
 
 	msg->reserved = htons(msg->reserved);
 	msg->len = htons(msg->len);
 
 	for (; i != msg->num_opts; ++i) {
-		msg->opts[i].len = htons(msg->opts[i].len);
-		msg->opts[i].type = htons(msg->opts[i].type);
+		next = NMRP_OPT_NEXT(opt);
+		opt->len = htons(opt->len);
+		opt->type = htons(opt->type);
+		opt = next;
 	}
 }
 
@@ -186,7 +202,7 @@ static int msg_ntoh(struct nmrp_msg *msg)
 	// size is 12
 	if (remaining < NMRP_MAX_OPT_NUM * NMRP_MAX_OPT_SIZE) {
 		while (remaining > 0) {
-			if (remaining < NMRP_OPT_LEN) {
+			if (remaining < NMRP_OPT_HDR_LEN) {
 				break;
 			}
 
@@ -198,7 +214,7 @@ static int msg_ntoh(struct nmrp_msg *msg)
 			}
 
 			remaining -= opt->len;
-			++opt;
+			opt = NMRP_OPT_NEXT(opt);
 		}
 
 		if (!remaining) {
@@ -211,7 +227,7 @@ static int msg_ntoh(struct nmrp_msg *msg)
 	return 1;
 }
 
-static void *msg_opt_data(struct nmrp_msg *msg, int type, uint16_t *len)
+static void *msg_opt_data(struct nmrp_msg *msg, uint16_t type, uint16_t *len)
 {
 	static char buf[128];
 	struct nmrp_opt *opt = msg->opts;
@@ -221,19 +237,52 @@ static void *msg_opt_data(struct nmrp_msg *msg, int type, uint16_t *len)
 
 	while (remaining > 0) {
 		if (opt->type == type) {
-			if (opt->len == NMRP_OPT_LEN) {
+			if (opt->len == NMRP_OPT_HDR_LEN) {
 				return NULL;
 			}
-			*len = opt->len - NMRP_OPT_LEN;
+			*len = opt->len - NMRP_OPT_HDR_LEN;
 			memcpy(buf, &opt->val, MIN(*len, sizeof(buf)-1));
 			return buf;
 		}
 
 		remaining -= opt->len;
-		opt = (struct nmrp_opt*)((char*)opt) + opt->len;
+		opt = NMRP_OPT_NEXT(opt);
 	}
 
 	return NULL;
+}
+
+static void msg_opt_add(struct nmrp_msg *msg, uint16_t type, void *data,
+		uint16_t len)
+{
+	uint32_t i = 0;
+	struct nmrp_opt *opt = msg->opts;
+
+	if (len + NMRP_OPT_HDR_LEN > NMRP_MAX_OPT_SIZE
+			|| msg->num_opts == NMRP_MAX_OPT_NUM) {
+		fprintf(stderr, "Invalid option - this is a bug.\n");
+	}
+
+	for (; i <= msg->num_opts; ++i) {
+		opt = NMRP_OPT_NEXT(opt);
+	}
+
+	opt->len = NMRP_OPT_HDR_LEN + len;
+	opt->type = type;
+
+	if (len) {
+		memcpy(&opt->val, data, len);
+	}
+
+	msg->len += opt->len;
+	++msg->num_opts;
+}
+
+static inline void msg_init(struct nmrp_msg *msg, uint16_t code)
+{
+	memset(msg, 0, sizeof(*msg));
+	msg->len = NMRP_HDR_LEN;
+	msg->code = code;
 }
 
 static int pkt_send(struct ethsock *sock, struct nmrp_pkt *pkt)
@@ -328,12 +377,19 @@ static int is_valid_ip(struct ethsock *sock, struct in_addr *ipaddr,
 }
 
 static struct ethsock *gsock = NULL;
+static int garp = 0;
+static struct in_addr arpip = { 0 };
+static uint8_t arpmac[6] = { 0 };
 
 static void sigh(int sig)
 {
 	printf("\n");
 	if (gsock) {
+		if (garp) {
+			ethsock_arp_del(gsock, arpmac, &arpip);
+		}
 		ethsock_close(gsock);
+		gsock = NULL;
 	}
 
 	exit(1);
@@ -345,13 +401,16 @@ int nmrp_do(struct nmrpd_args *args)
 {
 	struct nmrp_pkt tx, rx;
 	uint8_t *src, dest[6];
-	uint16_t len;
+	uint16_t len, region;
 	char *filename;
-	struct in_addr ipaddr, ipmask;
 	time_t beg;
-	int i, status, ulreqs, expect;
+	int i, status, ulreqs, expect, upload_ok;
 	struct ethsock *sock;
 	void (*sigh_orig)(int);
+	struct {
+		struct in_addr addr;
+		struct in_addr mask;
+	} PACKED ipconf;
 
 	if (args->op != NMRP_UPLOAD_FW) {
 		fprintf(stderr, "Operation not implemented.\n");
@@ -363,17 +422,17 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	if ((ipaddr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
+	if ((ipconf.addr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
 		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
 		return 1;
 	}
 
-	if ((ipmask.s_addr = inet_addr(args->ipmask)) == INADDR_NONE) {
+	if ((ipconf.mask.s_addr = inet_addr(args->ipmask)) == INADDR_NONE) {
 		fprintf(stderr, "Invalid subnet mask '%s'.\n", args->ipmask);
 		return 1;
 	}
 
-	if (strcmp(args->file_local, "-") && access(args->file_local, R_OK) == -1) {
+	if (args->file_local && strcmp(args->file_local, "-") && access(args->file_local, R_OK) == -1) {
 		fprintf(stderr, "Error accessing file '%s'.\n", args->file_local);
 		return 1;
 	}
@@ -386,14 +445,22 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 	}
 
+	if (args->region) {
+		region = htons(to_region_code(args->region));
+		if (!region) {
+			fprintf(stderr, "Invalid region code '%s'.\n", args->region);
+			return 1;
+		}
+	} else {
+		region = 0;
+	}
+
 	status = 1;
 
 	sock = ethsock_create(args->intf, ETH_P_NMRP);
 	if (!sock) {
 		return 1;
 	}
-
-	sigh_orig = signal(SIGINT, sigh);
 
 	status = is_valid_ip(sock, &ipaddr, &ipmask);
 	if (status <= 0) {
@@ -405,6 +472,8 @@ int nmrp_do(struct nmrpd_args *args)
 	}
 
 	gsock = sock;
+	garp = 0;
+	sigh_orig = signal(SIGINT, sigh);
 
 	if (ethsock_set_timeout(sock, args->rx_timeout)) {
 		goto out;
@@ -419,21 +488,12 @@ int nmrp_do(struct nmrpd_args *args)
 	memcpy(tx.eh.ether_dhost, dest, 6);
 	tx.eh.ether_type = htons(ETH_P_NMRP);
 
-	tx.msg.reserved = 0;
-	tx.msg.code = NMRP_C_ADVERTISE;
-	tx.msg.id = 0;
-	tx.msg.num_opts = 1;
-	tx.msg.opts[0].type = NMRP_O_MAGIC_NO;
-	tx.msg.opts[0].len = NMRP_OPT_LEN + 4;
-	tx.msg.opts[0].val.magic[0] = 'N';
-	tx.msg.opts[0].val.magic[1] = 'T';
-	tx.msg.opts[0].val.magic[2] = 'G';
-	tx.msg.opts[0].val.magic[3] = 'R';
-
-	msg_update_len(&tx.msg);
+	msg_init(&tx.msg, NMRP_C_ADVERTISE);
+	msg_opt_add(&tx.msg, NMRP_O_MAGIC_NO, "NTGR", 4);
 	msg_hton(&tx.msg);
 
 	i = 0;
+	upload_ok = 0;
 	beg = time(NULL);
 
 	while (1) {
@@ -472,11 +532,7 @@ int nmrp_do(struct nmrpd_args *args)
 					msg_code_str(rx.msg.code), msg_code_str(expect));
 		}
 
-		tx.msg.code = NMRP_C_NONE;
-		tx.msg.reserved = 0;
-		tx.msg.id = 0;
-		tx.msg.num_opts = 0;
-		tx.msg.len = 0;
+		msg_init(&tx.msg, NMRP_C_NONE);
 
 		status = 1;
 
@@ -488,23 +544,14 @@ int nmrp_do(struct nmrpd_args *args)
 				goto out;
 			case NMRP_C_CONF_REQ:
 				tx.msg.code = NMRP_C_CONF_ACK;
-				tx.msg.num_opts = 2;
 
-				tx.msg.opts[0].type = NMRP_O_DEV_IP;
-				tx.msg.opts[0].len = NMRP_OPT_LEN + 2 * 4;
-
-				memcpy(tx.msg.opts[0].val.ip.addr, &ipaddr, 4);
-				memcpy(tx.msg.opts[0].val.ip.mask, &ipmask, 4);
-
-				tx.msg.opts[1].type = NMRP_O_FW_UP;
-				tx.msg.opts[1].len = NMRP_OPT_LEN;
+				msg_opt_add(&tx.msg, NMRP_O_DEV_IP, &ipconf, 8);
+				msg_opt_add(&tx.msg, NMRP_O_FW_UP, NULL, 0);
 
 #ifdef NMRPFLASH_SET_REGION
-				tx.msg.num_opts = 3;
-
-				tx.msg.opts[2].type = NMRP_O_DEV_REGION;
-				tx.msg.opts[2].len = NMRP_OPT_LEN + 2;
-				tx.msg.opts[2].val.region = args->region;
+				if (region) {
+					msg_opt_add(&tx.msg, NMRP_O_DEV_REGION, &region, 2);
+				}
 #endif
 
 				expect = NMRP_C_TFTP_UL_REQ;
@@ -517,12 +564,30 @@ int nmrp_do(struct nmrpd_args *args)
 				printf("Sending configuration: ip %s, mask %s.\n",
 						args->ipaddr, args->ipmask);
 
+				memcpy(arpmac, rx.eh.ether_shost, 6);
+				memcpy(&arpip, &ipconf.addr, sizeof(ipconf.addr));
+
+				if (ethsock_arp_add(sock, arpmac, &arpip) != 0) {
+					goto out;
+				}
+
+				garp = 1;
+
 				break;
 			case NMRP_C_TFTP_UL_REQ:
-				if (++ulreqs > 5) {
-					fprintf(stderr, "Device re-requested file upload %d "
-							"times; aborting.\n", ulreqs);
-					tx.msg.code = NMRP_C_CLOSE_REQ;
+				if (!upload_ok) {
+					if (++ulreqs > 5) {
+						printf("Bailing out after %d upload requests.\n",
+								ulreqs);
+						tx.msg.code = NMRP_C_CLOSE_REQ;
+						break;
+					}
+				} else {
+					if (verbosity) {
+						printf("Ignoring extra upload request.\n");
+					}
+					ethsock_set_timeout(sock, args->ul_timeout);
+					tx.msg.code = NMRP_C_KEEP_ALIVE_REQ;
 					break;
 				}
 
@@ -535,12 +600,8 @@ int nmrp_do(struct nmrpd_args *args)
 					printf("Received upload request: filename '%.*s'.\n",
 							len, filename);
 				} else if (!args->file_remote) {
-					if (tftp_is_valid_filename(args->file_local)) {
-						args->file_remote = args->file_local;
-					} else {
-						args->file_remote = "firmware";
-					}
-					printf("Received upload request with empty filename.");
+					args->file_remote = args->file_local;
+					printf("Received upload request with empty filename.\n");
 				}
 
 				status = 0;
@@ -557,7 +618,7 @@ int nmrp_do(struct nmrpd_args *args)
 				}
 
 				if (!status && args->file_local) {
-					status = is_valid_ip(sock, &ipaddr, &ipmask);
+					status = is_valid_ip(sock, &ipconf.addr, &ipconf.mask);
 					if (status < 0) {
 						goto out;
 					} else if (!status) {
@@ -575,7 +636,7 @@ int nmrp_do(struct nmrpd_args *args)
 					if (!strcmp(args->file_local, "-")) {
 						printf("Uploading from stdin ... ");
 					} else {
-						printf("Uploading %s ... ", args->file_local);
+						printf("Uploading %s ... ", leafname(args->file_local));
 					}
 					fflush(stdout);
 					status = tftp_put(args);
@@ -583,7 +644,9 @@ int nmrp_do(struct nmrpd_args *args)
 
 				if (!status) {
 					printf("OK\nWaiting for remote to respond.\n");
+					upload_ok = 1;
 					ethsock_set_timeout(sock, args->ul_timeout);
+					tx.msg.code = NMRP_C_KEEP_ALIVE_REQ;
 					expect = NMRP_C_NONE;
 				} else if (status == -2) {
 					expect = NMRP_C_TFTP_UL_REQ;
@@ -610,11 +673,14 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 
 		if (tx.msg.code != NMRP_C_NONE) {
-			msg_update_len(&tx.msg);
 			msg_hton(&tx.msg);
 
 			if (pkt_send(sock, &tx) < 0) {
 				perror("sendto");
+				goto out;
+			}
+
+			if (tx.msg.code == NMRP_C_CLOSE_REQ) {
 				goto out;
 			}
 		}
@@ -648,6 +714,7 @@ int nmrp_do(struct nmrpd_args *args)
 out:
 	signal(SIGINT, sigh_orig);
 	gsock = NULL;
+	ethsock_arp_del(sock, arpmac, &arpip);
 	ethsock_close(sock);
 	return status;
 }

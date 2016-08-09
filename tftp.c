@@ -40,24 +40,6 @@ enum tftp_opcode {
 	ERR  = 5
 };
 
-static const char *leafname(const char *path)
-{
-	const char *slash, *bslash;
-
-	slash = strrchr(path, '/');
-	bslash = strrchr(path, '\\');
-
-	if (slash && bslash) {
-		path = 1 + (slash > bslash ? slash : bslash);
-	} else if (slash) {
-		path = 1 + slash;
-	} else if (bslash) {
-		path = 1 + bslash;
-	}
-
-	return path;
-}
-
 static bool is_netascii(const char *str)
 {
 	uint8_t *p = (uint8_t*)str;
@@ -211,15 +193,28 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 	return sent;
 }
 
+const char *leafname(const char *path)
+{
+	const char *slash, *bslash;
+
+	slash = strrchr(path, '/');
+	bslash = strrchr(path, '\\');
+
+	if (slash && bslash) {
+		path = 1 + (slash > bslash ? slash : bslash);
+	} else if (slash) {
+		path = 1 + slash;
+	} else if (bslash) {
+		path = 1 + bslash;
+	}
+
+	return path;
+}
+
 #ifdef NMRPFLASH_WINDOWS
 void sock_perror(const char *msg)
 {
 	win_perror2(msg, WSAGetLastError());
-}
-#else
-inline void sock_perror(const char *msg)
-{
-	perror(msg);
 }
 #endif
 
@@ -322,7 +317,7 @@ int tftp_put(struct nmrpd_args *args)
 		if (ret < 0) {
 			goto cleanup;
 		} else if (!ret) {
-			if (++timeout < 5) {
+			if (++timeout < 5 || (!block && timeout < 10)) {
 				continue;
 			} else if (block) {
 				fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);
