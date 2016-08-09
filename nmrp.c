@@ -679,6 +679,10 @@ int nmrp_do(struct nmrpd_args *args)
 				perror("sendto");
 				goto out;
 			}
+
+			if (tx.msg.code == NMRP_C_CLOSE_REQ) {
+				goto out;
+			}
 		}
 
 		if (rx.msg.code == NMRP_C_CLOSE_REQ) {
