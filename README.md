@@ -43,7 +43,7 @@ In this example, we'll use `192.168.1.2`. All available network interfaces
 can be listed using
 
 ```
-$ nmrpflash -L
+# nmrpflash -L
 eth0      192.168.1.2  f2:11:a1:02:03:b1
 ```
 
@@ -55,7 +55,7 @@ be downloaded directly from netgear. For details on how to do this, see
 after starting `nmrpflash`.
 
 ```
-$ nmrpflash -i eth0 -a 192.168.1.254 -f EX2700-V1.0.1.8.img
+# nmrpflash -i eth0 -a 192.168.1.254 -f EX2700-V1.0.1.8.img
 Advertising NMRP server on eth0 ... /
 Received configuration request from a4:2b:8c:00:00:01.
 Sending configuration: ip 192.168.1.254, mask 255.255.255.0.
@@ -93,7 +93,7 @@ The device did not respond to `nmrpflash`'s TFTP upload request. This could indi
 in the TFTP code; try using an external tftp client (busybox in this example), by specifying
 the `-c` flag instead of the `-f` flag:
 
-`$ nmrpflash -i eth0 -a 192.168.1.254 -c "busybox tftp -p -l EX2700-V1.0.1.8.img 192.168.1.254"`
+`# nmrpflash -i eth0 -a 192.168.1.254 -c "busybox tftp -p -l EX2700-V1.0.1.8.img 192.168.1.254"`
 
 <strike>
 If the upload still fails, and you're on Windows, try executing the following command before
@@ -144,7 +144,7 @@ this case setting the IP address to 192.168.1.2).
 ###### Linux, Mac OS X, BSDs
 
 ```
-$ make && sudo make install
+# make && sudo make install
 ```
 
 ###### Windows
