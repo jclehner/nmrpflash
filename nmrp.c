@@ -425,7 +425,7 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	if (strcmp(args->file_local, "-") && access(args->file_local, R_OK) == -1) {
+	if (args->file_local && strcmp(args->file_local, "-") && access(args->file_local, R_OK) == -1) {
 		fprintf(stderr, "Error accessing file '%s'.\n", args->file_local);
 		return 1;
 	}
