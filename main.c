@@ -70,9 +70,44 @@ void usage(FILE *fp)
 	  );
 }
 
+#ifdef NMRPFLASH_WINDOWS
+void require_admin()
+{
+	SID_IDENTIFIER_AUTHORITY auth = SECURITY_NT_AUTHORITY;
+	PSID adminGroup = NULL;
+	BOOL success = AllocateAndInitializeSid(
+		&auth, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS,
+		0, 0, 0, 0, 0, 0, &adminGroup
+	);
+
+	if (success) {
+		if (CheckTokenMembership(NULL, adminGroup, &success)) {
+			if (!success) {
+				fprintf(stderr, "Error: must be run as administrator");
+				exit(1);
+			} else {
+				return;
+			}
+		}
+		FreeSid(adminGroup);
+	}
+
+	fprintf(stderr, "Warning: failed to check administrator privileges");
+}
+#else
+void require_admin()
+{
+	if (getuid() != 0) {
+		fprintf(stderr, "Error: must be run as root");
+		exit(1);
+	}
+}
+#endif
+
 int main(int argc, char **argv)
 {
 	int c, val, max;
+	int list = 0;
 	struct nmrpd_args args = {
 		.rx_timeout = 200,
 		.ul_timeout = 120000,
@@ -158,7 +193,8 @@ int main(int argc, char **argv)
 				++verbosity;
 				break;
 			case 'L':
-				val = ethsock_list_all();
+				list = 1;
+				break;
 				goto out;
 			case 'h':
 				usage(stdout);
@@ -179,19 +215,13 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if ((!args.file_local && !args.tftpcmd) || !args.intf || !args.ipaddr) {
+	if (!list && ((!args.file_local && !args.tftpcmd) || !args.intf || !args.ipaddr)) {
 		usage(stderr);
 		return 1;
 	}
 
-#ifndef NMRPFLASH_WINDOWS
-	if (geteuid() != 0) {
-		fprintf(stderr, "This program must be run as root!\n");
-		return 1;
-	}
-#endif
-
-	val = nmrp_do(&args);
+	require_admin();
+	val = !list ? nmrp_do(&args) : ethsock_list_all();
 
 out:
 #ifdef NMRPFLASH_WINDOWS
