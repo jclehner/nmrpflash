@@ -54,10 +54,15 @@ void usage(FILE *fp)
 			" -L              List network interfaces\n"
 			" -h              Show this screen\n"
 			"\n"
-			"Example:\n"
-			"\n"
+			"Example: (run as "
 #ifndef NMRPFLASH_WINDOWS
-			"$ sudo nmrpflash -i eth0 -a 192.168.1.254 -f firmware.bin\n"
+			"root"
+#else
+			"administrator"
+#endif
+			")\n\n"
+#ifndef NMRPFLASH_WINDOWS
+			"# nmrpflash -i eth0 -a 192.168.1.254 -f firmware.bin\n"
 #else
 			"C:\\> nmrpflash.exe -i net0 -a 192.168.1.254 -f firmware.bin\n"
 #endif
