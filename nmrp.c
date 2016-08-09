@@ -511,7 +511,6 @@ int nmrp_do(struct nmrpd_args *args)
 		if (status == 0 && memcmp(rx.eh.ether_dhost, src, 6) == 0) {
 			break;
 		} else if (status == 1) {
-			printf("ERR\n");
 			goto out;
 		} else {
 			if ((time(NULL) - beg) >= 60) {
