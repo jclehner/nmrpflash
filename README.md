@@ -67,10 +67,19 @@ Reboot your device now.
 ```
 
 ### Common issues
+
+In any case, run `nmrpflash` with `-vvv` before filing a bug report.
+
 ###### "No suitable network interfaces found."
 
-If you're *not* on Windows, rerun `nmrpflash -L` using `sudo`. In any case,
-use `-vvvL` to see more detailed messages, and file a bug report if applicable.
+Make sure the network interface is up. Wireless interfaces are not supported. Make sure the network interface
+is active. On Windows, try rebooting the WinPcap service (commands must
+be run as administrator):
+
+```
+C:\> net stop npf
+C:\> net start npf
+```
 
 ###### "No response after 60 seconds. Bailing out."
 
@@ -86,6 +95,7 @@ the `-c` flag instead of the `-f` flag:
 
 `$ nmrpflash -i eth0 -a 192.168.1.254 -c "busybox tftp -p -l EX2700-V1.0.1.8.img 192.168.1.254"`
 
+<strike>
 If the upload still fails, and you're on Windows, try executing the following command before
 running `nmrpflash`:
 
@@ -96,6 +106,7 @@ where `<interface>` is the pretty interface name (e.g. "Local Area Connection"; 
 is the target device's mac address.
 
 Cheers to [@ntadmin](https://github.com/ntadmin) for this info!
+</strike>
 
 ###### "Timeout while waiting for CLOSE_REQ."
 
