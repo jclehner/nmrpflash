@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 	int list = 0;
 	struct nmrpd_args args = {
 		.rx_timeout = 200,
-		.ul_timeout = 120000,
+		.ul_timeout = 5 * 60 * 1000,
 		.tftpcmd = NULL,
 		.file_local = NULL,
 		.file_remote = NULL,
