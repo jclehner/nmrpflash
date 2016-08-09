@@ -29,6 +29,7 @@ struct ethsock
 	int fd;
 #else
 	HANDLE handle;
+	DWORD index;
 #endif
 	unsigned timeout;
 	uint8_t hwaddr[6];
@@ -75,7 +76,7 @@ static inline bool sockaddr_get_hwaddr(struct sockaddr *sa, uint8_t *hwaddr)
 	return true;
 }
 
-static bool get_hwaddr_from_intf(const char *intf, uint8_t *hwaddr)
+static bool get_intf_info(const char *intf, uint8_t *hwaddr, void *dummy)
 {
 	struct ifaddrs *ifas, *ifa;
 	bool found;
@@ -119,7 +120,7 @@ void win_perror2(const char *msg, DWORD err)
 	}
 }
 
-static bool get_hwaddr_from_intf(const char *intf, uint8_t *hwaddr)
+static bool get_intf_info(const char *intf, uint8_t *hwaddr, DWORD *index)
 {
 	PIP_ADAPTER_INFO adapters, adapter;
 	DWORD ret;
@@ -147,10 +148,10 @@ static bool get_hwaddr_from_intf(const char *intf, uint8_t *hwaddr)
 			 * AdapterName from GetAdaptersInfo is just "{GUID}".*/
 			if (strstr(intf, adapter->AdapterName)) {
 				if (adapter->AddressLength == 6) {
-					for (i = 0; i != 6; ++i) {
-						hwaddr[i] = adapter->Address[i];
+					memcpy(hwaddr, adapter->Address, 6);
+					if (index) {
+						*index = adapter->Index;
 					}
-
 					found = true;
 					break;
 				}
@@ -289,8 +290,13 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 		goto cleanup_pcap;
 	}
 
-	if (!get_hwaddr_from_intf(intf, sock->hwaddr)) {
-		fprintf(stderr, "Failed to get MAC address of interface.\n");
+#ifndef NMRPFLASH_WINDOWS
+	err = !get_intf_info(intf, sock->hwaddr, NULL);
+#else
+	err = !get_intf_info(intf, sock->hwaddr, &sock->index);
+#endif
+	if (err) {
+		fprintf(stderr, "Failed to get interface info.\n");
 		goto cleanup_malloc;
 	}
 
@@ -458,7 +464,7 @@ static bool get_hwaddr_from_pcap(const pcap_if_t *dev, uint8_t *hwaddr)
 	}
 #endif
 
-	return get_hwaddr_from_intf(dev->name, hwaddr);
+	return get_intf_info(dev->name, hwaddr, NULL);
 }
 
 int ethsock_list_all(void)
