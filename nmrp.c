@@ -377,12 +377,19 @@ static int is_valid_ip(struct ethsock *sock, struct in_addr *ipaddr,
 }
 
 static struct ethsock *gsock = NULL;
+static int garp = 0;
+static struct in_addr arpip = { 0 };
+static uint8_t arpmac[6] = { 0 };
 
 static void sigh(int sig)
 {
 	printf("\n");
 	if (gsock) {
+		if (garp) {
+			ethsock_arp_del(gsock, arpmac, &arpip);
+		}
 		ethsock_close(gsock);
+		gsock = NULL;
 	}
 
 	exit(1);
@@ -465,6 +472,7 @@ int nmrp_do(struct nmrpd_args *args)
 	}
 
 	gsock = sock;
+	garp = 0;
 	sigh_orig = signal(SIGINT, sigh);
 
 	if (ethsock_set_timeout(sock, args->rx_timeout)) {
@@ -555,6 +563,15 @@ int nmrp_do(struct nmrpd_args *args)
 
 				printf("Sending configuration: ip %s, mask %s.\n",
 						args->ipaddr, args->ipmask);
+
+				memcpy(arpmac, rx.eh.ether_shost, 6);
+				memcpy(&arpip, &ipconf.addr, sizeof(ipconf.addr));
+
+				if (ethsock_arp_add(sock, arpmac, &arpip) != 0) {
+					goto out;
+				}
+
+				garp = 1;
 
 				break;
 			case NMRP_C_TFTP_UL_REQ:
@@ -693,6 +710,7 @@ int nmrp_do(struct nmrpd_args *args)
 out:
 	signal(SIGINT, sigh_orig);
 	gsock = NULL;
+	ethsock_arp_del(sock, arpmac, &arpip);
 	ethsock_close(sock);
 	return status;
 }

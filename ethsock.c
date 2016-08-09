@@ -453,7 +453,7 @@ int ethsock_arp_del(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipadd
 	return 0;
 }
 #else
-static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr, int add, int nofail)
+static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr, int add)
 {
 	DWORD ret;
 	MIB_IPNETROW arp = {
@@ -465,10 +465,14 @@ static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ip
 	
 	memcpy(arp.bPhysAddr, hwaddr, 6);
 	
-	ret = add ? CreateIpNetEntry(&arp) : DeleteIpNetEntry(&arp);
-	if (ret != NO_ERROR && !nofail) {
-		win_perror2(add ? "CreateIpNetEntry" : "DeleteIpNetEntry", ret);
-		return -1;
+	if (add) {
+		ret = CreateIpNetEntry(&arp);
+		if (ret != NO_ERROR) {
+			win_perror2("CreateIpNetEntry", ret);
+			return -1;
+		}
+	} else {
+		DeleteIpNetEntry(&arp);
 	}
 	
 	return 0;
@@ -476,13 +480,13 @@ static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ip
 
 int ethsock_arp_add(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr)
 {
-	ethsock_arp(sock, hwaddr, ipaddr, 0, 1);
-	return ethsock_arp(sock, hwaddr, ipaddr, 1, 0);
+	ethsock_arp_del(sock, hwaddr, ipaddr);
+	return ethsock_arp(sock, hwaddr, ipaddr, 1);
 }
 
 int ethsock_arp_del(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr)
 {
-	return ethsock_arp(sock, hwaddr, ipaddr, 0, 0);
+	return ethsock_arp(sock, hwaddr, ipaddr, 0);
 }
 #endif
 
