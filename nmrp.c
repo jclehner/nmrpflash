@@ -462,7 +462,11 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	status = is_valid_ip(sock, &ipaddr, &ipmask);
+	gsock = sock;
+	garp = 0;
+	sigh_orig = signal(SIGINT, sigh);
+
+	status = is_valid_ip(sock, &ipconf.addr, &ipconf.mask);
 	if (status <= 0) {
 		if (!status) {
 			fprintf(stderr, "Address %s/%s cannot be used on interface %s.\n",
@@ -470,10 +474,6 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 		goto out;
 	}
-
-	gsock = sock;
-	garp = 0;
-	sigh_orig = signal(SIGINT, sigh);
 
 	if (ethsock_set_timeout(sock, args->rx_timeout)) {
 		goto out;
