@@ -47,10 +47,10 @@ can be listed using
 eth0      192.168.1.2  f2:11:a1:02:03:b1
 ```
 
-Now we can `nmrpflash`. The argument for the `-a` option needs
+Now we can flash the image. The argument for the `-a` option needs
 to be a *free* IP address from the same subnet as the one used by your
-network interface. We'll use `192.168.1.254`. Firmware images can usually 
-be downloaded directly from netgear. For details on how to do this, see
+network interface; we'll use `192.168.1.254`. Firmware images can usually 
+be downloaded directly from Netgear. For details on how to do this, see
 [here](#obtaining-firmware-images). Power on your device immediately 
 after starting `nmrpflash`.
 
@@ -144,7 +144,7 @@ this case setting the IP address to 192.168.1.2).
 ###### Linux, Mac OS X, BSDs
 
 ```
-# make && sudo make install
+$ make && sudo make install
 ```
 
 ###### Windows
