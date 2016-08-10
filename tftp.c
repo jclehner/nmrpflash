@@ -234,18 +234,24 @@ int tftp_put(struct nmrpd_args *args)
 	ssize_t len, last_len;
 	int fd, sock, ret, timeout, errors, ackblock;
 	char rx[TFTP_PKT_SIZE], tx[TFTP_PKT_SIZE];
+	const char *file_remote = args->file_remote;
 
 	sock = -1;
 	ret = -1;
 
 	if (!strcmp(args->file_local, "-")) {
 		fd = STDIN_FILENO;
+		if (!file_remote) {
+			file_remote = "firmware";
+		}
 	} else {
 		fd = open(args->file_local, O_RDONLY | O_BINARY);
 		if (fd < 0) {
 			perror("open");
 			ret = fd;
 			goto cleanup;
+		} else if (!file_remote) {
+			file_remote = args->file_local;
 		}
 	}
 
@@ -271,7 +277,7 @@ int tftp_put(struct nmrpd_args *args)
 	/* Not really, but this way the loop sends our WRQ before receiving */
 	timeout = 1;
 
-	pkt_mkwrq(tx, args->file_remote);
+	pkt_mkwrq(tx, file_remote);
 
 	do {
 		if (!timeout && pkt_num(rx) == ACK) {
