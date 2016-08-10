@@ -104,19 +104,6 @@ the `-c` flag instead of the `-f` flag:
 
 `# nmrpflash -i eth0 -a 192.168.1.254 -c "busybox tftp -p -l EX2700-V1.0.1.8.img 192.168.1.254"`
 
-<strike>
-If the upload still fails, and you're on Windows, try executing the following command before
-running `nmrpflash`:
-
-`C:\> netsh interface ip add neighbors <interface> <ip> <mac>`
-
-where `<interface>` is the pretty interface name (e.g. "Local Area Connection"; as displayed by
-`nmrpflash -L`), `<ip>` is the same IP address you'd use for `nmrpflash`'s `-a` flag, and `<mac>`
-is the target device's mac address.
-
-Cheers to [@ntadmin](https://github.com/ntadmin) for this info!
-</strike>
-
 ###### "Timeout while waiting for CLOSE_REQ."
 
 After a successful file upload, `nmrpflash` waits for up to 120 seconds for an
