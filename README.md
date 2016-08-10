@@ -70,11 +70,20 @@ Reboot your device now.
 
 In any case, run `nmrpflash` with `-vvv` before filing a bug report.
 
+###### Linux: "error while loading shared libraries: libpcap.so.0.8"
+
+You must install your Linux distribution's `libpcap` package. In
+openSUSE 42 for example, install `libpcap0.8` (cheers to
+[@gvcastellon](https://github.com/gvcastellon).
+
+###### Windows: "The program can't start because wpcap.dll is missing"
+
+Install [WinPcap](https://www.winpcap.org/install/default.htm).
+
 ###### "No suitable network interfaces found."
 
-Make sure the network interface is up. Wireless interfaces are not supported. Make sure the network interface
-is active. On Windows, try rebooting the WinPcap service (commands must
-be run as administrator):
+Make sure the network interface is up. Wireless interfaces are not supported.
+On Windows, try rebooting the WinPcap service (commands must be run as administrator):
 
 ```
 C:\> net stop npf
@@ -135,7 +144,7 @@ disabled.
 An alternative would be to add `-c 'ifconfig <interface> <ip>'` to the command line,
 for example:
 
-`nmrpflash -i eth0 -a 192.168.1.1 -f firmware.bin -c 'ifconfig eth0 192.168.1.2'`
+`# nmrpflash -i eth0 -a 192.168.1.1 -f firmware.bin -c 'ifconfig eth0 192.168.1.2'`
 
 This will execute the command specified by `-c` prior to starting the TFTP upload (in
 this case setting the IP address to 192.168.1.2).
