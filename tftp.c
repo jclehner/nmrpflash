@@ -26,6 +26,10 @@
 #include <ctype.h>
 #include "nmrpd.h"
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 #define TFTP_PKT_SIZE 516
 
 static const char *opcode_names[] = {
@@ -237,7 +241,7 @@ int tftp_put(struct nmrpd_args *args)
 	if (!strcmp(args->file_local, "-")) {
 		fd = STDIN_FILENO;
 	} else {
-		fd = open(args->file_local, O_RDONLY);
+		fd = open(args->file_local, O_RDONLY | O_BINARY);
 		if (fd < 0) {
 			perror("open");
 			ret = fd;
