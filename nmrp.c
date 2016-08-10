@@ -609,11 +609,7 @@ int nmrp_do(struct nmrpd_args *args)
 					printf("Executing '%s' ... ", args->tftpcmd);
 					fflush(stdout);
 					status = system(args->tftpcmd);
-					if (!status) {
-						printf("OK\n");
-					} else {
-						printf("ERR\n");
-					}
+					printf("\n");
 				}
 
 				if (!status && args->file_local) {
