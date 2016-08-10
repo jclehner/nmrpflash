@@ -128,6 +128,9 @@ int main(int argc, char **argv)
 		.region = NULL,
 	};
 #ifdef NMRPFLASH_WINDOWS
+	char *newpath = NULL;
+	char *oldpath = NULL;
+	char *windir = NULL;
 	WSADATA wsa;
 
 	val = WSAStartup(MAKEWORD(2, 2), &wsa);
@@ -135,6 +138,24 @@ int main(int argc, char **argv)
 		win_perror2("WSAStartup", val);
 		return 1;
 	}
+
+
+#ifndef _WIN64
+	// This dirty hack works around the WOW64 file system redirector[1], which would prevent
+	// us from calling programs residing in %windir%\System32 when running on a 64bit system
+	// (since nmrpflash is currently shipped as 32bit only).
+	//
+	// [1] https://msdn.microsoft.com/en-us/library/windows/desktop/aa384187(v=vs.85).aspx
+
+	oldpath = getenv("PATH");
+	windir = getenv("WINDIR");
+	if (oldpath && windir) {
+		newpath = malloc(strlen(oldpath) + strlen(windir) + 32);
+		sprintf(newpath, "%s;%s\\Sysnative", oldpath, windir);
+		SetEnvironmentVariable("PATH", newpath);
+		free(newpath);
+	}
+#endif
 #endif
 
 	opterr = 0;
