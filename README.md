@@ -70,13 +70,13 @@ Reboot your device now.
 
 In any case, run `nmrpflash` with `-vvv` before filing a bug report.
 
-###### Linux: "error while loading shared libraries: libpcap.so.0.8"
+###### "Error while loading shared libraries: libpcap.so.0.8" (Linux)
 
 You must install your Linux distribution's `libpcap` package. In
 openSUSE 42 for example, install `libpcap0.8` (cheers to
 [@gvcastellon](https://github.com/gvcastellon)).
 
-###### Windows: "The program can't start because wpcap.dll is missing"
+###### "The program can't start because wpcap.dll is missing" (Windows)
 
 Install [WinPcap](https://www.winpcap.org/install/default.htm).
 
@@ -103,19 +103,6 @@ in the TFTP code; try using an external tftp client (busybox in this example), b
 the `-c` flag instead of the `-f` flag:
 
 `# nmrpflash -i eth0 -a 192.168.1.254 -c "busybox tftp -p -l EX2700-V1.0.1.8.img 192.168.1.254"`
-
-<strike>
-If the upload still fails, and you're on Windows, try executing the following command before
-running `nmrpflash`:
-
-`C:\> netsh interface ip add neighbors <interface> <ip> <mac>`
-
-where `<interface>` is the pretty interface name (e.g. "Local Area Connection"; as displayed by
-`nmrpflash -L`), `<ip>` is the same IP address you'd use for `nmrpflash`'s `-a` flag, and `<mac>`
-is the target device's mac address.
-
-Cheers to [@ntadmin](https://github.com/ntadmin) for this info!
-</strike>
 
 ###### "Timeout while waiting for CLOSE_REQ."
 
