@@ -74,7 +74,7 @@ In any case, run `nmrpflash` with `-vvv` before filing a bug report.
 
 You must install your Linux distribution's `libpcap` package. In
 openSUSE 42 for example, install `libpcap0.8` (cheers to
-[@gvcastellon](https://github.com/gvcastellon).
+[@gvcastellon](https://github.com/gvcastellon)).
 
 ###### Windows: "The program can't start because wpcap.dll is missing"
 
@@ -119,12 +119,12 @@ Cheers to [@ntadmin](https://github.com/ntadmin) for this info!
 
 ###### "Timeout while waiting for CLOSE_REQ."
 
-After a successful file upload, `nmrpflash` waits for up to 120 seconds for an
+After a successful file upload, `nmrpflash` waits for up to 5 minutes for an
 answer from your device. You can increase this by specifying a longer timeout
 using `-T` switch (argument is in seconds).
 
 It's entirely possible that the image was flashed successfully, but the
-operation took longer than 120 seconds.
+operation took longer than 5 minutes.
 
 ###### "Address X/Y cannot be used on interface Z."
 
