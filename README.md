@@ -73,8 +73,8 @@ In any case, run `nmrpflash` with `-vvv` before filing a bug report.
 ###### "Error while loading shared libraries: libpcap.so.0.8" (Linux)
 
 You must install your Linux distribution's `libpcap` package. In
-openSUSE 42 for example, install `libpcap0.8` (cheers to
-[@gvcastellon](https://github.com/gvcastellon)).
+openSUSE or Ubuntu for example, install `libpcap0.8`. Other distros
+will have a similarily named package.
 
 ###### "The program can't start because wpcap.dll is missing" (Windows)
 
