@@ -83,8 +83,9 @@ Install [WinPcap](https://www.winpcap.org/install/default.htm).
 
 ###### "No suitable network interfaces found."
 
-Make sure the network interface is up. Wireless interfaces are not supported.
-On Windows, try rebooting the WinPcap service (commands must be run as administrator):
+Make sure the network interface is up (wireless interfaces are not supported).
+On Windows, try restarting the WinPcap service (commands must be run as
+administrator):
 
 ```
 C:\> net stop npf
