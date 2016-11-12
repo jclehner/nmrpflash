@@ -88,12 +88,6 @@ struct nmrp_msg {
 	uint32_t num_opts;
 } PACKED;
 
-struct eth_hdr {
-	uint8_t ether_dhost[6];
-	uint8_t ether_shost[6];
-	uint16_t ether_type;
-} PACKED;
-
 struct nmrp_pkt {
 	struct eth_hdr eh;
 	struct nmrp_msg msg;
@@ -404,7 +398,7 @@ int nmrp_do(struct nmrpd_args *args)
 	uint16_t len, region;
 	char *filename;
 	time_t beg;
-	int i, status, ulreqs, expect, upload_ok;
+	int i, status, ulreqs, expect, upload_ok, autoip;
 	struct ethsock *sock;
 	void (*sigh_orig)(int);
 	struct {
@@ -423,8 +417,11 @@ int nmrp_do(struct nmrpd_args *args)
 	}
 
 	if ((ipconf.addr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
-		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
-		return 1;
+		autoip = 1;
+		//fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
+		//return 1;
+	} else {
+		autoip = 0;
 	}
 
 	if ((ipconf.mask.s_addr = inet_addr(args->ipmask)) == INADDR_NONE) {
@@ -456,6 +453,12 @@ int nmrp_do(struct nmrpd_args *args)
 	}
 
 	status = 1;
+
+	if (autoip) {
+		if (arp_find_free_ip(args->intf, &ipconf.addr.s_addr) != 0) {
+			return 1;
+		}
+	}
 
 	sock = ethsock_create(args->intf, ETH_P_NMRP);
 	if (!sock) {

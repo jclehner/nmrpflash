@@ -53,6 +53,16 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
+#ifndef PACKED
+#define PACKED __attribute__((packed))
+#endif
+
+struct eth_hdr {
+	uint8_t ether_dhost[6];
+	uint8_t ether_shost[6];
+	uint16_t ether_type;
+} PACKED;
+
 enum nmrp_op {
 	NMRP_UPLOAD_FW = 0,
 	NMRP_UPLOAD_ST = 1,
@@ -114,4 +124,6 @@ struct ethsock_ip_callback_args
 typedef int (*ethsock_ip_callback_t)(struct ethsock_ip_callback_args *args);
 int ethsock_for_each_ip(struct ethsock *sock, ethsock_ip_callback_t callback,
 		void *arg);
+
+int arp_find_free_ip(const char *intf, uint32_t *addr);
 #endif
