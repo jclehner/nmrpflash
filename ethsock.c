@@ -152,7 +152,7 @@ static bool get_intf_info(const char *intf, uint8_t *hwaddr, DWORD *index)
 
 	if ((ret = GetAdaptersInfo(adapters, &bufLen) == NO_ERROR)) {
 		for (adapter = adapters; adapter; adapter = adapter->Next) {
-			if (adapter->Type != MIB_IF_TYPE_ETHERNET) {
+			if (adapter->Type != MIB_IF_TYPE_ETHERNET && adapter->Type != IF_TYPE_IEEE80211) {
 				continue;
 			}
 
@@ -751,8 +751,10 @@ out:
 #else // NMRPFLASH_WINDOWS
 	ULONG instance;
 
+	(*undo)->context = 0;
+
 	DWORD ret = AddIPAddress(ipaddr, ipmask, sock->index, &(*undo)->context, &instance);
-	if (ret != NO_ERROR) {
+	if (ret != NO_ERROR && ret != ERROR_DUP_DOMAINNAME && ret != ERROR_OBJECT_ALREADY_EXISTS) {
 		win_perror2("AddIPAddress", ret);
 		return -1;
 	}
@@ -776,13 +778,8 @@ int ethsock_ip_del(struct ethsock *sock, struct ethsock_ip_undo **undo)
 		ret = 0;
 	}
 #else
-	DWORD err = DeleteIPAddress((*undo)->context);
-	if (err != NO_ERROR) {
-		win_perror2("DeleteIPAddress", ret);
-		ret = -1;
-	} else {
-		ret = 0;
-	}
+	DeleteIPAddress((*undo)->context);
+	ret = 0;
 #endif
 
 	free(*undo);

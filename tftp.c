@@ -262,12 +262,40 @@ int tftp_put(struct nmrpd_args *args)
 		goto cleanup;
 	}
 
+	memset(&addr, 0, sizeof(addr));
+
+	addr.sin_family = AF_INET;
+
+	if (args->ipaddr_intf) {
+		if ((addr.sin_addr.s_addr = inet_addr(args->ipaddr_intf)) == INADDR_NONE) {
+			perror("inet_addr");
+			goto cleanup;
+		}
+
+		int tries = 100;
+
+		while (1) {
+			if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
+#ifdef NMRPFLASH_WINDOWS
+				// Wait for AddIPAddress to update the IP tables
+				if (WSAGetLastError() == WSAEADDRNOTAVAIL) {
+					if (--tries) {
+						continue;
+					}
+				}
+#endif
+				sock_perror("bind");
+				goto cleanup;
+			}
+
+			break;
+		}
+	}
+
 	if ((addr.sin_addr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
 		perror("inet_addr");
 		goto cleanup;
 	}
-
-	addr.sin_family = AF_INET;
 	addr.sin_port = htons(args->port);
 
 	block = 0;

@@ -583,6 +583,12 @@ int nmrp_do(struct nmrpd_args *args)
 				memcpy(arpmac, rx.eh.ether_shost, 6);
 				memcpy(&arpip, &ipconf.addr, sizeof(ipconf.addr));
 
+				if (autoip) {
+					if (ethsock_ip_add(sock, intf_addr, ipconf.mask.s_addr, &gundo) != 0) {
+						goto out;
+					}
+				}
+
 				if (ethsock_arp_add(sock, arpmac, &arpip) != 0) {
 					goto out;
 				}
@@ -622,12 +628,6 @@ int nmrp_do(struct nmrpd_args *args)
 
 				status = 0;
 
-				if (autoip) {
-					if (ethsock_ip_add(sock, intf_addr, ipconf.mask.s_addr, &gundo) != 0) {
-						goto out;
-					}
-				}
-
 				if (args->tftpcmd) {
 					printf("Executing '%s' ... ", args->tftpcmd);
 					fflush(stdout);
@@ -660,10 +660,6 @@ int nmrp_do(struct nmrpd_args *args)
 					}
 					fflush(stdout);
 					status = tftp_put(args);
-				}
-
-				if (ethsock_ip_del(sock, &gundo) != 0) {
-					goto out;
 				}
 
 				if (!status) {
@@ -739,6 +735,7 @@ out:
 	signal(SIGINT, sigh_orig);
 	gsock = NULL;
 	ethsock_arp_del(sock, arpmac, &arpip);
+	ethsock_ip_del(sock, &gundo);
 	ethsock_close(sock);
 	return status;
 }
