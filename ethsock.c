@@ -40,7 +40,7 @@ struct ethsock
 
 struct ethsock_ip_undo
 {
-#ifndef NRMPFLASH_WINDOWS
+#ifndef NMRPFLASH_WINDOWS
 	uint32_t ip[2];
 #else
 	ULONG context;
@@ -751,7 +751,7 @@ out:
 #else // NMRPFLASH_WINDOWS
 	ULONG instance;
 
-	DWORD ret = AddIPAddress(ipaddr, ipmask, sock->index, &undo->context, &instance);
+	DWORD ret = AddIPAddress(ipaddr, ipmask, sock->index, &(*undo)->context, &instance);
 	if (ret != NO_ERROR) {
 		win_perror2("AddIPAddress", ret);
 		return -1;
