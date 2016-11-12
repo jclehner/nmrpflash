@@ -127,6 +127,6 @@ typedef int (*ethsock_ip_callback_t)(struct ethsock_ip_callback_args *args);
 int ethsock_for_each_ip(struct ethsock *sock, ethsock_ip_callback_t callback,
 		void *arg);
 
-int ethsock_set_ip(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo);
-int ethsock_del_ip(struct ethsock *sock, struct ethsock_ip_undo **undo);
+int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo);
+int ethsock_ip_del(struct ethsock *sock, struct ethsock_ip_undo **undo);
 #endif

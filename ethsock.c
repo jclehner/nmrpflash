@@ -645,17 +645,40 @@ int ethsock_for_each_ip(struct ethsock *sock, ethsock_ip_callback_t callback,
 }
 
 #ifndef NMRPFLASH_WINDOWS
-static int get_ip_cb(struct ethsock_ip_callback_args* args)
+static inline void set_addr(void *p, uint32_t addr)
 {
-	uint32_t *ip = args->arg;
-	ip[0] = args->ipaddr->s_addr;
-	ip[1] = args->ipmask->s_addr;
-
-	return 0;
+	struct sockaddr_in* sin = p;
+	sin->sin_family = AF_INET;
+	sin->sin_addr.s_addr = addr;
 }
+
+static bool set_interface_up(int fd, const char *intf, bool up)
+{
+	struct ifreq ifr;
+	strncpy(ifr.ifr_name, intf, IFNAMSIZ);
+
+	if (ioctl(fd, SIOCGIFFLAGS, &ifr) != 0) {
+		perror("ioctl(SIOCGIFFLAGS)");
+		return false;
+	}
+
+	if (!up) {
+		ifr.ifr_flags &= ~(IFF_UP | IFF_RUNNING);
+	} else {
+		ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+	}
+
+	if (ioctl(fd, SIOCSIFFLAGS, &ifr) != 0) {
+		perror("ioctl(SIOCSIFFLAGS)");
+		return false;
+	}
+
+	return true;
+}
+
 #endif
 
-int ethsock_set_ip(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo)
+int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo)
 {
 	if (undo && !(*undo = malloc(sizeof(struct ethsock_ip_undo)))) {
 		perror("malloc");
@@ -663,62 +686,69 @@ int ethsock_set_ip(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 	}
 
 #ifndef NMRPFLASH_WINDOWS
-	struct ifreq ifr = { 0 };
-	int fd, ret = -1;
-
-	if (undo) {
-		(*undo)->ip[0] = INADDR_NONE;
-		(*undo)->ip[1] = INADDR_NONE;
-
-		if (ethsock_for_each_ip(sock, &get_ip_cb, (*undo)->ip) != 0) {
-			return 1;
-		}
-	}
-
-	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	int ret = -1;
+	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (!fd) {
 		perror("socket");
 		return -1;
 	}
 
+#ifdef NMRPFLASH_LINUX
+	struct ifreq ifr;
 	strncpy(ifr.ifr_name, sock->intf, IFNAMSIZ);
+	// FIXME: automatically determine the next free alias
+	strcat(ifr.ifr_name, ":42");
 
-	struct sockaddr_in* sin = (struct sockaddr_in*)&ifr.ifr_addr;
-	sin->sin_family = AF_INET;
-	sin->sin_addr.s_addr = ipaddr;
+	// XXX: undo is non-zero only if we're actually adding an ip
+	if (undo) {
+		set_addr(&ifr.ifr_addr, ipaddr);
+		if (ioctl(fd, SIOCSIFADDR, &ifr) != 0) {
+			perror("ioctl(SIOSIFADDR)");
+			goto out;
+		}
 
-	if (ioctl(fd, SIOCSIFADDR, &ifr) != 0) {
-		perror("ioctl(SIOSIFADDR)");
+		set_addr(&ifr.ifr_netmask, ipmask);
+		if (ioctl(fd, SIOCSIFNETMASK, &ifr) != 0) {
+			perror("ioctl(SIOCSIFNETMASK)");
+			goto out;
+		}
+
+		(*undo)->ip[0] = ipaddr;
+		(*undo)->ip[1] = ipmask;
+	}
+
+	if (!set_interface_up(fd, ifr.ifr_name, undo ? true : false)) {
+		goto out;
+	}
+#else // NMRPFLASH_OSX (or any other BSD)
+	struct ifaliasreq ifra;
+	strncpy(ifra.ifra_name, sock->intf, IFNAMSIZ);
+
+	set_addr(&ifra.ifra_addr, ipaddr);
+	set_addr(&ifra.ifra_mask, ipmask);
+	//set_addr(&ifra.ifra_broadaddr, (ipaddr & ipmask) | ~ipmask);
+	memset(&ifra.ifra_broadaddr, 0, sizeof(ifra.ifra_broadaddr));
+
+	// XXX: undo is non-zero only if we're actually adding an ip
+
+	if (ioctl(fd, undo ? SIOCAIFADDR : SIOCDIFADDR, &ifra) != 0) {
+		perror("ioctl(SIOCAIFADDR)");
 		goto out;
 	}
 
-	sin = (struct sockaddr_in*)&ifr.ifr_netmask;
-	sin->sin_family = AF_INET;
-	sin->sin_addr.s_addr = ipmask;
-
-	if (ioctl(fd, SIOCSIFNETMASK, &ifr) != 0) {
-		perror("ioctl(SIOCSIFNETMASK)");
-		goto out;
+	if (undo) {
+		(*undo)->ip[0] = ipaddr;
+		(*undo)->ip[1] = ipmask;
+		set_interface_up(fd, ifra.ifra_name, true);
 	}
 
-	if (ioctl(fd, SIOCGIFFLAGS, &ifr) != 0) {
-		perror("ioctl(SIOCGIFFLAGS)");
-		goto out;
-	}
-
-	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
-
-	if (ioctl(fd, SIOCSIFFLAGS, &ifr) != 0) {
-		perror("ioctl(SIOCSIFFLAGS)");
-		goto out;
-	}
-
+#endif
 	ret = 0;
 
 out:
 	close(fd);
 	return ret;
-#else
+#else // NMRPFLASH_WINDOWS
 	ULONG instance;
 
 	DWORD ret = AddIPAddress(ipaddr, ipmask, sock->index, &undo->context, &instance);
@@ -731,7 +761,7 @@ out:
 #endif
 }
 
-int ethsock_del_ip(struct ethsock *sock, struct ethsock_ip_undo **undo)
+int ethsock_ip_del(struct ethsock *sock, struct ethsock_ip_undo **undo)
 {
 	if (!*undo) {
 		return 0;
@@ -741,7 +771,7 @@ int ethsock_del_ip(struct ethsock *sock, struct ethsock_ip_undo **undo)
 
 #ifndef NMRPFLASH_WINDOWS
 	if ((*undo)->ip[0] != INADDR_NONE) {
-		ret = ethsock_set_ip(sock, (*undo)->ip[0], (*undo)->ip[1], NULL);
+		ret = ethsock_ip_add(sock, (*undo)->ip[0], (*undo)->ip[1], NULL);
 	} else {
 		ret = 0;
 	}

@@ -383,7 +383,7 @@ static void sigh(int sig)
 		if (garp) {
 			ethsock_arp_del(gsock, arpmac, &arpip);
 		}
-		ethsock_del_ip(gsock, &gundo);
+		ethsock_ip_del(gsock, &gundo);
 		ethsock_close(gsock);
 		gsock = NULL;
 	}
@@ -623,7 +623,7 @@ int nmrp_do(struct nmrpd_args *args)
 				status = 0;
 
 				if (autoip) {
-					if (ethsock_set_ip(sock, intf_addr, ipconf.mask.s_addr, &gundo) != 0) {
+					if (ethsock_ip_add(sock, intf_addr, ipconf.mask.s_addr, &gundo) != 0) {
 						goto out;
 					}
 				}
@@ -662,7 +662,7 @@ int nmrp_do(struct nmrpd_args *args)
 					status = tftp_put(args);
 				}
 
-				if (ethsock_del_ip(sock, &gundo) != 0) {
+				if (ethsock_ip_del(sock, &gundo) != 0) {
 					goto out;
 				}
 
