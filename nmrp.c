@@ -371,6 +371,7 @@ static int is_valid_ip(struct ethsock *sock, struct in_addr *ipaddr,
 }
 
 static struct ethsock *gsock = NULL;
+static struct ethsock_ip_undo *gundo = NULL;
 static int garp = 0;
 static struct in_addr arpip = { 0 };
 static uint8_t arpmac[6] = { 0 };
@@ -382,6 +383,7 @@ static void sigh(int sig)
 		if (garp) {
 			ethsock_arp_del(gsock, arpmac, &arpip);
 		}
+		ethsock_del_ip(gsock, &gundo);
 		ethsock_close(gsock);
 		gsock = NULL;
 	}
@@ -400,6 +402,7 @@ int nmrp_do(struct nmrpd_args *args)
 	time_t beg;
 	int i, status, ulreqs, expect, upload_ok, autoip;
 	struct ethsock *sock;
+	uint32_t intf_addr;
 	void (*sigh_orig)(int);
 	struct {
 		struct in_addr addr;
@@ -416,16 +419,31 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	if ((ipconf.addr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
-		autoip = 1;
-		//fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
-		//return 1;
-	} else {
-		autoip = 0;
-	}
-
 	if ((ipconf.mask.s_addr = inet_addr(args->ipmask)) == INADDR_NONE) {
 		fprintf(stderr, "Invalid subnet mask '%s'.\n", args->ipmask);
+		return 1;
+	}
+
+	if (!args->ipaddr) {
+		autoip = true;
+		args->ipaddr = "10.11.12.254";
+
+		if (!args->ipaddr_intf) {
+			args->ipaddr_intf = "10.11.12.253";
+		}
+	} else if (args->ipaddr_intf) {
+		autoip = true;
+	} else {
+		autoip = false;
+	}
+
+	if ((ipconf.addr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
+		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
+		return 1;
+	}
+
+	if (args->ipaddr_intf && (intf_addr = inet_addr(args->ipaddr_intf)) == INADDR_NONE) {
+		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr_intf);
 		return 1;
 	}
 
@@ -454,12 +472,6 @@ int nmrp_do(struct nmrpd_args *args)
 
 	status = 1;
 
-	if (autoip) {
-		if (arp_find_free_ip(args->intf, &ipconf.addr.s_addr) != 0) {
-			return 1;
-		}
-	}
-
 	sock = ethsock_create(args->intf, ETH_P_NMRP);
 	if (!sock) {
 		return 1;
@@ -469,13 +481,15 @@ int nmrp_do(struct nmrpd_args *args)
 	garp = 0;
 	sigh_orig = signal(SIGINT, sigh);
 
-	status = is_valid_ip(sock, &ipconf.addr, &ipconf.mask);
-	if (status <= 0) {
-		if (!status) {
-			fprintf(stderr, "Address %s/%s cannot be used on interface %s.\n",
-					args->ipaddr, args->ipmask, args->intf);
+	if (!autoip) {
+		status = is_valid_ip(sock, &ipconf.addr, &ipconf.mask);
+		if (status <= 0) {
+			if (!status) {
+				fprintf(stderr, "Address %s/%s cannot be used on interface %s.\n",
+						args->ipaddr, args->ipmask, args->intf);
+			}
+			goto out;
 		}
-		goto out;
 	}
 
 	if (ethsock_set_timeout(sock, args->rx_timeout)) {
@@ -608,6 +622,12 @@ int nmrp_do(struct nmrpd_args *args)
 
 				status = 0;
 
+				if (autoip) {
+					if (ethsock_set_ip(sock, intf_addr, ipconf.mask.s_addr, &gundo) != 0) {
+						goto out;
+					}
+				}
+
 				if (args->tftpcmd) {
 					printf("Executing '%s' ... ", args->tftpcmd);
 					fflush(stdout);
@@ -616,14 +636,16 @@ int nmrp_do(struct nmrpd_args *args)
 				}
 
 				if (!status && args->file_local) {
-					status = is_valid_ip(sock, &ipconf.addr, &ipconf.mask);
-					if (status < 0) {
-						goto out;
-					} else if (!status) {
-						printf("IP address of %s has changed. Please assign a "
-								"static ip to the interface.\n", args->intf);
-						tx.msg.code = NMRP_C_CLOSE_REQ;
-						break;
+					if (!autoip) {
+						status = is_valid_ip(sock, &ipconf.addr, &ipconf.mask);
+						if (status < 0) {
+							goto out;
+						} else if (!status) {
+							printf("IP address of %s has changed. Please assign a "
+									"static ip to the interface.\n", args->intf);
+							tx.msg.code = NMRP_C_CLOSE_REQ;
+							break;
+						}
 					}
 
 					if (verbosity) {
@@ -638,6 +660,10 @@ int nmrp_do(struct nmrpd_args *args)
 					}
 					fflush(stdout);
 					status = tftp_put(args);
+				}
+
+				if (ethsock_del_ip(sock, &gundo) != 0) {
+					goto out;
 				}
 
 				if (!status) {

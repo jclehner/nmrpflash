@@ -10,8 +10,11 @@
 #define WPCAP
 #include <pcap.h>
 #else
-#include <pcap.h>
+#include <sys/ioctl.h>
 #include <ifaddrs.h>
+#include <unistd.h>
+#include <net/if.h>
+#include <pcap.h>
 #if defined(NMRPFLASH_LINUX)
 #define NMRPFLASH_AF_PACKET AF_PACKET
 #include <linux/if_packet.h>
@@ -33,6 +36,15 @@ struct ethsock
 #endif
 	unsigned timeout;
 	uint8_t hwaddr[6];
+};
+
+struct ethsock_ip_undo
+{
+#ifndef NRMPFLASH_WINDOWS
+	uint32_t ip[2];
+#else
+	ULONG context;
+#endif
 };
 
 const char *mac_to_str(uint8_t *mac)
@@ -630,4 +642,120 @@ int ethsock_for_each_ip(struct ethsock *sock, ethsock_ip_callback_t callback,
 	pcap_freealldevs(devs);
 
 	return status <= 0 ? status : 0;
+}
+
+#ifndef NMRPFLASH_WINDOWS
+static int get_ip_cb(struct ethsock_ip_callback_args* args)
+{
+	uint32_t *ip = args->arg;
+	ip[0] = args->ipaddr->s_addr;
+	ip[1] = args->ipmask->s_addr;
+
+	return 0;
+}
+#endif
+
+int ethsock_set_ip(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo)
+{
+	if (undo && !(*undo = malloc(sizeof(struct ethsock_ip_undo)))) {
+		perror("malloc");
+		return -1;
+	}
+
+#ifndef NMRPFLASH_WINDOWS
+	struct ifreq ifr = { 0 };
+	int fd, ret = -1;
+
+	if (undo) {
+		(*undo)->ip[0] = INADDR_NONE;
+		(*undo)->ip[1] = INADDR_NONE;
+
+		if (ethsock_for_each_ip(sock, &get_ip_cb, (*undo)->ip) != 0) {
+			return 1;
+		}
+	}
+
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (!fd) {
+		perror("socket");
+		return -1;
+	}
+
+	strncpy(ifr.ifr_name, sock->intf, IFNAMSIZ);
+
+	struct sockaddr_in* sin = (struct sockaddr_in*)&ifr.ifr_addr;
+	sin->sin_family = AF_INET;
+	sin->sin_addr.s_addr = ipaddr;
+
+	if (ioctl(fd, SIOCSIFADDR, &ifr) != 0) {
+		perror("ioctl(SIOSIFADDR)");
+		goto out;
+	}
+
+	sin = (struct sockaddr_in*)&ifr.ifr_netmask;
+	sin->sin_family = AF_INET;
+	sin->sin_addr.s_addr = ipmask;
+
+	if (ioctl(fd, SIOCSIFNETMASK, &ifr) != 0) {
+		perror("ioctl(SIOCSIFNETMASK)");
+		goto out;
+	}
+
+	if (ioctl(fd, SIOCGIFFLAGS, &ifr) != 0) {
+		perror("ioctl(SIOCGIFFLAGS)");
+		goto out;
+	}
+
+	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+
+	if (ioctl(fd, SIOCSIFFLAGS, &ifr) != 0) {
+		perror("ioctl(SIOCSIFFLAGS)");
+		goto out;
+	}
+
+	ret = 0;
+
+out:
+	close(fd);
+	return ret;
+#else
+	ULONG instance;
+
+	DWORD ret = AddIPAddress(ipaddr, ipmask, sock->index, &undo->context, &instance);
+	if (ret != NO_ERROR) {
+		win_perror2("AddIPAddress", ret);
+		return -1;
+	}
+
+	return 0;
+#endif
+}
+
+int ethsock_del_ip(struct ethsock *sock, struct ethsock_ip_undo **undo)
+{
+	if (!*undo) {
+		return 0;
+	}
+
+	int ret;
+
+#ifndef NMRPFLASH_WINDOWS
+	if ((*undo)->ip[0] != INADDR_NONE) {
+		ret = ethsock_set_ip(sock, (*undo)->ip[0], (*undo)->ip[1], NULL);
+	} else {
+		ret = 0;
+	}
+#else
+	DWORD err = DeleteIPAddress((*undo)->context);
+	if (err != NO_ERROR) {
+		win_perror2("DeleteIPAddress", ret);
+		ret = -1;
+	} else {
+		ret = 0;
+	}
+#endif
+
+	free(*undo);
+	*undo = NULL;
+	return ret;
 }

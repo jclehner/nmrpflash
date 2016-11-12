@@ -32,8 +32,9 @@ void usage(FILE *fp)
 	fprintf(fp,
 			"Usage: nmrpflash [OPTIONS...]\n"
 			"\n"
-			"Options (-a, -i and -f and/or -c are mandatory):\n"
+			"Options (-i, -f and/or -c are mandatory):\n"
 			" -a <ipaddr>     IP address to assign to target device\n"
+			" -A <ipaddr>     IP address to assign to seleted interface\n"
 			" -c <command>    Command to run before (or instead of) TFTP upload\n"
 			" -f <firmware>   Firmware file\n"
 			" -F <filename>   Remote filename to use during TFTP upload\n"
@@ -119,6 +120,7 @@ int main(int argc, char **argv)
 		.tftpcmd = NULL,
 		.file_local = NULL,
 		.file_remote = NULL,
+		.ipaddr_intf = NULL,
 		.ipaddr = NULL,
 		.ipmask = "255.255.255.0",
 		.intf = NULL,
@@ -160,11 +162,14 @@ int main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "a:c:f:F:i:m:M:p:R:t:T:hLVvU")) != -1) {
+	while ((c = getopt(argc, argv, "a:A:c:f:F:i:m:M:p:R:t:T:hLVvU")) != -1) {
 		max = 0x7fffffff;
 		switch (c) {
 			case 'a':
 				args.ipaddr = optarg;
+				break;
+			case 'A':
+				args.ipaddr_intf = optarg;
 				break;
 			case 'c':
 				args.tftpcmd = optarg;
@@ -241,7 +246,12 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (!list && ((!args.file_local && !args.tftpcmd) || !args.intf || !args.ipaddr)) {
+	if (args.ipaddr_intf && !args.ipaddr) {
+		fprintf(stderr, "Error: cannot use -A <ipaddr> without using -a <ipaddr>.\n");
+		return 1;
+	}
+
+	if (!list && ((!args.file_local && !args.tftpcmd) || !args.intf /*|| !args.ipaddr*/)) {
 		usage(stderr);
 		return 1;
 	}

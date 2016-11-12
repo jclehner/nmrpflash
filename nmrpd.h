@@ -75,6 +75,7 @@ struct nmrpd_args {
 	const char *tftpcmd;
 	const char *file_local;
 	const char *file_remote;
+	const char *ipaddr_intf;
 	const char *ipaddr;
 	const char *ipmask;
 	const char *intf;
@@ -103,6 +104,7 @@ void sock_perror(const char *msg);
 extern int verbosity;
 
 struct ethsock;
+struct ethsock_ip_undo;
 
 struct ethsock *ethsock_create(const char *intf, uint16_t protocol);
 int ethsock_close(struct ethsock *sock);
@@ -125,5 +127,6 @@ typedef int (*ethsock_ip_callback_t)(struct ethsock_ip_callback_args *args);
 int ethsock_for_each_ip(struct ethsock *sock, ethsock_ip_callback_t callback,
 		void *arg);
 
-int arp_find_free_ip(const char *intf, uint32_t *addr);
+int ethsock_set_ip(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo);
+int ethsock_del_ip(struct ethsock *sock, struct ethsock_ip_undo **undo);
 #endif
