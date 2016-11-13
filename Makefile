@@ -2,7 +2,7 @@ CC ?= gcc
 PREFIX ?= /usr/local
 VERSION = $(shell git describe --always | tail -c +2)
 LIBS = -lpcap
-CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"v$(VERSION)\"
+CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 LDFLAGS += $(LIBS)
 
 .PHONY: clean install release release/osx release/linux release/win32
