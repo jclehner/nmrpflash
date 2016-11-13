@@ -65,7 +65,9 @@ Reboot your device now.
 
 ### Common issues
 
-In any case, run `nmrpflash` with `-vvv` before filing a bug report.
+In any case, run `nmrpflash` with `-vvv` before filing a bug report. Also,
+try connecting your Netgear router *directly* to the computer running
+`nmrpflash`.
 
 ###### "Error while loading shared libraries: libpcap.so.0.8" (Linux)
 
