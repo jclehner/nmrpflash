@@ -14,8 +14,9 @@ Prebuilt binaries for Linux, OS X and Windows are available
 ```
 Usage: nmrpflash [OPTIONS...]
 
-Options (-a, -i and -f and/or -c are mandatory):
+Options (-i and -f and/or -c are mandatory):
  -a <ipaddr>     IP address to assign to target device
+ -A <ipaddr>     IP address to assign to interface
  -c <command>    Command to run before (or instead of) TFTP upload
  -f <firmware>   Firmware file
  -F <filename>   Remote filename to use during TFTP upload
@@ -34,32 +35,27 @@ Options (-a, -i and -f and/or -c are mandatory):
 
 ### Using nmrpflash
 
-Connect your Netgear router to your computer using a network cable.
-Assign a static IP address to the network adapter that's plugged into
-the Netgear router.
+Your Netgear router must be connected to your network using an
+Ethernet cable. The device running `nmrpflash` must be connected
+to the same network, using either Wi-Fi or Ethernet.
 
-For this example, we'll assume that your network interface is `eth0`.
-First, we have to assign a static IP address to our network interface.
-In this example, we'll use `192.168.1.2`. All available network interfaces
-can be listed using
+All available network interfaces can be listed using
 
 ```
 # nmrpflash -L
 eth0      192.168.1.2  f2:11:a1:02:03:b1
 ```
 
-Now we can flash the image. The argument for the `-a` option needs
-to be a *free* IP address from the same subnet as the one used by your
-network interface; we'll use `192.168.1.254`. Firmware images can usually 
-be downloaded directly from Netgear. For details on how to do this, see
-[here](#obtaining-firmware-images). Power on your device immediately 
+Once you've determined the interface to use, we can flash the image. Firmware
+images can usually be downloaded directly from Netgear. For details on how to
+do this, see [here](#obtaining-firmware-images). Power on your device immediately
 after starting `nmrpflash`.
 
 ```
-# nmrpflash -i eth0 -a 192.168.1.254 -f EX2700-V1.0.1.8.img
+# nmrpflash -i eth0 -f EX2700-V1.0.1.8.img
 Advertising NMRP server on eth0 ... /
 Received configuration request from a4:2b:8c:00:00:01.
-Sending configuration: ip 192.168.1.254, mask 255.255.255.0.
+Sending configuration: ip 10.11.12.252, mask 255.255.255.0.
 Received upload request: filename 'firmware'.
 Uploading EX2700-V1.0.1.8.img ... OK
 Waiting for remote to respond.
@@ -100,11 +96,21 @@ MAC address. It's also possible that your device does not support the NMRP proto
 
 ###### "Timeout while waiting for initial reply."
 
-The device did not respond to `nmrpflash`'s TFTP upload request. This could indicate a bug
-in the TFTP code; try using an external tftp client (busybox in this example), by specifying
-the `-c` flag instead of the `-f` flag:
+The device did not respond to `nmrpflash`'s TFTP upload request. By default,
+`nmrpflash` will assign `10.11.12.252` to the target device, while adding `10.11.12.253`
+to the network interface specified by the `-i` flag. You can use `-a` to change the IP
+address assigned to the target (e.g. if your network is `192.168.1.0/24`, specify a *free*
+IP address, such as `-a 192.168.1.252`), and `-A` to change the IP address used for the
+network interface.
 
-`# nmrpflash -i eth0 -a 192.168.1.254 -c "busybox tftp -p -l EX2700-V1.0.1.8.img 192.168.1.254"`
+On Linux, `nmrpflash` uses interface alias `:42` by default, so if you specify `-i eth0`,
+it will actually use `eth0:42`. To override this, manually specify an alias (e.g.
+`-i eth0:43`).
+
+This error message could also indicate a bug in the TFTP code; try using an external tftp
+client (busybox in this example), by specifying the `-c` flag instead of the `-f` flag:
+
+`# nmrpflash -i eth0 -c "busybox tftp -p -l EX2700-V1.0.1.8.img @IP@"`
 
 ###### "Timeout while waiting for CLOSE_REQ."
 
