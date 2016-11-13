@@ -767,7 +767,6 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 			goto out;
 		}
 	}
-	return 0;
 #endif
 	ret = 0;
 
