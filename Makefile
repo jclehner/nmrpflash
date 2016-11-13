@@ -7,8 +7,8 @@ LDFLAGS += $(LIBS)
 
 .PHONY: clean install release release/osx release/linux release/win32
 
-nmrpflash: nmrp.o tftp.o ethsock.o main.o arp.o
-	$(CC) $(CFLAGS) -o nmrpflash nmrp.o tftp.o ethsock.o arp.o main.o $(LDFLAGS)
+nmrpflash: nmrp.o tftp.o ethsock.o main.o
+	$(CC) $(CFLAGS) -o nmrpflash nmrp.o tftp.o ethsock.o main.o $(LDFLAGS)
 
 nmrp.o: nmrp.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o nmrp.o nmrp.c
@@ -19,14 +19,11 @@ tftp.o: tftp.c nmrpd.h
 ethsock.o: ethsock.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o ethsock.o ethsock.c
 
-arp.o: arp.c nmrpd.h
-	$(CC) $(CFLAGS) -c -o arp.o arp.c
-
 main.o: main.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o main.o main.c
 
 clean:
-	rm -f nmrp.o tftp.o main.o ethsock.o arp.o nmrpflash
+	rm -f nmrp.o tftp.o main.o ethsock.o nmrpflash
 
 install: nmrpflash
 	install -m 755 nmrpflash $(PREFIX)/bin
