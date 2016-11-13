@@ -272,23 +272,9 @@ int tftp_put(struct nmrpd_args *args)
 			goto cleanup;
 		}
 
-		int tries = 100;
-
-		while (1) {
-			if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-#ifdef NMRPFLASH_WINDOWS
-				// Wait for AddIPAddress to update the IP tables
-				if (WSAGetLastError() == WSAEADDRNOTAVAIL) {
-					if (--tries) {
-						continue;
-					}
-				}
-#endif
-				sock_perror("bind");
-				goto cleanup;
-			}
-
-			break;
+		if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
+			sock_perror("bind");
+			goto cleanup;
 		}
 	}
 
