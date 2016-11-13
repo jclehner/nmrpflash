@@ -63,9 +63,9 @@ void usage(FILE *fp)
 #endif
 			")\n\n"
 #ifndef NMRPFLASH_WINDOWS
-			"# nmrpflash -i eth0 -a 192.168.1.254 -f firmware.bin\n"
+			"# nmrpflash -i eth0 -f firmware.bin\n"
 #else
-			"C:\\> nmrpflash.exe -i net0 -a 192.168.1.254 -f firmware.bin\n"
+			"C:\\> nmrpflash.exe -i net0 -f firmware.bin\n"
 #endif
 			"\n"
 			"nmrpflash %s, Copyright (C) 2016 Joseph C. Lehner\n"
