@@ -103,10 +103,6 @@ address assigned to the target (e.g. if your network is `192.168.1.0/24`, specif
 IP address, such as `-a 192.168.1.252`), and `-A` to change the IP address used for the
 network interface.
 
-On Linux, `nmrpflash` uses interface alias `:42` by default, so if you specify `-i eth0`,
-it will actually use `eth0:42`. To override this, manually specify an alias (e.g.
-`-i eth0:43`).
-
 This error message could also indicate a bug in the TFTP code; try using an external tftp
 client (busybox in this example), by specifying the `-c` flag instead of the `-f` flag:
 
