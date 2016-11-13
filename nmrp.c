@@ -490,6 +490,14 @@ int nmrp_do(struct nmrpd_args *args)
 			}
 			goto out;
 		}
+	} else {
+		if (verbosity) {
+			printf("Adding %s to interface %s.\n", args->ipaddr_intf, args->intf);
+		}
+
+		if (ethsock_ip_add(sock, intf_addr, ipconf.mask.s_addr, &gundo) != 0) {
+			goto out;
+		}
 	}
 
 	if (ethsock_set_timeout(sock, args->rx_timeout)) {
@@ -582,12 +590,6 @@ int nmrp_do(struct nmrpd_args *args)
 
 				memcpy(arpmac, rx.eh.ether_shost, 6);
 				memcpy(&arpip, &ipconf.addr, sizeof(ipconf.addr));
-
-				if (autoip) {
-					if (ethsock_ip_add(sock, intf_addr, ipconf.mask.s_addr, &gundo) != 0) {
-						goto out;
-					}
-				}
 
 				if (ethsock_arp_add(sock, arpmac, &arpip) != 0) {
 					goto out;
