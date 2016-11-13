@@ -687,7 +687,7 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (!fd) {
-		perror("socket");
+		sock_perror("socket");
 		return -1;
 	}
 
@@ -731,7 +731,7 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 	memset(&ifra.ifra_broadaddr, 0, sizeof(ifra.ifra_broadaddr));
 
 	if (ioctl(fd, add ? SIOCAIFADDR : SIOCDIFADDR, &ifra) != 0) {
-		perror("ioctl(SIOCAIFADDR)");
+		perror(add ? "ioctl(SIOCAIFADDR)" : "ioctl(SIOCDIFADDR)");
 		goto out;
 	}
 
