@@ -110,7 +110,7 @@ it will actually use `eth0:42`. To override this, manually specify an alias (e.g
 This error message could also indicate a bug in the TFTP code; try using an external tftp
 client (busybox in this example), by specifying the `-c` flag instead of the `-f` flag:
 
-`# nmrpflash -i eth0 -c "busybox tftp -p -l EX2700-V1.0.1.8.img @IP@"`
+`# nmrpflash -i eth0 -c "busybox tftp -p -l EX2700-V1.0.1.8.img \$IP"`
 
 ###### "Timeout while waiting for CLOSE_REQ."
 

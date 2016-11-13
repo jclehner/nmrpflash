@@ -43,6 +43,10 @@
 #define PACKED __attribute__((__packed__))
 #endif
 
+#ifdef NMRPFLASH_WINDOWS
+#define setenv(name, value, overwrite) SetEnvironmentVariable(name, value)
+#endif
+
 enum nmrp_code {
 	NMRP_C_NONE = 0,
 	NMRP_C_ADVERTISE = 1,
@@ -631,10 +635,11 @@ int nmrp_do(struct nmrpd_args *args)
 				status = 0;
 
 				if (args->tftpcmd) {
-					printf("Executing '%s' ... ", args->tftpcmd);
-					fflush(stdout);
+					printf("Executing '%s' ... \n", args->tftpcmd);
+					setenv("IP", inet_ntoa(ipconf.addr), 1);
+					setenv("MAC", mac_to_str(rx.eh.ether_shost), 1);
+					setenv("NETMASK", inet_ntoa(ipconf.mask), 1);
 					status = system(args->tftpcmd);
-					printf("\n");
 				}
 
 				if (!status && args->file_local) {
