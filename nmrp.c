@@ -430,7 +430,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 	if (!args->ipaddr) {
 		autoip = true;
-		args->ipaddr = "10.11.12.254";
+		args->ipaddr = "10.11.12.252";
 
 		if (!args->ipaddr_intf) {
 			args->ipaddr_intf = "10.11.12.253";
