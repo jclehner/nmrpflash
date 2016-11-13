@@ -55,7 +55,7 @@ after starting `nmrpflash`.
 # nmrpflash -i eth0 -f EX2700-V1.0.1.8.img
 Advertising NMRP server on eth0 ... /
 Received configuration request from a4:2b:8c:00:00:01.
-Sending configuration: ip 10.11.12.252, mask 255.255.255.0.
+Sending configuration: ip 10.164.183.252, mask 255.255.255.0.
 Received upload request: filename 'firmware'.
 Uploading EX2700-V1.0.1.8.img ... OK
 Waiting for remote to respond.
@@ -97,7 +97,7 @@ MAC address. It's also possible that your device does not support the NMRP proto
 ###### "Timeout while waiting for initial reply."
 
 The device did not respond to `nmrpflash`'s TFTP upload request. By default,
-`nmrpflash` will assign `10.11.12.252` to the target device, while adding `10.11.12.253`
+`nmrpflash` will assign `10.164.183.252` to the target device, while adding `10.164.183.253`
 to the network interface specified by the `-i` flag. You can use `-a` to change the IP
 address assigned to the target (e.g. if your network is `192.168.1.0/24`, specify a *free*
 IP address, such as `-a 192.168.1.252`), and `-A` to change the IP address used for the

@@ -430,10 +430,13 @@ int nmrp_do(struct nmrpd_args *args)
 
 	if (!args->ipaddr) {
 		autoip = true;
-		args->ipaddr = "10.11.12.252";
+		/* The MAC of the device that was used to test this utility starts
+		 * with a4:2b:8c, hence 164 (0xa4) and 183 (0x2b + 0x8c)
+		 */
+		args->ipaddr = "10.164.183.252";
 
 		if (!args->ipaddr_intf) {
-			args->ipaddr_intf = "10.11.12.253";
+			args->ipaddr_intf = "10.164.183.253";
 		}
 	} else if (args->ipaddr_intf) {
 		autoip = true;
