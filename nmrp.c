@@ -134,10 +134,9 @@ static uint16_t to_region_code(const char *region)
 	return 0;
 }
 
-static void msg_dump(struct nmrp_msg *msg, int dump_opts)
+static void msg_dump(struct nmrp_msg *msg)
 {
-	struct nmrp_opt *opt;
-	int remain_len, len, i;
+	int remain_len;
 
 	fprintf(stderr, "res=0x%04x, code=0x%02x, id=0x%02x, len=%u",
 			msg->reserved, msg->code, msg->id, msg->len);
@@ -200,7 +199,7 @@ static int msg_ntoh(struct nmrp_msg *msg)
 	}
 
 	fprintf(stderr, "Unexpected message format.\n");
-	msg_dump(msg, 0);
+	msg_dump(msg);
 	return 1;
 }
 
@@ -714,7 +713,7 @@ int nmrp_do(struct nmrpd_args *args)
 			default:
 				fprintf(stderr, "Unknown message code 0x%02x!\n",
 						rx.msg.code);
-				msg_dump(&rx.msg, 0);
+				msg_dump(&rx.msg);
 		}
 
 		if (tx.msg.code != NMRP_C_NONE) {
