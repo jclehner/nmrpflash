@@ -22,6 +22,10 @@ ethsock.o: ethsock.c nmrpd.h
 main.o: main.c nmrpd.h
 	$(CC) $(CFLAGS) -c -o main.o main.c
 
+fuzz: clean
+	CC=afl-gcc CFLAGS=-DNMRPFLASH_FUZZ make nmrpflash
+	mv nmrpflash fuzz
+
 clean:
 	rm -f nmrp.o tftp.o main.o ethsock.o nmrpflash
 

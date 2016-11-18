@@ -254,12 +254,14 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+#ifndef NMRPFLASH_FUZZ
 	if (!list && ((!args.file_local && !args.tftpcmd) || !args.intf /*|| !args.ipaddr*/)) {
 		usage(stderr);
 		return 1;
 	}
 
 	require_admin();
+#endif
 	val = !list ? nmrp_do(&args) : ethsock_list_all();
 
 out:

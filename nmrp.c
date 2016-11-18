@@ -266,6 +266,35 @@ static inline void msg_init(struct nmrp_msg *msg, uint16_t code)
 	msg->code = code;
 }
 
+#ifdef NMRPFLASH_FUZZ
+#define ethsock_create(a, b) ethsock_create_fake(a, b)
+#define ethsock_get_hwaddr(a) ethsock_get_hwaddr_fake(a)
+#define ethsock_recv(a, b, c) ethsock_recv_fake(a, b, c)
+#define ethsock_send(a, b, c) (0)
+#define ethsock_set_timeout(a, b) (0)
+#define ethsock_ip_add(a, b, c, d) (0)
+#define ethsock_ip_del(a, b) (0)
+#define ethsock_close(a) (0)
+#define tftp_put(a) (0)
+
+static struct ethsock* ethsock_create_fake(const char *intf, uint16_t protocol)
+{
+	return (struct ethsock*)1;
+}
+
+static uint8_t *ethsock_get_hwaddr_fake(struct ethsock* sock)
+{
+	static uint8_t hwaddr[6];
+	memset(hwaddr, 0xfa, 6);
+	return hwaddr;
+}
+
+static ssize_t ethsock_recv_fake(struct ethsock *sock, void *buf, size_t len)
+{
+	return read(STDIN_FILENO, buf, len);
+}
+#endif
+
 static int pkt_send(struct ethsock *sock, struct nmrp_pkt *pkt)
 {
 	size_t len = ntohs(pkt->msg.len) + sizeof(pkt->eh);
@@ -532,6 +561,9 @@ int nmrp_do(struct nmrpd_args *args)
 				printf("\nNo response after 60 seconds. Bailing out.\n");
 				goto out;
 			}
+#ifdef NMRPFLASH_FUZZ
+			goto out;
+#endif
 		}
 	}
 
