@@ -129,4 +129,6 @@ int ethsock_for_each_ip(struct ethsock *sock, ethsock_ip_callback_t callback,
 
 int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo);
 int ethsock_ip_del(struct ethsock *sock, struct ethsock_ip_undo **undo);
+
+time_t time_monotonic();
 #endif

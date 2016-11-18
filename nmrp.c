@@ -538,7 +538,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 	i = 0;
 	upload_ok = 0;
-	beg = time(NULL);
+	beg = time_monotonic();
 
 	while (1) {
 		printf("\rAdvertising NMRP server on %s ... %c",
@@ -557,7 +557,7 @@ int nmrp_do(struct nmrpd_args *args)
 		} else if (status == 1) {
 			goto out;
 		} else {
-			if ((time(NULL) - beg) >= 60) {
+			if ((time_monotonic() - beg) >= 60) {
 				printf("\nNo response after 60 seconds. Bailing out.\n");
 				goto out;
 			}

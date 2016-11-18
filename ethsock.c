@@ -755,12 +755,12 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 	}
 
 	set_addr(&sin, ipaddr);
-	clock_t now = clock();
+	time_t beg = time_monotonic();
 
 	/* Wait until the new IP has actually been added */
 
 	while (bind(fd, (struct sockaddr*)&sin, sizeof(sin)) != 0) {
-		if (((clock() - now) / CLOCKS_PER_SEC) >= 5) {
+		if ((time_monotonic() - beg) >= 5) {
 			fprintf(stderr, "Failed to bind after 5 seconds: ");
 			sock_perror("bind");
 			DeleteIPAddress((*undo)->context);

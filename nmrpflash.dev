@@ -29,7 +29,7 @@ IncludeVersionInfo=0
 SupportXPThemes=0
 CompilerSet=3
 CompilerSettings=0000000100000000000001000
-UnitCount=5
+UnitCount=6
 
 [VersionInfo]
 Major=1
@@ -92,6 +92,16 @@ BuildCmd=
 
 [Unit5]
 FileName=nmrpd.h
+CompileCpp=0
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit6]
+FileName=util.c
 CompileCpp=0
 Folder=
 Compile=1

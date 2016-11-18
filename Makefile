@@ -5,22 +5,15 @@ LIBS = -lpcap
 CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 LDFLAGS += $(LIBS)
 
+nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
+
 .PHONY: clean install release release/osx release/linux release/win32
 
-nmrpflash: nmrp.o tftp.o ethsock.o main.o
-	$(CC) $(CFLAGS) -o nmrpflash nmrp.o tftp.o ethsock.o main.o $(LDFLAGS)
+nmrpflash: $(nmrpflash_OBJ)
+	$(CC) $(CFLAGS) -o nmrpflash $(nmrpflash_OBJ) $(LDFLAGS)
 
-nmrp.o: nmrp.c nmrpd.h
-	$(CC) $(CFLAGS) -c -o nmrp.o nmrp.c
-
-tftp.o: tftp.c nmrpd.h
-	$(CC) $(CFLAGS) -c -o tftp.o tftp.c
-
-ethsock.o: ethsock.c nmrpd.h
-	$(CC) $(CFLAGS) -c -o ethsock.o ethsock.c
-
-main.o: main.c nmrpd.h
-	$(CC) $(CFLAGS) -c -o main.o main.c
+%.o: %.c nmrpd.h
+	$(CC) -c $(CFLAGS) $< -o $@
 
 fuzz: clean
 	CC=afl-gcc CFLAGS=-DNMRPFLASH_FUZZ make nmrpflash
