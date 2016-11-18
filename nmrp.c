@@ -606,7 +606,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 				memcpy(tx.eh.ether_dhost, rx.eh.ether_shost, 6);
 
-				printf("Sending configuration: ip %s, mask %s.\n",
+				printf("Sending configuration: %s, netmask %s.\n",
 						args->ipaddr, args->ipmask);
 
 				memcpy(arpmac, rx.eh.ether_shost, 6);
