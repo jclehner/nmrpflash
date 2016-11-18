@@ -144,27 +144,6 @@ static void msg_dump(struct nmrp_msg *msg, int dump_opts)
 
 	remain_len = msg->len - NMRP_HDR_LEN;
 	fprintf(stderr, "%s\n", remain_len ? "" : " (no opts)");
-
-	if (dump_opts) {
-		opt = msg->opts;
-
-		while (remain_len > 0) {
-			len = opt->len;
-			fprintf(stderr, "  opt type=%u, len=%u", opt->type, len);
-			if (len) {
-				for (i = 0; i != len - NMRP_OPT_HDR_LEN; ++i) {
-					if (!(i % 16)) {
-						fprintf(stderr, "\n  ");
-					}
-
-					fprintf(stderr, "%02x ", ((char*)&opt->val)[i] & 0xff);
-				}
-				fprintf(stderr, "\n");
-			}
-			remain_len -= len;
-			opt = NMRP_OPT_NEXT(opt);
-		}
-	}
 }
 
 static void msg_hton(struct nmrp_msg *msg)
@@ -207,7 +186,7 @@ static int msg_ntoh(struct nmrp_msg *msg)
 			opt->type = ntohs(opt->type);
 			opt->len = ntohs(opt->len);
 
-			if (opt->len > NMRP_MAX_OPT_SIZE) {
+			if (!opt->len || opt->len > NMRP_MAX_OPT_SIZE) {
 				break;
 			}
 
@@ -241,6 +220,10 @@ static void *msg_opt_data(struct nmrp_msg *msg, uint16_t type, uint16_t *len)
 			*len = opt->len - NMRP_OPT_HDR_LEN;
 			memcpy(buf, &opt->val, MIN(*len, sizeof(buf)-1));
 			return buf;
+		}
+
+		if (!opt->len) {
+			break;
 		}
 
 		remaining -= opt->len;
