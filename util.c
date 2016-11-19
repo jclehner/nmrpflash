@@ -35,3 +35,17 @@ char *lltostr(long long ll, int base)
 	snprintf(buf, sizeof(buf) - 1, (base == 16 ? "%llx" : (base == 8 ? "%llo" : "%lld")), ll);
 	return buf;
 }
+
+uint32_t bitcount(uint32_t n)
+{
+	uint32_t c;
+	for (c = 0; n; ++c) {
+		n &= n - 1;
+	}
+	return c;
+}
+
+uint32_t netmask(uint32_t count)
+{
+	return htonl(count <= 32 ? 0xffffffff << (32 - count) : 0);
+}

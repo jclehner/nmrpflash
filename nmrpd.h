@@ -133,4 +133,6 @@ int ethsock_ip_del(struct ethsock *sock, struct ethsock_ip_undo **undo);
 
 time_t time_monotonic();
 char *lltostr(long long ll, int base);
+uint32_t bitcount(uint32_t n);
+uint32_t netmask(uint32_t count);
 #endif

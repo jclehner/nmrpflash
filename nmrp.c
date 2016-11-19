@@ -430,7 +430,9 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	if ((ipconf.mask.s_addr = inet_addr(args->ipmask)) == INADDR_NONE) {
+	ipconf.mask.s_addr = inet_addr(args->ipmask);
+	if (ipconf.mask.s_addr == INADDR_NONE
+			|| netmask(bitcount(ipconf.mask.s_addr)) != ipconf.mask.s_addr) {
 		fprintf(stderr, "Invalid subnet mask '%s'.\n", args->ipmask);
 		return 1;
 	}
