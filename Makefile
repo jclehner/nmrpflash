@@ -20,7 +20,7 @@ fuzz: clean
 	mv nmrpflash fuzz
 
 clean:
-	rm -f nmrp.o tftp.o main.o ethsock.o nmrpflash
+	rm -f $(nmrpflash_OBJ) nmrpflash
 
 install: nmrpflash
 	install -m 755 nmrpflash $(PREFIX)/bin
