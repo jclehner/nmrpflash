@@ -276,18 +276,18 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	struct ethsock *sock;
 	int err;
 
-	sock = malloc(sizeof(struct ethsock));
-	if (!sock) {
-		perror("malloc");
-		return NULL;
-	}
-
 #ifdef NMRPFLASH_WINDOWS
 	intf = intf_alias_to_wpcap(intf);
 	if (!intf) {
 		return NULL;
 	}
 #endif
+
+	sock = malloc(sizeof(struct ethsock));
+	if (!sock) {
+		perror("malloc");
+		return NULL;
+	}
 
 	buf[0] = '\0';
 
