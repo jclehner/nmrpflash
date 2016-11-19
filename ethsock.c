@@ -38,6 +38,12 @@ struct ethsock
 	uint8_t hwaddr[6];
 };
 
+struct ethsock_arp_undo
+{
+	uint32_t ipaddr;
+	uint8_t hwaddr[6];
+};
+
 struct ethsock_ip_undo
 {
 #ifndef NMRPFLASH_WINDOWS
@@ -455,50 +461,66 @@ inline int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
 }
 
 #ifndef NMRPFLASH_WINDOWS
-int ethsock_arp_add(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr)
+int ethsock_arp_add(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, struct ethsock_arp_undo **undo)
 {
 	return 0;
 }
 
-int ethsock_arp_del(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr)
+int ethsock_arp_del(struct ethsock *sock, struct ethsock_arp_undo **undo)
 {
 	return 0;
 }
 #else
-static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr, int add)
+static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, struct ethsock_arp_undo **undo)
 {
 	DWORD ret;
 	MIB_IPNETROW arp = {
 		.dwIndex = sock->index,
 		.dwPhysAddrLen = 6,
-		.dwAddr = ipaddr->s_addr,
+		.dwAddr = ipaddr,
 		.dwType = MIB_IPNET_TYPE_STATIC
 	};
-	
+
 	memcpy(arp.bPhysAddr, hwaddr, 6);
-	
-	if (add) {
+
+	if (undo) {
 		ret = CreateIpNetEntry(&arp);
 		if (ret != NO_ERROR) {
 			win_perror2("CreateIpNetEntry", ret);
 			return -1;
 		}
+
+		*undo = malloc(sizeof(struct ethsock_arp_undo));
+		if (!*undo) {
+			perror("malloc");
+			return -1;
+		}
+
+		(*undo)->ipaddr = ipaddr;
+		memcpy((*undo)->hwaddr, hwaddr, 6);
 	} else {
 		DeleteIpNetEntry(&arp);
 	}
-	
+
 	return 0;
 }
 
-int ethsock_arp_add(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr)
+int ethsock_arp_add(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, struct ethsock_arp_undo **undo)
 {
-	ethsock_arp_del(sock, hwaddr, ipaddr);
-	return ethsock_arp(sock, hwaddr, ipaddr, 1);
+	ethsock_arp(sock, hwaddr, ipaddr, NULL);
+	return undo ? ethsock_arp(sock, hwaddr, ipaddr, undo) : -1;
 }
 
-int ethsock_arp_del(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr)
+int ethsock_arp_del(struct ethsock *sock, struct ethsock_arp_undo **undo)
 {
-	return ethsock_arp(sock, hwaddr, ipaddr, 0);
+	if (!*undo) {
+		return 0;
+	}
+
+	int ret = ethsock_arp(sock, (*undo)->hwaddr, (*undo)->ipaddr, NULL);
+	free(*undo);
+	*undo = NULL;
+	return ret;
 }
 #endif
 

@@ -104,6 +104,7 @@ void sock_perror(const char *msg);
 extern int verbosity;
 
 struct ethsock;
+struct ethsock_arp_undo;
 struct ethsock_ip_undo;
 
 struct ethsock *ethsock_create(const char *intf, uint16_t protocol);
@@ -112,8 +113,8 @@ int ethsock_send(struct ethsock *sock, void *buf, size_t len);
 ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len);
 int ethsock_set_timeout(struct ethsock *sock, unsigned msec);
 uint8_t *ethsock_get_hwaddr(struct ethsock *sock);
-int ethsock_arp_add(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr);
-int ethsock_arp_del(struct ethsock *sock, uint8_t *hwaddr, struct in_addr *ipaddr);
+int ethsock_arp_add(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, struct ethsock_arp_undo **undo);
+int ethsock_arp_del(struct ethsock *sock, struct ethsock_arp_undo **undo);
 int ethsock_list_all(void);
 
 struct ethsock_ip_callback_args

@@ -386,19 +386,15 @@ static int is_valid_ip(struct ethsock *sock, struct in_addr *ipaddr,
 }
 
 static struct ethsock *gsock = NULL;
-static struct ethsock_ip_undo *gundo = NULL;
-static int garp = 0;
-static struct in_addr arpip = { 0 };
-static uint8_t arpmac[6] = { 0 };
+static struct ethsock_ip_undo *g_ip_undo = NULL;
+static struct ethsock_arp_undo *g_arp_undo = NULL;
 
 static void sigh(int sig)
 {
 	printf("\n");
 	if (gsock) {
-		if (garp) {
-			ethsock_arp_del(gsock, arpmac, &arpip);
-		}
-		ethsock_ip_del(gsock, &gundo);
+		ethsock_arp_del(gsock, &g_arp_undo);
+		ethsock_ip_del(gsock, &g_ip_undo);
 		ethsock_close(gsock);
 		gsock = NULL;
 	}
@@ -496,7 +492,6 @@ int nmrp_do(struct nmrpd_args *args)
 	}
 
 	gsock = sock;
-	garp = 0;
 	sigh_orig = signal(SIGINT, sigh);
 
 	if (!autoip) {
@@ -513,7 +508,7 @@ int nmrp_do(struct nmrpd_args *args)
 			printf("Adding %s to interface %s.\n", args->ipaddr_intf, args->intf);
 		}
 
-		if (ethsock_ip_add(sock, intf_addr, ipconf.mask.s_addr, &gundo) != 0) {
+		if (ethsock_ip_add(sock, intf_addr, ipconf.mask.s_addr, &g_ip_undo) != 0) {
 			goto out;
 		}
 	}
@@ -609,14 +604,9 @@ int nmrp_do(struct nmrpd_args *args)
 				printf("Sending configuration: %s, netmask %s.\n",
 						args->ipaddr, args->ipmask);
 
-				memcpy(arpmac, rx.eh.ether_shost, 6);
-				memcpy(&arpip, &ipconf.addr, sizeof(ipconf.addr));
-
-				if (ethsock_arp_add(sock, arpmac, &arpip) != 0) {
+				if (ethsock_arp_add(sock, rx.eh.ether_shost, ipconf.addr.s_addr, &g_arp_undo) != 0) {
 					goto out;
 				}
-
-				garp = 1;
 
 				break;
 			case NMRP_C_TFTP_UL_REQ:
@@ -760,8 +750,8 @@ int nmrp_do(struct nmrpd_args *args)
 out:
 	signal(SIGINT, sigh_orig);
 	gsock = NULL;
-	ethsock_arp_del(sock, arpmac, &arpip);
-	ethsock_ip_del(sock, &gundo);
+	ethsock_arp_del(sock, &g_arp_undo);
+	ethsock_ip_del(sock, &g_ip_undo);
 	ethsock_close(sock);
 	return status;
 }
