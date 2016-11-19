@@ -9,7 +9,7 @@ Libs=Wpdpack\Lib
 PrivateResource=
 ResourceIncludes=
 MakeIncludes=
-Compiler=-DNMRPFLASH_VERSION=\"0.9.8\"_@@_
+Compiler=-DNMRPFLASH_VERSION=\"0.9.9\"_@@_
 CppCompiler=
 Linker=-liphlpapi_@@_-lws2_32_@@_-ladvapi32_@@_-lwpcap_@@_-lpacket_@@__@@_
 IsCpp=0
