@@ -131,4 +131,5 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 int ethsock_ip_del(struct ethsock *sock, struct ethsock_ip_undo **undo);
 
 time_t time_monotonic();
+char *lltostr(long long ll, int base);
 #endif

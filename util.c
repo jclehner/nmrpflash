@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <time.h>
 #include <math.h>
 #include "nmrpd.h"
@@ -26,4 +27,11 @@ time_t time_monotonic()
 #else
 	return round(GetTickCount() / 1000.0);
 #endif
+}
+
+char *lltostr(long long ll, int base)
+{
+	static char buf[32];
+	snprintf(buf, sizeof(buf) - 1, (base == 16 ? "%llx" : (base == 8 ? "%llo" : "%lld")), ll);
+	return buf;
 }

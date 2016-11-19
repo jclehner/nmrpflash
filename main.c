@@ -68,8 +68,9 @@ void usage(FILE *fp)
 			"C:\\> nmrpflash.exe -i net0 -f firmware.bin\n"
 #endif
 			"\n"
-			"When using -c, the environment variables IP, NETMASK and MAC are\n"
-			"set to the device IP address, subnet mask and MAC address.\n"
+			"When using -c, the environment variables IP, PORT, NETMASK\n"
+			"and MAC are set to the device IP address, TFTP port, subnet\n"
+			"mask and MAC address, respectively.\n"
 			"\n"
 			"nmrpflash %s, Copyright (C) 2016 Joseph C. Lehner\n"
 			"nmrpflash is free software, licensed under the GNU GPLv3.\n"
