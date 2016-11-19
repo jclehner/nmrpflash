@@ -23,14 +23,21 @@
 #include <stdbool.h>
 
 #if defined(_WIN32) || defined(_WIN64)
-#define NMRPFLASH_WINDOWS
-#elif defined(__linux__)
-#define NMRPFLASH_LINUX
-#elif defined(__APPLE__) && defined(__MACH__)
-#define NMRPFLASH_OSX
-#elif defined(__unix__)
-#define NMRPFLASH_UNIX
-#warning "nmrpflash is not fully supported on your operating system"
+#	define NMRPFLASH_WINDOWS
+#else
+#	define NMRPFLASH_UNIX
+#	if defined(__linux__)
+#		define NMRPFLASH_LINUX
+#	elif defined(__APPLE__) && defined(__MACH__)
+#		define NMRPFLASH_OSX
+#		define NMRPFLASH_BSD
+#	elif defined(__unix__)
+#		if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
+#			define NMRPFLASH_BSD
+#		else
+#			warning "nmrpflash is not fully supported on your operating system"
+#		endif
+#	endif
 #endif
 
 #ifndef NMRPFLASH_WINDOWS

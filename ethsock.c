@@ -671,6 +671,9 @@ static inline void set_addr(void *p, uint32_t addr)
 	struct sockaddr_in* sin = p;
 	sin->sin_family = AF_INET;
 	sin->sin_addr.s_addr = addr;
+#ifdef NMRPFLASH_BSD
+	((struct sockaddr*)p)->sa_len = sizeof(struct sockaddr_in);
+#endif
 }
 
 #ifndef NMRPFLASH_WINDOWS
@@ -745,12 +748,12 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 	}
 #else // NMRPFLASH_OSX (or any other BSD)
 	struct ifaliasreq ifra;
+	memset(&ifra, 0, sizeof(ifra));
 	strncpy(ifra.ifra_name, sock->intf, IFNAMSIZ);
 
 	set_addr(&ifra.ifra_addr, ipaddr);
 	set_addr(&ifra.ifra_mask, ipmask);
 	//set_addr(&ifra.ifra_broadaddr, (ipaddr & ipmask) | ~ipmask);
-	memset(&ifra.ifra_broadaddr, 0, sizeof(ifra.ifra_broadaddr));
 
 	if (ioctl(fd, add ? SIOCAIFADDR : SIOCDIFADDR, &ifra) != 0) {
 		perror(add ? "ioctl(SIOCAIFADDR)" : "ioctl(SIOCDIFADDR)");
