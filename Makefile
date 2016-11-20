@@ -19,6 +19,10 @@ fuzz: clean
 	CC=afl-gcc CFLAGS=-DNMRPFLASH_FUZZ make nmrpflash
 	mv nmrpflash fuzz
 
+dofuzz: fuzz
+	echo core | sudo tee /proc/sys/kernel/core_pattern
+	echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+	afl-fuzz -i fuzzin -o fuzzout -- ./fuzz
 clean:
 	rm -f $(nmrpflash_OBJ) nmrpflash
 
