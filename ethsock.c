@@ -683,7 +683,9 @@ static bool set_interface_up(int fd, const char *intf, bool up)
 	strncpy(ifr.ifr_name, intf, IFNAMSIZ);
 
 	if (ioctl(fd, SIOCGIFFLAGS, &ifr) != 0) {
-		xperror("ioctl(SIOCGIFFLAGS)");
+		if (up) {
+			xperror("ioctl(SIOCGIFFLAGS)");
+		}
 		return false;
 	}
 
@@ -694,7 +696,9 @@ static bool set_interface_up(int fd, const char *intf, bool up)
 	}
 
 	if (ioctl(fd, SIOCSIFFLAGS, &ifr) != 0) {
-		xperror("ioctl(SIOCSIFFLAGS)");
+		if (up) {
+			xperror("ioctl(SIOCSIFFLAGS)");
+		}
 		return false;
 	}
 
@@ -710,13 +714,13 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 		return -1;
 	}
 
+	int ret = -1;
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (!fd) {
 		sock_perror("socket");
-		return -1;
+		goto out;
 	}
 
-	int ret = -1;
 #ifndef NMRPFLASH_WINDOWS
 	// XXX: undo is non-zero only if we're adding an IP
 	bool add = undo;
@@ -743,7 +747,7 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 		(*undo)->ip[1] = ipmask;
 	}
 
-	if (!set_interface_up(fd, ifr.ifr_name, add ? true : false)) {
+	if (!set_interface_up(fd, ifr.ifr_name, add)) {
 		goto out;
 	}
 #else // NMRPFLASH_OSX (or any other BSD)
@@ -756,7 +760,9 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 	//set_addr(&ifra.ifra_broadaddr, (ipaddr & ipmask) | ~ipmask);
 
 	if (ioctl(fd, add ? SIOCAIFADDR : SIOCDIFADDR, &ifra) != 0) {
-	xperroradd ? "ioctl(SIOCAIFADDR)" : "ioctl(SIOCDIFADDR)");
+		if (add) {
+			xperror("ioctl(SIOCAIFADDR");
+		}
 		goto out;
 	}
 
@@ -801,6 +807,11 @@ out:
 #else
 	closesocket(fd);
 #endif
+	if (ret != 0 && undo) {
+		free(*undo);
+		*undo = NULL;
+	}
+
 	return ret;
 }
 
