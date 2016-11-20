@@ -20,24 +20,25 @@
 #ifndef NMRPD_H
 #define NMRPD_H
 #include <stdint.h>
+#include <signal.h>
 #include <stdbool.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #	define NMRPFLASH_WINDOWS
-#else
+#elif defined (__unix__)
 #	define NMRPFLASH_UNIX
 #	if defined(__linux__)
 #		define NMRPFLASH_LINUX
 #	elif defined(__APPLE__) && defined(__MACH__)
 #		define NMRPFLASH_OSX
 #		define NMRPFLASH_BSD
-#	elif defined(__unix__)
-#		if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
+#	elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
 #			define NMRPFLASH_BSD
-#		else
-#			warning "nmrpflash is not fully supported on your operating system"
-#		endif
+#	else
+#		warning "nmrpflash is not fully supported on this platform"
 #	endif
+#else
+#	warning "nmrpflash is not supported on this platform"
 #endif
 
 #ifndef NMRPFLASH_WINDOWS
@@ -105,7 +106,7 @@ const char *mac_to_str(uint8_t *mac);
 void win_perror2(const char *msg, DWORD err);
 void sock_perror(const char *msg);
 #else
-#define sock_perror(x) perror(x)
+#define sock_perror(x) xperror(x)
 #endif
 
 extern int verbosity;
@@ -142,4 +143,7 @@ time_t time_monotonic();
 char *lltostr(long long ll, int base);
 uint32_t bitcount(uint32_t n);
 uint32_t netmask(uint32_t count);
+void xperror(const char *msg);
+
+extern volatile sig_atomic_t g_interrupted;
 #endif

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <errno.h>
 #include <time.h>
 #include <math.h>
 #include "nmrpd.h"
@@ -6,6 +7,8 @@
 #ifdef NMRPFLASH_OSX
 #include <mach/mach_time.h>
 #endif
+
+volatile sig_atomic_t g_interrupted = 0;
 
 time_t time_monotonic()
 {
@@ -48,4 +51,13 @@ uint32_t bitcount(uint32_t n)
 uint32_t netmask(uint32_t count)
 {
 	return htonl(count <= 32 ? 0xffffffff << (32 - count) : 0);
+}
+
+void xperror(const char *msg)
+{
+	if (errno != EINTR) {
+		perror(msg);
+	} else {
+		printf("\n");
+	}
 }

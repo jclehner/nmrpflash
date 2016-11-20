@@ -100,7 +100,7 @@ static bool get_intf_info(const char *intf, uint8_t *hwaddr, void *dummy)
 	bool found;
 
 	if (getifaddrs(&ifas) != 0) {
-		perror("getifaddrs");
+		xperror("getifaddrs");
 		return false;
 	}
 
@@ -152,7 +152,7 @@ static bool get_intf_info(const char *intf, uint8_t *hwaddr, DWORD *index)
 
 	adapters = malloc(bufLen);
 	if (!adapters) {
-		perror("malloc");
+		xperror("malloc");
 		return false;
 	}
 
@@ -285,7 +285,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 
 	sock = malloc(sizeof(struct ethsock));
 	if (!sock) {
-		perror("malloc");
+		xperror("malloc");
 		return NULL;
 	}
 
@@ -492,7 +492,7 @@ static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, s
 
 		*undo = malloc(sizeof(struct ethsock_arp_undo));
 		if (!*undo) {
-			perror("malloc");
+			xperror("malloc");
 			return -1;
 		}
 
@@ -683,7 +683,7 @@ static bool set_interface_up(int fd, const char *intf, bool up)
 	strncpy(ifr.ifr_name, intf, IFNAMSIZ);
 
 	if (ioctl(fd, SIOCGIFFLAGS, &ifr) != 0) {
-		perror("ioctl(SIOCGIFFLAGS)");
+		xperror("ioctl(SIOCGIFFLAGS)");
 		return false;
 	}
 
@@ -694,7 +694,7 @@ static bool set_interface_up(int fd, const char *intf, bool up)
 	}
 
 	if (ioctl(fd, SIOCSIFFLAGS, &ifr) != 0) {
-		perror("ioctl(SIOCSIFFLAGS)");
+		xperror("ioctl(SIOCSIFFLAGS)");
 		return false;
 	}
 
@@ -706,7 +706,7 @@ static bool set_interface_up(int fd, const char *intf, bool up)
 int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo)
 {
 	if (undo && !(*undo = malloc(sizeof(struct ethsock_ip_undo)))) {
-		perror("malloc");
+		xperror("malloc");
 		return -1;
 	}
 
@@ -729,13 +729,13 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 	if (add) {
 		set_addr(&ifr.ifr_addr, ipaddr);
 		if (ioctl(fd, SIOCSIFADDR, &ifr) != 0) {
-			perror("ioctl(SIOSIFADDR)");
+			xperror("ioctl(SIOSIFADDR)");
 			goto out;
 		}
 
 		set_addr(&ifr.ifr_netmask, ipmask);
 		if (ioctl(fd, SIOCSIFNETMASK, &ifr) != 0) {
-			perror("ioctl(SIOCSIFNETMASK)");
+			xperror("ioctl(SIOCSIFNETMASK)");
 			goto out;
 		}
 
@@ -756,7 +756,7 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 	//set_addr(&ifra.ifra_broadaddr, (ipaddr & ipmask) | ~ipmask);
 
 	if (ioctl(fd, add ? SIOCAIFADDR : SIOCDIFADDR, &ifra) != 0) {
-		perror(add ? "ioctl(SIOCAIFADDR)" : "ioctl(SIOCDIFADDR)");
+	xperroradd ? "ioctl(SIOCAIFADDR)" : "ioctl(SIOCDIFADDR)");
 		goto out;
 	}
 

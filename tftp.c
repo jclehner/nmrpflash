@@ -239,6 +239,10 @@ int tftp_put(struct nmrpd_args *args)
 	sock = -1;
 	ret = -1;
 
+	if (g_interrupted) {
+		goto cleanup;
+	}
+
 	if (!strcmp(args->file_local, "-")) {
 		fd = STDIN_FILENO;
 		if (!file_remote) {
@@ -247,7 +251,7 @@ int tftp_put(struct nmrpd_args *args)
 	} else {
 		fd = open(args->file_local, O_RDONLY | O_BINARY);
 		if (fd < 0) {
-			perror("open");
+			xperror("open");
 			ret = fd;
 			goto cleanup;
 		} else if (!file_remote) {
@@ -268,7 +272,7 @@ int tftp_put(struct nmrpd_args *args)
 
 	if (args->ipaddr_intf) {
 		if ((addr.sin_addr.s_addr = inet_addr(args->ipaddr_intf)) == INADDR_NONE) {
-			perror("inet_addr");
+			xperror("inet_addr");
 			goto cleanup;
 		}
 
@@ -279,7 +283,7 @@ int tftp_put(struct nmrpd_args *args)
 	}
 
 	if ((addr.sin_addr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
-		perror("inet_addr");
+		xperror("inet_addr");
 		goto cleanup;
 	}
 	addr.sin_port = htons(args->port);
@@ -293,7 +297,7 @@ int tftp_put(struct nmrpd_args *args)
 
 	pkt_mkwrq(tx, file_remote);
 
-	do {
+	while (!g_interrupted) {
 		if (!timeout && pkt_num(rx) == ACK) {
 			ackblock = pkt_num(rx + 2);
 		} else {
@@ -307,7 +311,7 @@ int tftp_put(struct nmrpd_args *args)
 				pkt_mknum(tx + 2, block);
 				len = read(fd, tx + 4, 512);
 				if (len < 0) {
-					perror("read");
+					xperror("read");
 					ret = len;
 					goto cleanup;
 				} else if (!len) {
@@ -361,9 +365,9 @@ int tftp_put(struct nmrpd_args *args)
 				addr.sin_port = htons(port);
 			}
 		}
-	} while(1);
+	}
 
-	ret = 0;
+	ret = !g_interrupted ? 0 : -1;
 
 cleanup:
 	if (fd >= 0) {

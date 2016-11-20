@@ -385,21 +385,9 @@ static int is_valid_ip(struct ethsock *sock, struct in_addr *ipaddr,
 	return status < 0 ? status : arg.result;
 }
 
-static struct ethsock *gsock = NULL;
-static struct ethsock_ip_undo *g_ip_undo = NULL;
-static struct ethsock_arp_undo *g_arp_undo = NULL;
-
 static void sigh(int sig)
 {
-	printf("\n");
-	if (gsock) {
-		ethsock_arp_del(gsock, &g_arp_undo);
-		ethsock_ip_del(gsock, &g_ip_undo);
-		ethsock_close(gsock);
-		gsock = NULL;
-	}
-
-	exit(1);
+	g_interrupted = 1;
 }
 
 static const char *spinner = "\\|/-";
@@ -413,6 +401,8 @@ int nmrp_do(struct nmrpd_args *args)
 	time_t beg;
 	int i, status, ulreqs, expect, upload_ok, autoip;
 	struct ethsock *sock;
+	struct ethsock_ip_undo *ip_undo = NULL;
+	struct ethsock_arp_undo *arp_undo = NULL;
 	uint32_t intf_addr;
 	void (*sigh_orig)(int);
 	struct {
@@ -493,7 +483,6 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	gsock = sock;
 	sigh_orig = signal(SIGINT, sigh);
 
 	if (!autoip) {
@@ -510,7 +499,7 @@ int nmrp_do(struct nmrpd_args *args)
 			printf("Adding %s to interface %s.\n", args->ipaddr_intf, args->intf);
 		}
 
-		if (ethsock_ip_add(sock, intf_addr, ipconf.mask.s_addr, &g_ip_undo) != 0) {
+		if (ethsock_ip_add(sock, intf_addr, ipconf.mask.s_addr, &ip_undo) != 0) {
 			goto out;
 		}
 	}
@@ -536,14 +525,14 @@ int nmrp_do(struct nmrpd_args *args)
 	upload_ok = 0;
 	beg = time_monotonic();
 
-	while (1) {
+	while (!g_interrupted) {
 		printf("\rAdvertising NMRP server on %s ... %c",
 				args->intf, spinner[i]);
 		fflush(stdout);
 		i = (i + 1) & 3;
 
 		if (pkt_send(sock, &tx) < 0) {
-			perror("sendto");
+			xperror("sendto");
 			goto out;
 		}
 
@@ -568,7 +557,7 @@ int nmrp_do(struct nmrpd_args *args)
 	expect = NMRP_C_CONF_REQ;
 	ulreqs = 0;
 
-	do {
+	while (!g_interrupted) {
 		if (expect != NMRP_C_NONE && rx.msg.code != expect) {
 			fprintf(stderr, "Received %s while waiting for %s!\n",
 					msg_code_str(rx.msg.code), msg_code_str(expect));
@@ -606,7 +595,7 @@ int nmrp_do(struct nmrpd_args *args)
 				printf("Sending configuration: %s, netmask %s.\n",
 						args->ipaddr, args->ipmask);
 
-				if (ethsock_arp_add(sock, rx.eh.ether_shost, ipconf.addr.s_addr, &g_arp_undo) != 0) {
+				if (ethsock_arp_add(sock, rx.eh.ether_shost, ipconf.addr.s_addr, &arp_undo) != 0) {
 					goto out;
 				}
 
@@ -714,7 +703,7 @@ int nmrp_do(struct nmrpd_args *args)
 			msg_hton(&tx.msg);
 
 			if (pkt_send(sock, &tx) < 0) {
-				perror("sendto");
+				xperror("sendto");
 				goto out;
 			}
 
@@ -739,21 +728,21 @@ int nmrp_do(struct nmrpd_args *args)
 
 		ethsock_set_timeout(sock, args->rx_timeout);
 
-	} while (1);
+	}
 
-	status = 0;
-
-	if (ulreqs) {
-		printf("Reboot your device now.\n");
-	} else {
-		printf("No upload request received.\n");
+	if (!g_interrupted) {
+		status = 0;
+		if (ulreqs) {
+			printf("Reboot your device now.\n");
+		} else {
+			printf("No upload request received.\n");
+		}
 	}
 
 out:
 	signal(SIGINT, sigh_orig);
-	gsock = NULL;
-	ethsock_arp_del(sock, &g_arp_undo);
-	ethsock_ip_del(sock, &g_ip_undo);
+	ethsock_arp_del(sock, &arp_undo);
+	ethsock_ip_del(sock, &ip_undo);
 	ethsock_close(sock);
 	return status;
 }
