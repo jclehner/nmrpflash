@@ -25,13 +25,13 @@
 
 #if defined(_WIN32) || defined(_WIN64)
 #	define NMRPFLASH_WINDOWS
+#elif defined(__APPLE__) && defined(__MACH__)
+#	define NMRPFLASH_OSX
+#	define NMRPFLASH_BSD
 #elif defined (__unix__)
 #	define NMRPFLASH_UNIX
 #	if defined(__linux__)
 #		define NMRPFLASH_LINUX
-#	elif defined(__APPLE__) && defined(__MACH__)
-#		define NMRPFLASH_OSX
-#		define NMRPFLASH_BSD
 #	elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
 #			define NMRPFLASH_BSD
 #	else
