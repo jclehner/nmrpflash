@@ -238,6 +238,7 @@ int tftp_put(struct nmrpd_args *args)
 
 	sock = -1;
 	ret = -1;
+	fd = -1;
 
 	if (g_interrupted) {
 		goto cleanup;
