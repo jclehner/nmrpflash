@@ -266,9 +266,10 @@ static inline void msg_init(struct nmrp_msg *msg, uint16_t code)
 }
 
 #ifdef NMRPFLASH_FUZZ
-#define ethsock_create(a, b) ethsock_create_fake(a, b)
+#define NMRP_INITIAL_TIMEOUT 0
+#define ethsock_create(a, b) ((struct ethsock*)1)
 #define ethsock_get_hwaddr(a) ethsock_get_hwaddr_fake(a)
-#define ethsock_recv(a, b, c) ethsock_recv_fake(a, b, c)
+#define ethsock_recv(sock, buf, len) read(STDIN_FILENO, buf, len)
 #define ethsock_send(a, b, c) (0)
 #define ethsock_set_timeout(a, b) (0)
 #define ethsock_ip_add(a, b, c, d) (0)
@@ -276,22 +277,13 @@ static inline void msg_init(struct nmrp_msg *msg, uint16_t code)
 #define ethsock_close(a) (0)
 #define tftp_put(a) (0)
 
-static struct ethsock* ethsock_create_fake(const char *intf, uint16_t protocol)
-{
-	return (struct ethsock*)1;
-}
-
 static uint8_t *ethsock_get_hwaddr_fake(struct ethsock* sock)
 {
-	static uint8_t hwaddr[6];
-	memset(hwaddr, 0xfa, 6);
+	static uint8_t hwaddr[6] = { 0xfa, 0xfa, 0xfa, 0xfa, 0xfa, 0xfa };
 	return hwaddr;
 }
-
-static ssize_t ethsock_recv_fake(struct ethsock *sock, void *buf, size_t len)
-{
-	return read(STDIN_FILENO, buf, len);
-}
+#else
+#define NMRP_INITIAL_TIMEOUT 60
 #endif
 
 static int pkt_send(struct ethsock *sock, struct nmrp_pkt *pkt)
@@ -542,13 +534,12 @@ int nmrp_do(struct nmrpd_args *args)
 		} else if (status == 1) {
 			goto out;
 		} else {
-			if ((time_monotonic() - beg) >= 60) {
+			/* because we don't want nmrpflash's exit status to be zero */
+			status = 1;
+			if ((time_monotonic() - beg) >= NMRP_INITIAL_TIMEOUT) {
 				printf("\nNo response after 60 seconds. Bailing out.\n");
 				goto out;
 			}
-#ifdef NMRPFLASH_FUZZ
-			goto out;
-#endif
 		}
 	}
 
@@ -666,11 +657,14 @@ int nmrp_do(struct nmrpd_args *args)
 						printf("Uploading %s ... ", leafname(args->file_local));
 					}
 					fflush(stdout);
-					status = tftp_put(args);
+					if (!(status = tftp_put(args))) {
+						printf("OK\n");
+					}
+
 				}
 
 				if (!status) {
-					printf("OK\nWaiting for remote to respond.\n");
+					printf("Waiting for remote to respond.\n");
 					upload_ok = 1;
 					ethsock_set_timeout(sock, args->ul_timeout);
 					tx.msg.code = NMRP_C_KEEP_ALIVE_REQ;
