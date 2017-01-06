@@ -33,7 +33,7 @@
 #define TFTP_PKT_SIZE 516
 
 static const char *opcode_names[] = {
-	"RRQ", "WRQ", "DATA", "ACK", "ERR"
+	"RRQ", "WRQ", "DATA", "ACK", "ERR", "OACK"
 };
 
 enum tftp_opcode {
@@ -41,7 +41,8 @@ enum tftp_opcode {
 	WRQ  = 2,
 	DATA = 3,
 	ACK  = 4,
-	ERR  = 5
+	ERR  = 5,
+	OACK = 6
 };
 
 static bool is_netascii(const char *str)
@@ -67,7 +68,70 @@ static inline uint16_t pkt_num(char *pkt)
 	return ntohs(*(uint16_t*)pkt);
 }
 
-static void pkt_mkwrq(char *pkt, const char *filename)
+static char *pkt_mkopt(char *pkt, const char *opt, const char* val)
+{
+	strcpy(pkt, opt);
+	pkt += strlen(pkt) + 1;
+	strcpy(pkt, val);
+	pkt += strlen(val) + 1;
+	return pkt;
+}
+
+static bool pkt_nextstr(char **pkt, char **str, size_t *rem)
+{
+	size_t len;
+
+	if (!isprint(**pkt) || !(len = strnlen(*pkt, *rem))) {
+		return false;
+	}
+
+	*str = *pkt;
+	*pkt += len + 1;
+
+	if (*rem > 1) {
+		*rem -= len + 1;
+	} else {
+		*rem = 0;
+	}
+
+	return true;
+}
+
+static bool pkt_nextopt(char **pkt, char **opt, char **val, size_t *rem)
+{
+	return pkt_nextstr(pkt, opt, rem) && pkt_nextstr(pkt, val, rem);
+}
+
+static char *pkt_optval(char* pkt, const char* name)
+{
+	size_t rem = 512;
+	char *opt, *val;
+	pkt += 2;
+
+	while (pkt_nextopt(&pkt, &opt, &val, &rem)) {
+		if (!strcmp(name, opt)) {
+			return val;
+		}
+	}
+
+	return NULL;
+}
+
+static size_t pkt_xrqlen(char *pkt)
+{
+	size_t len = 2, rem = 512;
+	char *opt, *val;
+
+	pkt += 2;
+
+	while (pkt_nextopt(&pkt, &opt, &val, &rem)) {
+		len += strlen(opt) + strlen(val) + 2;
+	}
+
+	return len;
+}
+
+static void pkt_mkwrq(char *pkt, const char *filename, unsigned blksize)
 {
 	size_t len = 2;
 
@@ -80,16 +144,20 @@ static void pkt_mkwrq(char *pkt, const char *filename)
 	}
 
 	pkt_mknum(pkt, WRQ);
+	pkt = pkt_mkopt(pkt + 2, filename, "octet");
 
-	strcpy(pkt + len, filename);
-	len += strlen(filename) + 1;
-	strcpy(pkt + len, "octet");
+	if (blksize && blksize != 512) {
+		pkt = pkt_mkopt(pkt, "blksize", lltostr(blksize, 10));
+	}
 }
 
 static inline void pkt_print(char *pkt, FILE *fp)
 {
 	uint16_t opcode = pkt_num(pkt);
-	if (!opcode || opcode > ERR) {
+	size_t rem;
+	char *opt, *val;
+
+	if (!opcode || opcode > OACK) {
 		fprintf(fp, "(%d)", opcode);
 	} else {
 		fprintf(fp, "%s", opcode_names[opcode - 1]);
@@ -97,12 +165,20 @@ static inline void pkt_print(char *pkt, FILE *fp)
 			fprintf(fp, "(%d)", pkt_num(pkt + 2));
 		} else if (opcode == WRQ || opcode == RRQ) {
 			fprintf(fp, "(%s, %s)", pkt + 2, pkt + 2 + strlen(pkt + 2) + 1);
+		} else if (opcode == OACK) {
+				fprintf(fp, "(");
+				rem = 512;
+				pkt += 2;
+				while (pkt_nextopt(&pkt, &opt, &val, &rem)) {
+					fprintf(fp, " %s=%s ", opt, val);
+				}
+				fprintf(fp, ")");
 		}
 	}
 }
 
 static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
-		unsigned timeout)
+		unsigned timeout, size_t blksize)
 {
 	ssize_t len;
 	struct sockaddr_in src;
@@ -120,7 +196,7 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 	}
 
 	alen = sizeof(src);
-	len = recvfrom(sock, pkt, TFTP_PKT_SIZE, 0, (struct sockaddr*)&src, &alen);
+	len = recvfrom(sock, pkt, blksize, 0, (struct sockaddr*)&src, &alen);
 	if (len < 0) {
 		sock_perror("recvfrom");
 		return -1;
@@ -140,7 +216,7 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 		 */
 		fprintf(stderr, "Error: %.32s\n", pkt);
 		return -2;
-	} else if (!opcode || opcode > ERR) {
+	} else if (!opcode || opcode > OACK) {
 		fprintf(stderr, "Received invalid packet: ");
 		pkt_print(pkt, stderr);
 		fprintf(stderr, ".\n");
@@ -164,8 +240,7 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 	switch (pkt_num(pkt)) {
 		case RRQ:
 		case WRQ:
-			len = 2 + strlen(pkt + 2) + 1;
-			len += strlen(pkt + len) + 1;
+			len = pkt_xrqlen(pkt);
 			break;
 		case DATA:
 			len += 4;
@@ -230,11 +305,12 @@ inline bool tftp_is_valid_filename(const char *filename)
 int tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
-	uint16_t block, port;
+	uint16_t block, port, op, blksize;
 	ssize_t len, last_len;
 	int fd, sock, ret, timeout, errors, ackblock;
-	char rx[TFTP_PKT_SIZE], tx[TFTP_PKT_SIZE];
+	char rx[2048], tx[2048];
 	const char *file_remote = args->file_remote;
+	char *p;
 
 	sock = -1;
 	ret = -1;
@@ -289,6 +365,7 @@ int tftp_put(struct nmrpd_args *args)
 	}
 	addr.sin_port = htons(args->port);
 
+	blksize = 1468;
 	block = 0;
 	last_len = -1;
 	len = 0;
@@ -296,13 +373,27 @@ int tftp_put(struct nmrpd_args *args)
 	/* Not really, but this way the loop sends our WRQ before receiving */
 	timeout = 1;
 
-	pkt_mkwrq(tx, file_remote);
+	pkt_mkwrq(tx, file_remote, blksize);
 
 	while (!g_interrupted) {
-		if (!timeout && pkt_num(rx) == ACK) {
-			ackblock = pkt_num(rx + 2);
-		} else {
-			ackblock = -1;
+		ackblock = -1;
+		op = pkt_num(rx);
+
+		if (!timeout) {
+			if (pkt_num(rx) == ACK) {
+				ackblock = pkt_num(rx + 2);
+				if (!ackblock) {
+					blksize = 512;
+				}
+			} else if (pkt_num(rx) == OACK) {
+				op = ACK;
+				ackblock = 0;
+				if ((p = pkt_optval(rx, "blksize"))) {
+					blksize = atoi(p);
+				} else {
+					blksize = 512;
+				}
+			}
 		}
 
 		if (timeout || ackblock == block) {
@@ -310,13 +401,13 @@ int tftp_put(struct nmrpd_args *args)
 				++block;
 				pkt_mknum(tx, DATA);
 				pkt_mknum(tx + 2, block);
-				len = read(fd, tx + 4, 512);
+				len = read(fd, tx + 4, blksize);
 				if (len < 0) {
 					xperror("read");
 					ret = len;
 					goto cleanup;
 				} else if (!len) {
-					if (last_len != 512 && last_len != -1) {
+					if (last_len != blksize && last_len != -1) {
 						break;
 					}
 				}
@@ -328,7 +419,7 @@ int tftp_put(struct nmrpd_args *args)
 			if (ret < 0) {
 				goto cleanup;
 			}
-		} else if (pkt_num(rx) != ACK || ackblock > block) {
+		} else if (op != ACK || ackblock > block) {
 			if (verbosity) {
 				fprintf(stderr, "Expected ACK(%d), got ", block);
 				pkt_print(rx, stderr);
@@ -342,7 +433,7 @@ int tftp_put(struct nmrpd_args *args)
 			}
 		}
 
-		ret = tftp_recvfrom(sock, rx, &port, args->rx_timeout);
+		ret = tftp_recvfrom(sock, rx, &port, args->rx_timeout, blksize + 2);
 		if (ret < 0) {
 			goto cleanup;
 		} else if (!ret) {

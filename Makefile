@@ -12,6 +12,9 @@ nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
 nmrpflash: $(nmrpflash_OBJ)
 	$(CC) $(CFLAGS) -o nmrpflash $(nmrpflash_OBJ) $(LDFLAGS)
 
+tftptest:
+	CFLAGS=-DNMRPFLASH_TFTP_TEST make clean nmrpflash
+
 %.o: %.c nmrpd.h
 	$(CC) -c $(CFLAGS) $< -o $@
 
