@@ -58,9 +58,10 @@ static bool is_netascii(const char *str)
 	return true;
 }
 
-static inline void pkt_mknum(char *pkt, uint16_t n)
+static inline char *pkt_mknum(char *pkt, uint16_t n)
 {
 	*(uint16_t*)pkt = htons(n);
+	return pkt + 2;
 }
 
 static inline uint16_t pkt_num(char *pkt)
@@ -143,8 +144,8 @@ static void pkt_mkwrq(char *pkt, const char *filename, unsigned blksize)
 		filename = "firmware";
 	}
 
-	pkt_mknum(pkt, WRQ);
-	pkt = pkt_mkopt(pkt + 2, filename, "octet");
+	pkt = pkt_mknum(pkt, WRQ);
+	pkt = pkt_mkopt(pkt, filename, "octet");
 
 	if (blksize && blksize != 512) {
 		pkt = pkt_mkopt(pkt, "blksize", lltostr(blksize, 10));
@@ -365,7 +366,7 @@ int tftp_put(struct nmrpd_args *args)
 	}
 	addr.sin_port = htons(args->port);
 
-	blksize = 1468;
+	blksize = 512;
 	block = 0;
 	last_len = -1;
 	len = 0;
@@ -373,25 +374,19 @@ int tftp_put(struct nmrpd_args *args)
 	/* Not really, but this way the loop sends our WRQ before receiving */
 	timeout = 1;
 
-	pkt_mkwrq(tx, file_remote, blksize);
+	pkt_mkwrq(tx, file_remote, 1464);
 
 	while (!g_interrupted) {
 		ackblock = -1;
 		op = pkt_num(rx);
 
 		if (!timeout) {
-			if (pkt_num(rx) == ACK) {
+			if (op == ACK) {
 				ackblock = pkt_num(rx + 2);
-				if (!ackblock) {
-					blksize = 512;
-				}
-			} else if (pkt_num(rx) == OACK) {
-				op = ACK;
+			} else if (op == OACK) {
 				ackblock = 0;
 				if ((p = pkt_optval(rx, "blksize"))) {
 					blksize = atoi(p);
-				} else {
-					blksize = 512;
 				}
 			}
 		}
@@ -419,7 +414,7 @@ int tftp_put(struct nmrpd_args *args)
 			if (ret < 0) {
 				goto cleanup;
 			}
-		} else if (op != ACK || ackblock > block) {
+		} else if ((op != OACK && op != ACK) || ackblock > block) {
 			if (verbosity) {
 				fprintf(stderr, "Expected ACK(%d), got ", block);
 				pkt_print(rx, stderr);
