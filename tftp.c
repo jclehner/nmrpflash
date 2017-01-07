@@ -240,6 +240,7 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 	switch (pkt_num(pkt)) {
 		case RRQ:
 		case WRQ:
+		case OACK:
 			len = pkt_xrqlen(pkt);
 			break;
 		case DATA:
@@ -310,7 +311,7 @@ int tftp_put(struct nmrpd_args *args)
 	int fd, sock, ret, timeout, errors, ackblock;
 	char rx[2048], tx[2048];
 	const char *file_remote = args->file_remote;
-	char *p;
+	char *val, *end;
 
 	sock = -1;
 	ret = -1;
@@ -384,8 +385,13 @@ int tftp_put(struct nmrpd_args *args)
 				ackblock = pkt_num(rx + 2);
 			} else if (op == OACK) {
 				ackblock = 0;
-				if ((p = pkt_optval(rx, "blksize"))) {
-					blksize = atoi(p);
+				if ((val = pkt_optval(rx, "blksize"))) {
+					blksize = strtol(val, &end, 10);
+					if (!blksize || (*end != '\0')) {
+						fprintf(stderr, "Error: invalid blksize in OACK: %s\n", val);
+						ret = -1;
+						goto cleanup;
+					}
 				}
 			}
 		}
