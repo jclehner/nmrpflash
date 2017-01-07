@@ -84,9 +84,10 @@ static bool pkt_nextstr(char **pkt, char **str, size_t *rem)
 
 	if (!isprint(**pkt) || !(len = strnlen(*pkt, *rem))) {
 		return false;
+	} else if (str) {
+		*str = *pkt;
 	}
 
-	*str = *pkt;
 	*pkt += len + 1;
 
 	if (*rem > 1) {
@@ -120,16 +121,14 @@ static char *pkt_optval(char* pkt, const char* name)
 
 static size_t pkt_xrqlen(char *pkt)
 {
-	size_t len = 2, rem = 512;
-	char *opt, *val;
+	size_t rem = 512;
 
 	pkt += 2;
-
-	while (pkt_nextopt(&pkt, &opt, &val, &rem)) {
-		len += strlen(opt) + strlen(val) + 2;
+	while (pkt_nextopt(&pkt, NULL, NULL, &rem)) {
+		;
 	}
 
-	return len;
+	return 514 - rem;
 }
 
 static void pkt_mkwrq(char *pkt, const char *filename, unsigned blksize)
