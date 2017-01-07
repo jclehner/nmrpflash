@@ -179,7 +179,7 @@ static inline void pkt_print(char *pkt, FILE *fp)
 }
 
 static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
-		unsigned timeout, size_t blksize)
+		unsigned timeout, size_t pktlen)
 {
 	ssize_t len;
 	struct sockaddr_in src;
@@ -197,7 +197,7 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 	}
 
 	alen = sizeof(src);
-	len = recvfrom(sock, pkt, blksize, 0, (struct sockaddr*)&src, &alen);
+	len = recvfrom(sock, pkt, pktlen, 0, (struct sockaddr*)&src, &alen);
 	if (len < 0) {
 		sock_perror("recvfrom");
 		return -1;
@@ -374,7 +374,7 @@ int tftp_put(struct nmrpd_args *args)
 	/* Not really, but this way the loop sends our WRQ before receiving */
 	timeout = 1;
 
-	pkt_mkwrq(tx, file_remote, 1464);
+	pkt_mkwrq(tx, file_remote, 1456);
 
 	while (!g_interrupted) {
 		ackblock = -1;
