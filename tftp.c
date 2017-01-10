@@ -30,7 +30,7 @@
 #define O_BINARY 0
 #endif
 
-#define TFTP_PKT_SIZE 516
+#define TFTP_BLKSIZE 1456
 
 static const char *opcode_names[] = {
 	"RRQ", "WRQ", "DATA", "ACK", "ERR", "OACK"
@@ -374,7 +374,7 @@ int tftp_put(struct nmrpd_args *args)
 	/* Not really, but this way the loop sends our WRQ before receiving */
 	timeout = 1;
 
-	pkt_mkwrq(tx, file_remote, 1456);
+	pkt_mkwrq(tx, file_remote, TFTP_BLKSIZE);
 
 	while (!g_interrupted) {
 		ackblock = -1;
@@ -387,7 +387,7 @@ int tftp_put(struct nmrpd_args *args)
 				ackblock = 0;
 				if ((val = pkt_optval(rx, "blksize"))) {
 					blksize = strtol(val, &end, 10);
-					if (!blksize || (*end != '\0')) {
+					if (*end != '\0' || blksize < 8 || blksize > TFTP_BLKSIZE) {
 						fprintf(stderr, "Error: invalid blksize in OACK: %s\n", val);
 						ret = -1;
 						goto cleanup;
