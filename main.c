@@ -107,13 +107,14 @@ void require_admin()
 
 void show_exit_prompt()
 {
+	DWORD pid;
 	HWND win = GetConsoleWindow();
-	if (!win) {
+	if (!win || !GetWindowThreadProcessId(win, &pid)) {
 		return;
 	}
 
-	if (GetCurrentProcessId() == GetWindowThreadProcessId(win, NULL)) {
-		printf("\nPress any key to exit\n");
+	if (GetCurrentProcessId() == pid) {
+		printf("Press any key to exit\n");
 		getch();
 	}
 }
