@@ -133,8 +133,6 @@ static size_t pkt_xrqlen(char *pkt)
 
 static void pkt_mkwrq(char *pkt, const char *filename, unsigned blksize)
 {
-	size_t len = 2;
-
 	filename = leafname(filename);
 	if (!tftp_is_valid_filename(filename)) {
 		fprintf(stderr, "Overlong/illegal filename; using 'firmware'.\n");
@@ -308,7 +306,7 @@ int tftp_put(struct nmrpd_args *args)
 	struct sockaddr_in addr;
 	uint16_t block, port, op, blksize;
 	ssize_t len, last_len;
-	int fd, sock, ret, timeout, errors, ackblock;
+	int fd, sock, ret, timeouts, errors, ackblock;
 	char rx[2048], tx[2048];
 	const char *file_remote = args->file_remote;
 	char *val, *end;
@@ -372,7 +370,7 @@ int tftp_put(struct nmrpd_args *args)
 	len = 0;
 	errors = 0;
 	/* Not really, but this way the loop sends our WRQ before receiving */
-	timeout = 1;
+	timeouts = 1;
 
 	pkt_mkwrq(tx, file_remote, TFTP_BLKSIZE);
 
@@ -380,7 +378,7 @@ int tftp_put(struct nmrpd_args *args)
 		ackblock = -1;
 		op = pkt_num(rx);
 
-		if (!timeout) {
+		if (!timeouts) {
 			if (op == ACK) {
 				ackblock = pkt_num(rx + 2);
 			} else if (op == OACK) {
@@ -396,8 +394,8 @@ int tftp_put(struct nmrpd_args *args)
 			}
 		}
 
-		if (timeout || ackblock == block) {
-			if (!timeout) {
+		if (timeouts || ackblock == block) {
+			if (!timeouts) {
 				++block;
 				pkt_mknum(tx, DATA);
 				pkt_mknum(tx + 2, block);
@@ -433,11 +431,11 @@ int tftp_put(struct nmrpd_args *args)
 			}
 		}
 
-		ret = tftp_recvfrom(sock, rx, &port, args->rx_timeout, blksize + 2);
+		ret = tftp_recvfrom(sock, rx, &port, args->rx_timeout, blksize + 4);
 		if (ret < 0) {
 			goto cleanup;
 		} else if (!ret) {
-			if (++timeout < 5 || (!block && timeout < 10)) {
+			if (++timeouts < 5 || (!block && timeouts < 10)) {
 				continue;
 			} else if (block) {
 				fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);
@@ -447,7 +445,7 @@ int tftp_put(struct nmrpd_args *args)
 			ret = -1;
 			goto cleanup;
 		} else {
-			timeout = 0;
+			timeouts = 0;
 			ret = 0;
 
 			if (!block && port != args->port) {
