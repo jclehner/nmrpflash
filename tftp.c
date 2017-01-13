@@ -298,7 +298,7 @@ void sock_perror(const char *msg)
 
 inline bool tftp_is_valid_filename(const char *filename)
 {
-	return strlen(filename) <= 500 && is_netascii(filename);
+	return strlen(filename) <= 255 && is_netascii(filename);
 }
 
 int tftp_put(struct nmrpd_args *args)
@@ -396,7 +396,9 @@ int tftp_put(struct nmrpd_args *args)
 
 		if (timeouts || ackblock == block) {
 			if (!timeouts) {
+				// TODO: set block to 1 if ++block == 0 ?
 				++block;
+
 				pkt_mknum(tx, DATA);
 				pkt_mknum(tx + 2, block);
 				len = read(fd, tx + 4, blksize);
@@ -440,7 +442,7 @@ int tftp_put(struct nmrpd_args *args)
 			} else if (block) {
 				fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);
 			} else {
-				fprintf(stderr, "Timeout while waiting for initial reply.\n");
+				fprintf(stderr, "Timeout while waiting for ACK(0)/OACK.\n");
 			}
 			ret = -1;
 			goto cleanup;
