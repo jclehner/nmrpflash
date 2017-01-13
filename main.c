@@ -104,6 +104,19 @@ void require_admin()
 
 	fprintf(stderr, "Warning: failed to check administrator privileges\n");
 }
+
+void show_exit_prompt()
+{
+	HWND win = GetConsoleWindow();
+	if (!win) {
+		return;
+	}
+
+	if (GetCurrentProcessId() == GetWindowThreadProcessId(win, NULL)) {
+		printf("\nPress any key to exit\n");
+		getch();
+	}
+}
 #else
 void require_admin()
 {
@@ -138,6 +151,8 @@ int main(int argc, char **argv)
 	char *oldpath = NULL;
 	char *windir = NULL;
 	WSADATA wsa;
+
+	atexit(&show_exit_prompt);
 
 	val = WSAStartup(MAKEWORD(2, 2), &wsa);
 	if (val != 0) {
