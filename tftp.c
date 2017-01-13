@@ -111,7 +111,7 @@ static char *pkt_optval(char* pkt, const char* name)
 	pkt += 2;
 
 	while (pkt_nextopt(&pkt, &opt, &val, &rem)) {
-		if (!strcmp(name, opt)) {
+		if (!strcasecmp(name, opt)) {
 			return val;
 		}
 	}
