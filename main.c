@@ -84,22 +84,23 @@ void usage(FILE *fp)
 void require_admin()
 {
 	SID_IDENTIFIER_AUTHORITY auth = SECURITY_NT_AUTHORITY;
-	PSID adminGroup = NULL;
-	BOOL success = AllocateAndInitializeSid(
+	PSID group = NULL;
+	BOOL admin, success = AllocateAndInitializeSid(
 		&auth, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS,
-		0, 0, 0, 0, 0, 0, &adminGroup
+		0, 0, 0, 0, 0, 0, &group
 	);
 
 	if (success) {
-		if (CheckTokenMembership(NULL, adminGroup, &success)) {
-			if (!success) {
+		success = CheckTokenMembership(NULL, group, &admin);
+		FreeSid(group);
+		if (success) {
+			if (!admin) {
 				fprintf(stderr, "Error: must be run as administrator\n");
 				exit(1);
 			} else {
 				return;
 			}
 		}
-		FreeSid(adminGroup);
 	}
 
 	fprintf(stderr, "Warning: failed to check administrator privileges\n");
