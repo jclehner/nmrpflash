@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include "nmrpd.h"
 
 #if defined(NMRPFLASH_WINDOWS)
@@ -49,6 +50,9 @@ struct ethsock
 	pcap_t *pcap;
 #ifndef NMRPFLASH_WINDOWS
 	int fd;
+#ifdef NMRPFLASH_LINUX
+	bool stp;
+#endif
 #else
 	HANDLE handle;
 	DWORD index;
@@ -112,6 +116,46 @@ static inline bool sockaddr_get_hwaddr(struct sockaddr *sa, uint8_t *hwaddr)
 	memcpy(hwaddr, src, 6);
 	return true;
 }
+
+#ifdef NMRPFLASH_LINUX
+static int open_stp_state(const char *intf)
+{
+	char name[256];
+	snprintf(name, sizeof(name), "/sys/class/net/%s/bridge/stp_state", intf);
+	return open(name, O_RDWR, 0644);
+}
+
+static bool is_stp_enabled(const char *intf)
+{
+	char c;
+	int fd = open_stp_state(intf);
+	if (fd == -1) {
+		return false;
+	}
+
+	if (read(fd, &c, 1) != 1) {
+		c = '0';
+	}
+
+	close(fd);
+	return c == '1';
+}
+
+static bool set_stp_enabled(const char *intf, bool enabled)
+{
+	bool ret;
+	const char *s = enabled ? "1\n" : "0\n";
+	int fd = open_stp_state(intf);
+	if (fd == -1) {
+		return false;
+	}
+
+	ret = (write(fd, s, 2) == 2);
+	close(fd);
+
+	return ret;
+}
+#endif
 
 static bool get_intf_info(const char *intf, uint8_t *hwaddr, void *dummy)
 {
@@ -314,7 +358,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	sock->pcap = pcap_open_live(sock->intf, BUFSIZ, 1, 1, buf);
 	if (!sock->pcap) {
 		fprintf(stderr, "%s.\n", buf);
-		goto cleanup_malloc;
+		goto cleanup;
 	}
 
 	if (*buf) {
@@ -324,7 +368,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	if (pcap_datalink(sock->pcap) != DLT_EN10MB) {
 		fprintf(stderr, "%s is not an ethernet interface.\n",
 				intf);
-		goto cleanup_pcap;
+		goto cleanup;
 	}
 
 #ifndef NMRPFLASH_WINDOWS
@@ -334,26 +378,26 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 #endif
 	if (err) {
 		fprintf(stderr, "Failed to get interface info.\n");
-		goto cleanup_malloc;
+		goto cleanup;
 	}
 
 #ifndef NMRPFLASH_WINDOWS
 	sock->fd = pcap_get_selectable_fd(sock->pcap);
 	if (sock->fd == -1) {
 		pcap_perror(sock->pcap, "pcap_get_selectable_fd");
-		goto cleanup_pcap;
+		goto cleanup;
 	}
 #else
 	sock->handle = pcap_getevent(sock->pcap);
 	if (!sock->handle) {
 		pcap_perror(sock->pcap, "pcap_getevent");
-		goto cleanup_pcap;
+		goto cleanup;
 	}
 
 	err = pcap_setmintocopy(sock->pcap, 1);
 	if (err) {
 		pcap_perror(sock->pcap, "pcap_setmintocopy");
-		goto cleanup_pcap;
+		goto cleanup;
 	}
 #endif
 
@@ -363,7 +407,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	err = pcap_compile(sock->pcap, &fp, buf, 0, 0);
 	if (err) {
 		pcap_perror(sock->pcap, "pcap_compile");
-		goto cleanup_pcap;
+		goto cleanup;
 	}
 
 	err = pcap_setfilter(sock->pcap, &fp);
@@ -371,15 +415,22 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 
 	if (err) {
 		pcap_perror(sock->pcap, "pcap_setfilter");
-		goto cleanup_pcap;
+		goto cleanup;
 	}
+
+#ifdef NMRPFLASH_LINUX
+	// nmrpflash does not work on bridge interfaces with STP enabled
+	if ((sock->stp = is_stp_enabled(intf))) {
+		if (!set_stp_enabled(intf, false)) {
+			fprintf(stderr, "Warning: failed to disable STP on %s.\n", intf);
+		}
+	}
+#endif
 
 	return sock;
 
-cleanup_pcap:
-	pcap_close(sock->pcap);
-cleanup_malloc:
-	free(sock);
+cleanup:
+	ethsock_close(sock);
 	return NULL;
 }
 
@@ -468,7 +519,19 @@ int ethsock_send(struct ethsock *sock, void *buf, size_t len)
 
 int ethsock_close(struct ethsock *sock)
 {
-	pcap_close(sock->pcap);
+	if (!sock) {
+		return 0;
+	}
+
+#ifdef NMRPFLASH_LINUX
+	if (sock->stp) {
+		set_stp_enabled(sock->intf, true);
+	}
+#endif
+	if (sock->pcap) {
+		pcap_close(sock->pcap);
+	}
+
 	free(sock);
 	return 0;
 }
