@@ -44,6 +44,13 @@
 #endif
 #endif
 
+#ifdef NMRPFLASH_BSD
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <netinet/if_ether.h>
+#include <net/if_bridgevar.h>
+#endif
+
 struct ethsock
 {
 	const char *intf;
@@ -154,6 +161,33 @@ static bool set_stp_enabled(const char *intf, bool enabled)
 	close(fd);
 
 	return ret;
+}
+#else
+static bool is_bridge(const char *intf)
+{
+#ifdef NMRPFLASH_BSD
+	struct ifdrv ifd;
+	struct ifbropreq ifbop;
+	int err, fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (fd < 0) {
+		return false;
+	}
+
+	strncpy(ifd.ifd_name, intf, sizeof(ifd.ifd_name));
+	ifd.ifd_cmd = BRDGPARAM;
+	ifd.ifd_data = &ifbop;
+	ifd.ifd_len = sizeof(ifbop);
+
+	err = ioctl(fd, SIOCGDRVSPEC, &ifd);
+	if (err && verbosity) {
+		xperror("ioctl(SIOCGDRVSPEC)");
+	}
+
+	close(fd);
+	return !err;
+#else
+	return false;
+#endif
 }
 #endif
 
@@ -424,6 +458,11 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 		if (!set_stp_enabled(intf, false)) {
 			fprintf(stderr, "Warning: failed to disable STP on %s.\n", intf);
 		}
+	}
+#else
+	if (is_bridge(intf)) {
+		fprintf(stderr, "Warning: bridge interfaces are not fully "
+				"supported on this platform.\n");
 	}
 #endif
 
