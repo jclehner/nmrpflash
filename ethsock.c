@@ -41,14 +41,8 @@
 #else
 #define NMRPFLASH_AF_PACKET AF_LINK
 #include <net/if_types.h>
+#include <net/if_media.h>
 #endif
-#endif
-
-#ifdef NMRPFLASH_BSD
-#include <sys/ioctl.h>
-#include <netinet/in.h>
-#include <netinet/if_ether.h>
-#include <net/if_bridgevar.h>
 #endif
 
 struct ethsock
@@ -162,36 +156,9 @@ static bool set_stp_enabled(const char *intf, bool enabled)
 
 	return ret;
 }
-#else
-static bool is_bridge(const char *intf)
-{
-#ifdef NMRPFLASH_BSD
-	struct ifdrv ifd;
-	struct ifbropreq ifbop;
-	int err, fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (fd < 0) {
-		return false;
-	}
-
-	strncpy(ifd.ifd_name, intf, sizeof(ifd.ifd_name));
-	ifd.ifd_cmd = BRDGPARAM;
-	ifd.ifd_data = &ifbop;
-	ifd.ifd_len = sizeof(ifbop);
-
-	err = ioctl(fd, SIOCGDRVSPEC, &ifd);
-	if (err && verbosity) {
-		xperror("ioctl(SIOCGDRVSPEC)");
-	}
-
-	close(fd);
-	return !err;
-#else
-	return false;
-#endif
-}
 #endif
 
-static bool get_intf_info(const char *intf, uint8_t *hwaddr, void *dummy)
+static bool get_intf_info(const char *intf, uint8_t *hwaddr, bool *bridge)
 {
 	struct ifaddrs *ifas, *ifa;
 	bool found;
@@ -203,9 +170,18 @@ static bool get_intf_info(const char *intf, uint8_t *hwaddr, void *dummy)
 
 	found = false;
 
+	if (bridge) {
+		*bridge = false;
+	}
+
 	for (ifa = ifas; ifa; ifa = ifa->ifa_next) {
 		if (!strcmp(ifa->ifa_name, intf)) {
 			if (sockaddr_get_hwaddr(ifa->ifa_addr, hwaddr)) {
+#ifdef NMRPFLASH_BSD
+				if (bridge) {
+					*bridge = ((struct if_data*) ifa->ifa_data)->ifi_type == IFT_BRIDGE;
+				}
+#endif
 				found = true;
 				break;
 			}
@@ -371,6 +347,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	char buf[PCAP_ERRBUF_SIZE];
 	struct bpf_program fp;
 	struct ethsock *sock;
+	bool is_bridge;
 	int err;
 
 #ifdef NMRPFLASH_WINDOWS
@@ -406,7 +383,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	}
 
 #ifndef NMRPFLASH_WINDOWS
-	err = !get_intf_info(intf, sock->hwaddr, NULL);
+	err = !get_intf_info(intf, sock->hwaddr, &is_bridge);
 #else
 	err = !get_intf_info(intf, sock->hwaddr, &sock->index);
 #endif
@@ -460,7 +437,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 		}
 	}
 #else
-	if (is_bridge(intf)) {
+	if (is_bridge) {
 		fprintf(stderr, "Warning: bridge interfaces are not fully "
 				"supported on this platform.\n");
 	}
