@@ -171,11 +171,17 @@ static bool get_intf_info(const char *intf, uint8_t *hwaddr, bool *bridge)
 	found = false;
 	*bridge = false;
 
+	if (bridge) {
+		*bridge = false;
+	}
+
 	for (ifa = ifas; ifa; ifa = ifa->ifa_next) {
 		if (!strcmp(ifa->ifa_name, intf)) {
 			if (sockaddr_get_hwaddr(ifa->ifa_addr, hwaddr)) {
 #ifdef NMRPFLASH_BSD
-				*bridge = ((struct if_data*) ifa->ifa_data)->ifi_type == IFT_BRIDGE;
+				if (bridge) {
+					*bridge = ((struct if_data*) ifa->ifa_data)->ifi_type == IFT_BRIDGE;
+				}
 #endif
 				found = true;
 				break;
