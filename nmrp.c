@@ -39,6 +39,10 @@
 #define IP_LEN 4
 #define MAX_LOOP_RECV 1024
 
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
+
 #ifndef PACKED
 #define PACKED __attribute__((__packed__))
 #endif
@@ -88,6 +92,7 @@ struct nmrp_msg {
 	uint16_t len;
 	/* only opts[0] is valid! think of this as a char* */
 	struct nmrp_opt opts[NMRP_MAX_OPT_NUM];
+	uint8_t padding[8];
 	/* this is NOT part of the transmitted packet */
 	uint32_t num_opts;
 } PACKED;
@@ -289,7 +294,7 @@ static uint8_t *ethsock_get_hwaddr_fake(struct ethsock* sock)
 static int pkt_send(struct ethsock *sock, struct nmrp_pkt *pkt)
 {
 	size_t len = ntohs(pkt->msg.len) + sizeof(pkt->eh);
-	return ethsock_send(sock, pkt, len);
+	return ethsock_send(sock, pkt, MAX(len, 64));
 }
 
 static int pkt_recv(struct ethsock *sock, struct nmrp_pkt *pkt)
