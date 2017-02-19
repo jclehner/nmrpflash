@@ -686,7 +686,7 @@ int ethsock_list_all(void)
 		pretty = intf_get_pretty_name(dev->name);
 
 		if (!verbosity) {
-			printf("%s%u", NMRPFLASH_NETALIAS_PREFIX, dev_num);
+			printf("%s%-2u", NMRPFLASH_NETALIAS_PREFIX, dev_num);
 		} else {
 			printf("%s", dev->name);
 		}
