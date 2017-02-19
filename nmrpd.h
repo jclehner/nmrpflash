@@ -65,6 +65,8 @@
 #define PACKED __attribute__((packed))
 #endif
 
+#define NMRPFLASH_SET_REGION
+
 struct eth_hdr {
 	uint8_t ether_dhost[6];
 	uint8_t ether_shost[6];
