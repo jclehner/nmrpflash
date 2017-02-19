@@ -119,17 +119,17 @@ static inline bool sockaddr_get_hwaddr(struct sockaddr *sa, uint8_t *hwaddr)
 }
 
 #ifdef NMRPFLASH_LINUX
-static int open_stp_state(const char *intf)
+static int bridge_stp_state(const char *intf)
 {
 	char name[256];
 	snprintf(name, sizeof(name), "/sys/class/net/%s/bridge/stp_state", intf);
 	return open(name, O_RDWR, 0644);
 }
 
-static bool is_stp_enabled(const char *intf)
+static bool bridge_stp_enabled(const char *intf)
 {
 	char c;
-	int fd = open_stp_state(intf);
+	int fd = bridge_stp_state(intf);
 	if (fd == -1) {
 		return false;
 	}
@@ -142,11 +142,11 @@ static bool is_stp_enabled(const char *intf)
 	return c == '1';
 }
 
-static bool set_stp_enabled(const char *intf, bool enabled)
+static bool bridge_stp(const char *intf, bool enabled)
 {
 	bool ret;
 	const char *s = enabled ? "1\n" : "0\n";
-	int fd = open_stp_state(intf);
+	int fd = bridge_stp_state(intf);
 	if (fd == -1) {
 		return false;
 	}
@@ -158,7 +158,7 @@ static bool set_stp_enabled(const char *intf, bool enabled)
 }
 #endif
 
-static bool get_intf_info(const char *intf, uint8_t *hwaddr, bool *bridge)
+static bool intf_get_info(const char *intf, uint8_t *hwaddr, bool *bridge)
 {
 	struct ifaddrs *ifas, *ifa;
 	bool found;
@@ -211,7 +211,7 @@ void win_perror2(const char *msg, DWORD err)
 	}
 }
 
-static bool get_intf_info(const char *intf, uint8_t *hwaddr, DWORD *index)
+static bool intf_get_info(const char *intf, uint8_t *hwaddr, DWORD *index)
 {
 	PIP_ADAPTER_INFO adapters, adapter;
 	DWORD ret;
@@ -383,9 +383,9 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	}
 
 #ifndef NMRPFLASH_WINDOWS
-	err = !get_intf_info(intf, sock->hwaddr, &is_bridge);
+	err = !intf_get_info(intf, sock->hwaddr, &is_bridge);
 #else
-	err = !get_intf_info(intf, sock->hwaddr, &sock->index);
+	err = !intf_get_info(intf, sock->hwaddr, &sock->index);
 #endif
 	if (err) {
 		fprintf(stderr, "Failed to get interface info.\n");
@@ -431,8 +431,8 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 
 #ifdef NMRPFLASH_LINUX
 	// nmrpflash does not work on bridge interfaces with STP enabled
-	if ((sock->stp = is_stp_enabled(intf))) {
-		if (!set_stp_enabled(intf, false)) {
+	if ((sock->stp = bridge_stp_enabled(intf))) {
+		if (!bridge_stp(intf, false)) {
 			fprintf(stderr, "Warning: failed to disable STP on %s.\n", intf);
 		}
 	}
@@ -541,7 +541,7 @@ int ethsock_close(struct ethsock *sock)
 
 #ifdef NMRPFLASH_LINUX
 	if (sock->stp) {
-		set_stp_enabled(sock->intf, true);
+		bridge_stp(sock->intf, true);
 	}
 #endif
 	if (sock->pcap) {
@@ -644,7 +644,7 @@ static bool get_hwaddr_from_pcap(const pcap_if_t *dev, uint8_t *hwaddr)
 	}
 #endif
 
-	return get_intf_info(dev->name, hwaddr, NULL);
+	return intf_get_info(dev->name, hwaddr, NULL);
 }
 
 int ethsock_list_all(void)
@@ -775,7 +775,7 @@ static inline void set_addr(void *p, uint32_t addr)
 }
 
 #ifndef NMRPFLASH_WINDOWS
-static bool set_interface_up(int fd, const char *intf, bool up)
+static bool intf_up(int fd, const char *intf, bool up)
 {
 	struct ifreq ifr;
 	strncpy(ifr.ifr_name, intf, IFNAMSIZ);
@@ -802,7 +802,6 @@ static bool set_interface_up(int fd, const char *intf, bool up)
 
 	return true;
 }
-
 #endif
 
 int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo)
@@ -814,7 +813,7 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 
 	int ret = -1;
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (!fd) {
+	if (fd < 0) {
 		sock_perror("socket");
 		goto out;
 	}
@@ -845,7 +844,7 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 		(*undo)->ip[1] = ipmask;
 	}
 
-	if (!set_interface_up(fd, ifr.ifr_name, add)) {
+	if (!intf_up(fd, ifr.ifr_name, add)) {
 		goto out;
 	}
 #else // NMRPFLASH_OSX (or any other BSD)
@@ -867,7 +866,7 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 	if (add) {
 		(*undo)->ip[0] = ipaddr;
 		(*undo)->ip[1] = ipmask;
-		set_interface_up(fd, ifra.ifra_name, true);
+		intf_up(fd, ifra.ifra_name, true);
 	}
 
 #endif
