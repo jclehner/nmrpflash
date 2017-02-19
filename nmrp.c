@@ -178,7 +178,7 @@ static inline void msg_init(struct nmrp_msg *msg, uint16_t code)
 
 static char *msg_mkopt(struct nmrp_msg *msg, char *p, uint16_t type, const void *val, size_t len)
 {
-	struct nmrp_opt* opt = (struct nmrp_opt*)(p ? p : msg->opts);
+	struct nmrp_opt* opt = (struct nmrp_opt*)p;
 
 	len &= 0xffff;
 
@@ -191,7 +191,10 @@ static char *msg_mkopt(struct nmrp_msg *msg, char *p, uint16_t type, const void 
 
 	opt->type = htons(type);
 	opt->len = NMRP_OPT_HDR_LEN + len;
-	memcpy(opt->val, val, len);
+
+	if (val) {
+		memcpy(opt->val, val, len);
+	}
 
 	msg->len += opt->len;
 	p += opt->len;
@@ -220,7 +223,8 @@ static void msg_mkconfack(struct nmrp_msg *msg, uint32_t ipaddr, uint32_t ipmask
 	};
 
 	msg_init(msg, NMRP_C_CONF_ACK);
-	p = msg_mkopt(msg, NULL, NMRP_O_DEV_IP, &ip, 8);
+	p = msg_mkopt(msg, msg->opts, NMRP_O_DEV_IP, &ip, 8);
+	p = msg_mkopt(msg, p, NMRP_O_FW_UP, NULL, 0);
 
 #ifdef NMRPFLASH_SET_REGION
 	if (region) {
@@ -272,8 +276,8 @@ static int pkt_recv(struct ethsock *sock, struct nmrp_pkt *pkt)
 
 	len = ntohs(pkt->msg.len) + sizeof(pkt->eh);
 
-	if (bytes < len) {
-		fprintf(stderr, "Short packet (expected %d, got %d).\n",
+	if (bytes != len) {
+		fprintf(stderr, "Unexpected packet length (expected %d, got %d).\n",
 				(int)len, (int)bytes);
 		return 1;
 	}
@@ -511,7 +515,7 @@ int nmrp_do(struct nmrpd_args *args)
 	while (!g_interrupted) {
 		if (expect != NMRP_C_NONE && rx.msg.code != expect) {
 			fprintf(stderr, "Received %s while waiting for %s!\n",
-					msg_code_str(ntohs(rx.msg.code)), msg_code_str(expect));
+					msg_code_str(rx.msg.code), msg_code_str(expect));
 		}
 
 		msg_init(&tx.msg, NMRP_C_NONE);
