@@ -169,7 +169,6 @@ static bool get_intf_info(const char *intf, uint8_t *hwaddr, bool *bridge)
 	}
 
 	found = false;
-	*bridge = false;
 
 	if (bridge) {
 		*bridge = false;
@@ -625,7 +624,6 @@ int ethsock_arp_del(struct ethsock *sock, struct ethsock_arp_undo **undo)
 
 static bool get_hwaddr_from_pcap(const pcap_if_t *dev, uint8_t *hwaddr)
 {
-	bool is_bridge;
 #ifndef NMRPFLASH_WINDOWS
 	pcap_addr_t *addr;
 	int i;
@@ -646,7 +644,7 @@ static bool get_hwaddr_from_pcap(const pcap_if_t *dev, uint8_t *hwaddr)
 	}
 #endif
 
-	return get_intf_info(dev->name, hwaddr, &is_bridge);
+	return get_intf_info(dev->name, hwaddr, NULL);
 }
 
 int ethsock_list_all(void)
