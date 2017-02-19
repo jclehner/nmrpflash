@@ -276,10 +276,13 @@ static int pkt_recv(struct ethsock *sock, struct nmrp_pkt *pkt)
 
 	len = ntohs(pkt->msg.len) + sizeof(pkt->eh);
 
-	if (bytes != len) {
-		fprintf(stderr, "Unexpected packet length (expected %d, got %d).\n",
+	if (bytes < len) {
+		fprintf(stderr, "Short packet (expected %d, got %d).\n",
 				(int)len, (int)bytes);
 		return 1;
+	} else if (bytes > sizeof(pkt->msg) + sizeof(pkt->eh)) {
+		fprintf(stderr, "Packet size exceeds maximum (got %d).\n",
+				(int)bytes);
 	}
 
 	return 0;
