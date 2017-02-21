@@ -148,6 +148,7 @@ static void *msg_opt(struct nmrp_msg *msg, uint16_t type, uint16_t* len)
 			return opt->val;
 		}
 
+		opt = (struct nmrp_opt*)(((char *)opt) + olen);
 		rem -= olen;
 	} while (rem);
 
@@ -214,13 +215,7 @@ static void msg_mkadvertise(struct nmrp_msg *msg, const char *magic)
 static void msg_mkconfack(struct nmrp_msg *msg, uint32_t ipaddr, uint32_t ipmask, uint16_t region)
 {
 	char *p;
-	struct {
-		uint32_t addr;
-		uint32_t mask;
-	} PACKED ip = {
-		.addr = ipaddr,
-		.mask = ipmask
-	};
+	uint32_t ip[2] = { ipaddr, ipmask };
 
 	msg_init(msg, NMRP_C_CONF_ACK);
 	p = msg_mkopt(msg, msg->opts, NMRP_O_DEV_IP, &ip, 8);
@@ -261,7 +256,7 @@ static int pkt_send(struct ethsock *sock, struct nmrp_pkt *pkt)
 
 static int pkt_recv(struct ethsock *sock, struct nmrp_pkt *pkt)
 {
-	ssize_t bytes, len;
+	ssize_t bytes, mlen;
 
 	memset(pkt, 0, sizeof(*pkt));
 	bytes = ethsock_recv(sock, pkt, sizeof(*pkt));
@@ -269,20 +264,19 @@ static int pkt_recv(struct ethsock *sock, struct nmrp_pkt *pkt)
 		return 1;
 	} else if (!bytes) {
 		return 2;
-	} else if (bytes < NMRP_MIN_PKT_LEN) {
-		fprintf(stderr, "Short packet (%d bytes)\n", (int)bytes);
-		return 1;
 	}
 
-	len = ntohs(pkt->msg.len) + sizeof(pkt->eh);
+	mlen = ntohs(pkt->msg.len);
 
-	if (bytes < len) {
-		fprintf(stderr, "Short packet (expected %d, got %d).\n",
-				(int)len, (int)bytes);
+	if (bytes < (mlen + sizeof(pkt->eh))
+			|| bytes < NMRP_MIN_PKT_LEN
+			|| mlen < NMRP_HDR_LEN) {
+		fprintf(stderr, "Short packet (%d raw, %d message)\n",
+				(int)bytes, (int)mlen);
 		return 1;
-	} else if (bytes > sizeof(pkt->msg) + sizeof(pkt->eh)) {
-		fprintf(stderr, "Packet size exceeds maximum (got %d).\n",
-				(int)bytes);
+	} else if (mlen > sizeof(pkt->msg)) {
+		printf("Truncating %d byte message.\n", (int)mlen);
+		pkt->msg.len = htons(sizeof(pkt->msg));
 	}
 
 	return 0;
@@ -366,10 +360,8 @@ int nmrp_do(struct nmrpd_args *args)
 	struct ethsock_arp_undo *arp_undo = NULL;
 	uint32_t intf_addr;
 	void (*sigh_orig)(int);
-	struct {
-		struct in_addr addr;
-		struct in_addr mask;
-	} PACKED ipconf;
+	struct in_addr ipaddr;
+	struct in_addr ipmask;
 
 	if (args->op != NMRP_UPLOAD_FW) {
 		fprintf(stderr, "Operation not implemented.\n");
@@ -381,9 +373,9 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	ipconf.mask.s_addr = inet_addr(args->ipmask);
-	if (ipconf.mask.s_addr == INADDR_NONE
-			|| netmask(bitcount(ipconf.mask.s_addr)) != ipconf.mask.s_addr) {
+	ipmask.s_addr = inet_addr(args->ipmask);
+	if (ipmask.s_addr == INADDR_NONE
+			|| netmask(bitcount(ipmask.s_addr)) != ipmask.s_addr) {
 		fprintf(stderr, "Invalid subnet mask '%s'.\n", args->ipmask);
 		return 1;
 	}
@@ -404,7 +396,7 @@ int nmrp_do(struct nmrpd_args *args)
 		autoip = false;
 	}
 
-	if ((ipconf.addr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
+	if ((ipaddr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
 		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
 		return 1;
 	}
@@ -447,7 +439,7 @@ int nmrp_do(struct nmrpd_args *args)
 	sigh_orig = signal(SIGINT, sigh);
 
 	if (!autoip) {
-		status = is_valid_ip(sock, &ipconf.addr, &ipconf.mask);
+		status = is_valid_ip(sock, &ipaddr, &ipmask);
 		if (status <= 0) {
 			if (!status) {
 				fprintf(stderr, "Address %s/%s cannot be used on interface %s.\n",
@@ -460,7 +452,7 @@ int nmrp_do(struct nmrpd_args *args)
 			printf("Adding %s to interface %s.\n", args->ipaddr_intf, args->intf);
 		}
 
-		if (ethsock_ip_add(sock, intf_addr, ipconf.mask.s_addr, &ip_undo) != 0) {
+		if (ethsock_ip_add(sock, intf_addr, ipmask.s_addr, &ip_undo) != 0) {
 			goto out;
 		}
 	}
@@ -532,7 +524,7 @@ int nmrp_do(struct nmrpd_args *args)
 				status = 1;
 				goto out;
 			case NMRP_C_CONF_REQ:
-				msg_mkconfack(&tx.msg, ipconf.addr.s_addr, ipconf.mask.s_addr, region);
+				msg_mkconfack(&tx.msg, ipaddr.s_addr, ipmask.s_addr, region);
 				expect = NMRP_C_TFTP_UL_REQ;
 
 				printf("Received configuration request from %s.\n",
@@ -543,7 +535,7 @@ int nmrp_do(struct nmrpd_args *args)
 				printf("Sending configuration: %s, netmask %s.\n",
 						args->ipaddr, args->ipmask);
 
-				if (ethsock_arp_add(sock, rx.eh.ether_shost, ipconf.addr.s_addr, &arp_undo) != 0) {
+				if (ethsock_arp_add(sock, rx.eh.ether_shost, ipaddr.s_addr, &arp_undo) != 0) {
 					goto out;
 				}
 
@@ -580,17 +572,17 @@ int nmrp_do(struct nmrpd_args *args)
 
 				if (args->tftpcmd) {
 					printf("Executing '%s' ... \n", args->tftpcmd);
-					setenv("IP", inet_ntoa(ipconf.addr), 1);
+					setenv("IP", inet_ntoa(ipaddr), 1);
 					setenv("PORT", lltostr(args->port, 10), 1);
 					setenv("MAC", mac_to_str(rx.eh.ether_shost), 1);
-					setenv("NETMASK", inet_ntoa(ipconf.mask), 1);
+					setenv("NETMASK", inet_ntoa(ipmask), 1);
 					//setenv("FILENAME", args->file_remote ? args->file_remote : "", 1);
 					status = system(args->tftpcmd);
 				}
 
 				if (!status && args->file_local) {
 					if (!autoip) {
-						status = is_valid_ip(sock, &ipconf.addr, &ipconf.mask);
+						status = is_valid_ip(sock, &ipaddr, &ipmask);
 						if (status < 0) {
 							goto out;
 						} else if (!status) {

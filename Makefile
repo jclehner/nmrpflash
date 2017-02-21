@@ -26,6 +26,7 @@ dofuzz: fuzz
 	echo core | sudo tee /proc/sys/kernel/core_pattern
 	echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 	afl-fuzz -i fuzzin -o fuzzout -- ./fuzz
+	echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 clean:
 	rm -f $(nmrpflash_OBJ) nmrpflash
 
