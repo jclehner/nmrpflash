@@ -276,7 +276,9 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	require_admin();
+	if (!list) {
+		require_admin();
+	}
 #endif
 	val = !list ? nmrp_do(&args) : ethsock_list_all();
 
