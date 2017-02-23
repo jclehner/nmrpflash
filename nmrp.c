@@ -488,8 +488,14 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 
 		status = pkt_recv(sock, &rx);
-		if (status == 0 && memcmp(rx.eh.ether_dhost, src, 6) == 0) {
-			break;
+		if (status == 0) {
+			if (memcmp(rx.eh.ether_dhost, src, 6) == 0) {
+				break;
+			} else if (verbosity) {
+				printf("\nIgnoring bogus response: %s -> %s.\n",
+						mac_to_str(rx.eh.ether_shost),
+						mac_to_str(rx.eh.ether_dhost));
+			}
 		} else if (status == 1) {
 			goto out;
 		} else {
