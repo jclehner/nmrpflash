@@ -69,11 +69,10 @@ In any case, run `nmrpflash` with `-vvv` before filing a bug report. Also,
 try connecting your Netgear router *directly* to the computer running
 `nmrpflash`.
 
-###### "Error while loading shared libraries: libpcap.so.0.8" (Linux)
+###### "Error while loading shared libraries: ..." (Linux)
 
-You must install your Linux distribution's `libpcap` package. In
-openSUSE or Ubuntu for example, install `libpcap0.8`. Other distros
-will have a similarily named package.
+You must install your Linux distribution's `libpcap` and `libnl-3`
+packages (exact names will vary depending on your distribution).
 
 ###### "The program can't start because wpcap.dll is missing" (Windows)
 
