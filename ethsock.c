@@ -38,6 +38,7 @@
 #if defined(NMRPFLASH_LINUX)
 #define NMRPFLASH_AF_PACKET AF_PACKET
 #include <linux/if_packet.h>
+#include <netlink/route/addr.h>
 #else
 #define NMRPFLASH_AF_PACKET AF_LINK
 #include <net/if_types.h>
@@ -155,6 +156,62 @@ static bool bridge_stp(const char *intf, bool enabled)
 	close(fd);
 
 	return ret;
+}
+
+static bool xrtnl_addr_set(struct rtnl_addr *ra, uint32_t addr, int (*cb)(struct rtnl_addr*, struct nl_addr*))
+{
+	struct nl_addr *na = nl_addr_build(AF_INET, &addr, 4);
+	if (!na) {
+		xperror("nl_addr_build");
+		return false;
+	}
+
+	cb(ra, na);
+	nl_addr_put(na);
+
+	return true;
+}
+
+static bool intf_add_del_ip(const char *intf, uint32_t ipaddr, uint32_t ipmask, bool add)
+{
+	struct rtnl_addr *ra = NULL;
+	struct nl_addr *na = NULL;
+	struct nl_sock *sk = NULL;
+	int err = 1;
+
+	if (!(sk = nl_socket_alloc())) {
+		xperror("nl_socket_alloc");
+		goto out;
+	}
+
+	if ((err = nl_connect(sk, NETLINK_ROUTE)) < 0) {
+		fprintf(stderr, "nl_connect: %s\n", nl_geterror(err));
+		goto out;
+	}
+
+	if (!(ra = rtnl_addr_alloc())) {
+		xperror("rtnl_addr_alloc");
+		goto out;
+	}
+
+	if (!xrtnl_addr_set(ra, (ipaddr & ipmask) | ~ipmask, &rtnl_addr_set_broadcast)
+		|| !xrtnl_addr_set(ra, ipaddr, &rtnl_addr_set_local)) {
+		return false;
+	}
+
+	rtnl_addr_set_ifindex(ra, if_nametoindex(intf));
+	rtnl_addr_set_prefixlen(ra, bitcount(ipmask));
+
+	if ((err = add ? rtnl_addr_add(sk, ra, 0) : rtnl_addr_delete(sk, ra, 0)) < 0) {
+		fprintf(stderr, "%s: %s\n", add ? "rtnl_addr_add" : "rtnl_addr_delete", nl_geterror(err));
+	}
+
+out:
+	nl_addr_put(na);
+	rtnl_addr_put(ra);
+	nl_socket_free(sk);
+
+	return !err;
 }
 #endif
 
@@ -779,7 +836,7 @@ static inline void set_addr(void *p, uint32_t addr)
 #endif
 }
 
-#ifndef NMRPFLASH_WINDOWS
+#if !defined(NMRPFLASH_WINDOWS) && !defined(NMRPFLASH_LINUX)
 static bool intf_up(int fd, const char *intf, bool up)
 {
 	struct ifreq ifr;
@@ -809,47 +866,34 @@ static bool intf_up(int fd, const char *intf, bool up)
 }
 #endif
 
-int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo)
+static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo, bool add)
 {
-	if (undo && !(*undo = malloc(sizeof(struct ethsock_ip_undo)))) {
-		xperror("malloc");
-		return -1;
+	int ret, fd;
+
+	if (add && undo) {
+		if (!(*undo = malloc(sizeof(struct ethsock_ip_undo)))) {
+			xperror("malloc");
+			return -1;
+		}
+
+		memset(*undo, 0, sizeof(**undo));
 	}
 
-	int ret = -1;
-	int fd = socket(AF_INET, SOCK_DGRAM, 0);
+	ret = -1;
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (fd < 0) {
 		sock_perror("socket");
 		goto out;
 	}
 
 #ifndef NMRPFLASH_WINDOWS
-	// XXX: undo is non-zero only if we're adding an IP
-	bool add = undo;
 #ifdef NMRPFLASH_LINUX
-	struct ifreq ifr;
-	strncpy(ifr.ifr_name, sock->intf, IFNAMSIZ);
-	// FIXME: automatically determine the next free alias
-	strcat(ifr.ifr_name, ":42");
-
 	if (add) {
-		set_addr(&ifr.ifr_addr, ipaddr);
-		if (ioctl(fd, SIOCSIFADDR, &ifr) != 0) {
-			xperror("ioctl(SIOSIFADDR)");
-			goto out;
-		}
-
-		set_addr(&ifr.ifr_netmask, ipmask);
-		if (ioctl(fd, SIOCSIFNETMASK, &ifr) != 0) {
-			xperror("ioctl(SIOCSIFNETMASK)");
-			goto out;
-		}
-
 		(*undo)->ip[0] = ipaddr;
 		(*undo)->ip[1] = ipmask;
 	}
 
-	if (!intf_up(fd, ifr.ifr_name, add)) {
+	if (!intf_add_del_ip(sock->intf, (*undo)->ip[0], (*undo)->ip[1], add)) {
 		goto out;
 	}
 #else // NMRPFLASH_OSX (or any other BSD)
@@ -917,6 +961,11 @@ out:
 	return ret;
 }
 
+int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo)
+{
+	return ethsock_ip_add_del(sock, ipaddr, ipmask, undo, true);
+}
+
 int ethsock_ip_del(struct ethsock *sock, struct ethsock_ip_undo **undo)
 {
 	if (!*undo) {
@@ -927,7 +976,7 @@ int ethsock_ip_del(struct ethsock *sock, struct ethsock_ip_undo **undo)
 
 #ifndef NMRPFLASH_WINDOWS
 	if ((*undo)->ip[0] != INADDR_NONE) {
-		ret = ethsock_ip_add(sock, (*undo)->ip[0], (*undo)->ip[1], NULL);
+		ret = ethsock_ip_add_del(sock, (*undo)->ip[0], (*undo)->ip[1], undo, false);
 	} else {
 		ret = 0;
 	}

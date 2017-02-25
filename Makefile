@@ -5,6 +5,11 @@ LIBS = -lpcap
 CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 LDFLAGS += $(LIBS)
 
+ifeq ($(shell uname -s),Linux)
+	CFLAGS += $(shell pkg-config libnl-route-3.0 --cflags)
+	LIBS += $(shell pkg-config libnl-route-3.0 --libs)
+endif
+
 nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
 
 .PHONY: clean install release release/osx release/linux release/win32
