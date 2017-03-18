@@ -570,8 +570,8 @@ int nmrp_do(struct nmrpd_args *args)
 					}
 					printf("Received upload request: filename '%s'.\n", filename);
 				} else if (!args->file_remote) {
-					args->file_remote = args->file_local;
-					printf("Received upload request with empty filename.\n");
+					args->file_remote = leafname(args->file_local);
+					printf("Received upload request without filename.\n");
 				}
 
 				status = 0;
