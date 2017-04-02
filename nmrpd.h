@@ -26,6 +26,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #	define NMRPFLASH_WINDOWS
 #elif defined(__APPLE__) && defined(__MACH__)
+#	define NMRPFLASH_UNIX
 #	define NMRPFLASH_OSX
 #	define NMRPFLASH_BSD
 #elif defined (__unix__)
