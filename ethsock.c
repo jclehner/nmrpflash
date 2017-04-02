@@ -19,6 +19,7 @@
 
 #include <sys/types.h>
 #include <stdbool.h>
+#include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -39,6 +40,7 @@
 #define NMRPFLASH_AF_PACKET AF_PACKET
 #include <linux/if_packet.h>
 #include <netlink/route/addr.h>
+#include <netlink/route/neighbour.h>
 #else
 #define NMRPFLASH_AF_PACKET AF_LINK
 #include <net/if_types.h>
@@ -95,6 +97,24 @@ static int x_pcap_findalldevs(pcap_if_t **devs)
 	}
 
 	return 0;
+}
+
+static int systemf(const char *fmt, ...)
+{
+	char cmd[1024];
+	int ret;
+	va_list va;
+	va_start(va, fmt);
+
+	ret = vsnprintf(cmd, sizeof(cmd) - 1, fmt, va);
+	if (ret >= sizeof(cmd) - 1) {
+		return -1;
+	}
+
+	ret = system(cmd);
+	va_end(va);
+
+	return ret;
 }
 
 #ifndef NMRPFLASH_WINDOWS
@@ -160,33 +180,47 @@ static bool bridge_stp(const char *intf, bool enabled)
 
 static bool xrtnl_addr_set(struct rtnl_addr *ra, uint32_t addr, int (*cb)(struct rtnl_addr*, struct nl_addr*))
 {
+	int err;
 	struct nl_addr *na = nl_addr_build(AF_INET, &addr, 4);
+
 	if (!na) {
 		xperror("nl_addr_build");
 		return false;
 	}
 
-	cb(ra, na);
+	if ((err = cb(ra, na)) != 0 && verbosity) {
+		nl_perror(err, __func__);
+	}
 	nl_addr_put(na);
 
 	return true;
 }
 
+static struct nl_sock *xnl_socket_route()
+{
+	int err;
+	struct nl_sock *sk = nl_socket_alloc();
+	if (sk) {
+		if (!(err = nl_connect(sk, NETLINK_ROUTE))) {
+			return sk;
+		}
+		nl_socket_free(sk);
+		nl_perror(err, "nl_connect");
+	} else {
+		xperror("nl_socket_alloc");
+	}
+
+	return NULL;
+}
+
 static bool intf_add_del_ip(const char *intf, uint32_t ipaddr, uint32_t ipmask, bool add)
 {
 	struct rtnl_addr *ra = NULL;
-	struct nl_addr *na = NULL;
 	struct nl_sock *sk = NULL;
 	int err = 1;
 
-	if (!(sk = nl_socket_alloc())) {
-		xperror("nl_socket_alloc");
-		goto out;
-	}
-
-	if ((err = nl_connect(sk, NETLINK_ROUTE)) < 0) {
-		fprintf(stderr, "nl_connect: %s\n", nl_geterror(err));
-		goto out;
+	if (!(sk = xnl_socket_route())) {
+		return false;
 	}
 
 	if (!(ra = rtnl_addr_alloc())) {
@@ -194,25 +228,85 @@ static bool intf_add_del_ip(const char *intf, uint32_t ipaddr, uint32_t ipmask, 
 		goto out;
 	}
 
-	if (!xrtnl_addr_set(ra, (ipaddr & ipmask) | ~ipmask, &rtnl_addr_set_broadcast)
-		|| !xrtnl_addr_set(ra, ipaddr, &rtnl_addr_set_local)) {
-		return false;
-	}
-
 	rtnl_addr_set_ifindex(ra, if_nametoindex(intf));
 	rtnl_addr_set_prefixlen(ra, bitcount(ipmask));
 
+	if (!xrtnl_addr_set(ra, (ipaddr & ipmask) | ~ipmask, &rtnl_addr_set_broadcast)
+			|| !xrtnl_addr_set(ra, ipaddr, &rtnl_addr_set_local)) {
+		goto out;
+	}
+
 	if ((err = add ? rtnl_addr_add(sk, ra, 0) : rtnl_addr_delete(sk, ra, 0)) < 0) {
-		fprintf(stderr, "%s: %s\n", add ? "rtnl_addr_add" : "rtnl_addr_delete", nl_geterror(err));
+		if (add && err == -NLE_EXIST) {
+			err = 0;
+		} else if (add || verbosity > 1) {
+			nl_perror(err, add ? "rtnl_addr_add" : "rtnl_addr_delete");
+		}
 	}
 
 out:
-	nl_addr_put(na);
 	rtnl_addr_put(ra);
 	nl_socket_free(sk);
 
 	return !err;
 }
+
+static bool intf_add_del_arp(const char *intf, uint32_t ipaddr, uint8_t *hwaddr, bool add)
+{
+	struct nl_sock *sk;
+	struct rtnl_neigh *neigh;
+	struct nl_addr *mac, *ip;
+	int err = 1;
+
+	sk = NULL;
+	neigh = NULL;
+	mac = ip = NULL;
+
+	if (!(sk = xnl_socket_route())) {
+		goto out;
+	}
+
+	if (!(neigh = rtnl_neigh_alloc())) {
+		xperror("rtnl_neigh_alloc");
+		goto out;
+	}
+
+	if (!(mac = nl_addr_build(AF_PACKET, hwaddr, 6))) {
+		xperror("nl_addr_build");
+		goto out;
+	}
+
+	if (!(ip = nl_addr_build(AF_INET, &ipaddr, 4))) {
+		xperror("nl_addr_build");
+		goto out;
+	}
+
+	rtnl_neigh_set_ifindex(neigh, if_nametoindex(intf));
+	rtnl_neigh_set_dst(neigh, ip);
+
+	err = rtnl_neigh_delete(sk, neigh, 0);
+
+	if (add) {
+		rtnl_neigh_set_lladdr(neigh, mac);
+		rtnl_neigh_set_state(neigh, NUD_PERMANENT);
+		system("arp -an");
+		err = rtnl_neigh_add(sk, neigh, NLM_F_CREATE);
+		system("arp -an");
+	}
+
+	if (err && (add || verbosity > 1)) {
+		nl_perror(err, add ? "rtnl_neigh_add" : "rtnl_neigh_delete");
+	}
+
+out:
+	nl_addr_put(ip);
+	nl_addr_put(mac);
+	rtnl_neigh_put(neigh);
+	nl_socket_free(sk);
+
+	return !err;
+}
+
 #endif
 
 static bool intf_get_info(const char *intf, uint8_t *hwaddr, bool *bridge)
@@ -620,20 +714,12 @@ inline int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
 	return 0;
 }
 
-#ifndef NMRPFLASH_WINDOWS
-int ethsock_arp_add(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, struct ethsock_arp_undo **undo)
-{
-	return 0;
-}
-
-int ethsock_arp_del(struct ethsock *sock, struct ethsock_arp_undo **undo)
-{
-	return 0;
-}
-#else
 static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, struct ethsock_arp_undo **undo)
 {
-	DWORD ret;
+#if defined(NMRPFLASH_UNIX) && !defined(NMRPFLASH_LINUX)
+	struct in_addr addr = { .s_addr = ipaddr };
+#elif defined(NMRPFLASH_WINDOWS)
+	DWORD err;
 	MIB_IPNETROW arp = {
 		.dwIndex = sock->index,
 		.dwPhysAddrLen = 6,
@@ -642,13 +728,24 @@ static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, s
 	};
 
 	memcpy(arp.bPhysAddr, hwaddr, 6);
+#endif
 
 	if (undo) {
-		ret = CreateIpNetEntry(&arp);
-		if (ret != NO_ERROR) {
-			win_perror2("CreateIpNetEntry", ret);
+#if defined(NMRPFLASH_LINUX)
+		if (!intf_add_del_arp(sock->intf, ipaddr, hwaddr, true)) {
 			return -1;
 		}
+#elif defined(NMRPFLASH_WINDOWS)
+		err = CreateIpNetEntry(&arp);
+		if (err != NO_ERROR) {
+			win_perror2("CreateIpNetEntry", err);
+			return -1;
+		}
+#else
+		if (systemf("arp -s %s %s", inet_ntoa(addr), mac_to_str(hwaddr)) != 0) {
+			return -1;
+		}
+#endif
 
 		*undo = malloc(sizeof(struct ethsock_arp_undo));
 		if (!*undo) {
@@ -659,7 +756,15 @@ static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, s
 		(*undo)->ipaddr = ipaddr;
 		memcpy((*undo)->hwaddr, hwaddr, 6);
 	} else {
-		DeleteIpNetEntry(&arp);
+#if defined(NMRPFLASH_LINUX)
+		if (!intf_add_del_arp(sock->intf, ipaddr, hwaddr, false)) {
+			return -1;
+		}
+#elif defined(NMRPFLASH_WINDOWS)
+		return DeleteIpNetEntry(&arp) ? 0 : -1;
+#else
+		return systemf("arp -d %s", inet_ntoa(addr);
+#endif
 	}
 
 	return 0;
@@ -682,7 +787,6 @@ int ethsock_arp_del(struct ethsock *sock, struct ethsock_arp_undo **undo)
 	*undo = NULL;
 	return ret;
 }
-#endif
 
 static bool get_hwaddr_from_pcap(const pcap_if_t *dev, uint8_t *hwaddr)
 {
@@ -981,8 +1085,7 @@ int ethsock_ip_del(struct ethsock *sock, struct ethsock_ip_undo **undo)
 		ret = 0;
 	}
 #else
-	DeleteIPAddress((*undo)->context);
-	ret = 0;
+	ret = DeleteIPAddress((*undo)->context) ? 0 : -1;
 #endif
 
 	free(*undo);
