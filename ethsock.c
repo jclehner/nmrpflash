@@ -289,9 +289,7 @@ static bool intf_add_del_arp(const char *intf, uint32_t ipaddr, uint8_t *hwaddr,
 	if (add) {
 		rtnl_neigh_set_lladdr(neigh, mac);
 		rtnl_neigh_set_state(neigh, NUD_PERMANENT);
-		system("arp -an");
 		err = rtnl_neigh_add(sk, neigh, NLM_F_CREATE);
-		system("arp -an");
 	}
 
 	if (err && (add || verbosity > 1)) {
