@@ -6,7 +6,7 @@ to flash a new firmware image to a compatible device. This utility has been
 successfully used on a Netgear EX2700 and DNG3700v2, but is likely to work
 with many other Netgear routers as well.
 
-Prebuilt binaries for Linux, OS X and Windows are available
+Prebuilt binaries for Linux, ~OS X~ macOS and Windows are available
 [here](https://github.com/jclehner/nmrpflash/releases)
 ([WinPcap](https://www.winpcap.org/install/default.htm) is required on Windows).
 
@@ -46,9 +46,8 @@ eth0      192.168.1.2  f2:11:a1:02:03:b1
 ```
 
 Once you've determined the interface to use, we can flash the image. Firmware
-images can usually be downloaded directly from Netgear. For details on how to
-do this, see [here](#obtaining-firmware-images). Power on your device immediately
-after starting `nmrpflash`.
+images can usually be downloaded directly from Netgear. Power on your device
+immediately after starting `nmrpflash`.
 
 ```
 # nmrpflash -i eth0 -f EX2700-V1.0.1.8.img
@@ -158,21 +157,5 @@ project file (`nmrpflash.dev`). Download the latest
 [WinPcap Developer Pack](https://www.winpcap.org/devel.htm)
 and extract it into the root folder of the nmrpflash sources.
 
-### Obtaining firmware images
 
-Firmware images can be downloaded directly from Netgear's FTP servers. 
-For the Netgear EX2700 for example, download 
-ftp://updates1.netgear.com/ex2700/ww/fileinfo.txt. At the top there 
-should be an entry like this:
-
-```
-[Major1]
-file=EX2700-V1.0.1.8.img
-...
-```
-
-The download link for the latest firmware image for this device is thus:
-ftp://updates1.netgear.com/ex2700/ww/EX2700-V1.0.1.8.img. Substitute 
-`ex2700` for your device (`wndr4300`, `wndr3700`, `r6100`, etc.). If
-neccessary, substitute `ww` (world-wide) for a specific region.
 
