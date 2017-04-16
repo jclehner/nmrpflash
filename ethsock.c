@@ -494,7 +494,7 @@ inline uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
 struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 {
 	char buf[PCAP_ERRBUF_SIZE];
-	struct bpf_program bpf;
+	struct bpf_program fp;
 	struct ethsock *sock;
 	bool is_bridge;
 	int err;
@@ -561,22 +561,17 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	}
 #endif
 
-	err = pcap_setdirection(sock->pcap, PCAP_D_IN);
-	if (err) {
-		pcap_perror(sock->pcap, "pcap_setdirection");
-		goto cleanup;
-	}
+	snprintf(buf, sizeof(buf), "ether proto 0x%04x and not ether src %s",
+			protocol, mac_to_str(sock->hwaddr));
 
-	snprintf(buf, sizeof(buf), "ether proto 0x%04x", protocol);
-
-	err = pcap_compile(sock->pcap, &bpf, buf, 0, 0);
+	err = pcap_compile(sock->pcap, &fp, buf, 0, 0);
 	if (err) {
 		pcap_perror(sock->pcap, "pcap_compile");
 		goto cleanup;
 	}
 
-	err = pcap_setfilter(sock->pcap, &bpf);
-	pcap_freecode(&bpf);
+	err = pcap_setfilter(sock->pcap, &fp);
+	pcap_freecode(&fp);
 
 	if (err) {
 		pcap_perror(sock->pcap, "pcap_setfilter");
