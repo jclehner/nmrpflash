@@ -273,6 +273,10 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 
 const char *leafname(const char *path)
 {
+	if (!path) {
+		return NULL;
+	}
+
 	const char *slash, *bslash;
 
 	slash = strrchr(path, '/');

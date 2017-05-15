@@ -235,6 +235,8 @@ static void msg_mkconfack(struct nmrp_msg *msg, uint32_t ipaddr, uint32_t ipmask
 #define ethsock_recv(sock, buf, len) read(STDIN_FILENO, buf, len)
 #define ethsock_send(a, b, c) (0)
 #define ethsock_set_timeout(a, b) (0)
+#define ethsock_arp_add(a, b, c, d) (0)
+#define ethsock_arp_del(a, b) (0)
 #define ethsock_ip_add(a, b, c, d) (0)
 #define ethsock_ip_del(a, b) (0)
 #define ethsock_close(a) (0)
