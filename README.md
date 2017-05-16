@@ -1,9 +1,9 @@
 nmrpflash - Netgear Unbrick Utility
 ====================================
 
-This program uses Netgear's [NMRP protocol](http://www.chubb.wattle.id.au/PeterChubb/nmrp.html)
-to flash a new firmware image to a compatible device. This utility has been
-successfully used on a Netgear EX2700 and DNG3700v2, but is likely to work
+`nmrpflash` uses Netgear's [NMRP protocol](http://www.chubb.wattle.id.au/PeterChubb/nmrp.html)
+to flash a new firmware image to a compatible device. It has been
+successfully used on a Netgear EX2700, DNG3700v2 and R6220, but is likely to work
 with many other Netgear routers as well.
 
 Prebuilt binaries for Linux, ~OS X~ macOS and Windows are available
@@ -93,7 +93,7 @@ The router did not respond. Try rebooting the device and run `nmrpflash` again.
 You could also try running `nmrpflash` with `-m` and specify your router's
 MAC address. It's also possible that your device does not support the NMRP protocol.
 
-###### "Timeout while waiting for initial reply."
+###### "Timeout while waiting for ACK(0)/OACK."
 
 The device did not respond to `nmrpflash`'s TFTP upload request. By default,
 `nmrpflash` will assign `10.164.183.252` to the target device, while adding `10.164.183.253`
