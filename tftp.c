@@ -72,7 +72,7 @@ static inline uint16_t pkt_num(char *pkt)
 static char *pkt_mkopt(char *pkt, const char *opt, const char* val)
 {
 	strcpy(pkt, opt);
-	pkt += strlen(pkt) + 1;
+	pkt += strlen(opt) + 1;
 	strcpy(pkt, val);
 	pkt += strlen(val) + 1;
 	return pkt;
