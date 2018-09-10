@@ -253,6 +253,33 @@ out:
 
 static bool intf_add_del_arp(const char *intf, uint32_t ipaddr, uint8_t *hwaddr, bool add)
 {
+#if 0
+	struct arpreq arp;
+	memset(&arp, 0, sizeof(arp));
+	arp.arp_ha.sa_family = ARPHRD_ETHER;
+	memcpy(&arp.arp_ha.sa_data, hwaddr, 6);
+	arp.arp_flags = ATF_PERM | ATF_COM;
+
+	struct sockaddr_in *in = (struct sockaddr_in*)&req.arp_pa;
+	in->sin_addr.s_addr = htonl(ipaddr);
+	in->sin_family = AF_INET;
+
+	int fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (fd < 0) {
+		perror("socket");
+		return false;
+	}
+
+	bool ret = true;
+
+	if (ioctl(fd, add ? SIOCSARP : SIOCDARP, &req) < 0) {
+		perror(add ? "ioctl(SIOCSARP)" : "ioctl(SIOCDARP");
+		ret = false;
+	}
+
+	close(fd);
+	return ret;
+#else
 	struct nl_sock *sk;
 	struct rtnl_neigh *neigh;
 	struct nl_addr *mac, *ip;
@@ -303,6 +330,7 @@ out:
 	nl_socket_free(sk);
 
 	return !err;
+#endif
 }
 
 #endif
