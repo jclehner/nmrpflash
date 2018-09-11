@@ -99,6 +99,7 @@ static int x_pcap_findalldevs(pcap_if_t **devs)
 	return 0;
 }
 
+#ifndef NMRPFLASH_LINUX
 static int systemf(const char *fmt, ...)
 {
 	char cmd[1024];
@@ -116,6 +117,7 @@ static int systemf(const char *fmt, ...)
 
 	return ret;
 }
+#endif
 
 #ifndef NMRPFLASH_WINDOWS
 static inline bool sockaddr_get_hwaddr(struct sockaddr *sa, uint8_t *hwaddr)
