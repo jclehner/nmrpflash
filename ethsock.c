@@ -180,22 +180,14 @@ static bool bridge_stp(const char *intf, bool enabled)
 	return ret;
 }
 
-static bool xrtnl_addr_set(struct rtnl_addr *ra, uint32_t addr, int (*cb)(struct rtnl_addr*, struct nl_addr*))
+static struct nl_addr *build_ip(uint32_t ip)
 {
-	int err;
-	struct nl_addr *na = nl_addr_build(AF_INET, &addr, 4);
-
+	struct nl_addr *na = nl_addr_build(AF_INET, &ip, 4);
 	if (!na) {
 		xperror("nl_addr_build");
-		return false;
 	}
 
-	if ((err = cb(ra, na)) != 0 && verbosity) {
-		nl_perror(err, __func__);
-	}
-	nl_addr_put(na);
-
-	return true;
+	return na;
 }
 
 static struct nl_sock *xnl_socket_route()
@@ -219,6 +211,7 @@ static bool intf_add_del_ip(const char *intf, uint32_t ipaddr, uint32_t ipmask, 
 {
 	struct rtnl_addr *ra = NULL;
 	struct nl_sock *sk = NULL;
+	struct nl_addr *na = NULL;
 	int err = 1;
 
 	if (!(sk = xnl_socket_route())) {
@@ -231,12 +224,21 @@ static bool intf_add_del_ip(const char *intf, uint32_t ipaddr, uint32_t ipmask, 
 	}
 
 	rtnl_addr_set_ifindex(ra, if_nametoindex(intf));
-	rtnl_addr_set_prefixlen(ra, bitcount(ipmask));
 
-	if (!xrtnl_addr_set(ra, (ipaddr & ipmask) | ~ipmask, &rtnl_addr_set_broadcast)
-			|| !xrtnl_addr_set(ra, ipaddr, &rtnl_addr_set_local)) {
+	if (!(na = build_ip(ipaddr))) {
 		goto out;
 	}
+
+	nl_addr_set_prefixlen(na, bitcount(ipmask));
+	rtnl_addr_set_local(ra, na);
+	nl_addr_put(na);
+
+	if (!(na = build_ip((ipaddr & ipmask) | ~ipmask))) {
+		goto out;
+	}
+
+	rtnl_addr_set_broadcast(ra, na);
+	nl_addr_put(na);
 
 	if ((err = add ? rtnl_addr_add(sk, ra, 0) : rtnl_addr_delete(sk, ra, 0)) < 0) {
 		if (add && err == -NLE_EXIST) {
