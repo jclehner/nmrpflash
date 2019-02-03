@@ -74,7 +74,8 @@ packages (exact names will vary depending on your distribution).
 
 ###### "The program can't start because wpcap.dll is missing" (Windows)
 
-Install [WinPcap](https://www.winpcap.org/install/default.htm).
+On Windows 8.1 and older, install [WinPcap](https://www.winpcap.org/install/default.htm).
+On Windows 10, install [Npcap](https://nmap.org/npcap/) (be sure to select "WinPcap Compatibility").
 
 ###### "No suitable network interfaces found."
 
