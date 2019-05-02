@@ -2,9 +2,9 @@ nmrpflash - Netgear Unbrick Utility
 ====================================
 
 `nmrpflash` uses Netgear's [NMRP protocol](http://www.chubb.wattle.id.au/PeterChubb/nmrp.html)
-to flash a new firmware image to a compatible device. It has been
-successfully used on a Netgear EX2700, DNG3700v2 and R6220, but is likely to work
-with many other Netgear routers as well.
+to flash a new firmware image to a compatible device. It has been successfully used on a Netgear
+EX2700, DNG3700v2 and R6220, R7000, D7000, WNR3500L, but is likely to be compatible with many
+other Netgear devices.
 
 Prebuilt binaries for Linux, ~OS X~ macOS and Windows are available
 [here](https://github.com/jclehner/nmrpflash/releases)
