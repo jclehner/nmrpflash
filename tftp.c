@@ -439,9 +439,13 @@ int tftp_put(struct nmrpd_args *args)
 					 * block #65535 - reported working on a Netgear D7000.
 					 */
 					block = UINT16_MAX;
+					pkt_mknum(tx + 2, block);
 					freeze_block = true;
 					errors = 0;
 					printf("Transmitting rest of file as block %d.\n", block);
+					/* this forces transmission of the modified packet */
+					timeouts = 1;
+					continue;
 				} else {
 					fprintf(stderr, "Protocol error; bailing out.\n");
 					ret = -1;
