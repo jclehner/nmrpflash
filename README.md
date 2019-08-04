@@ -143,6 +143,11 @@ for example:
 This will execute the command specified by `-c` prior to starting the TFTP upload (in
 this case setting the IP address to 192.168.1.2).
 
+###### "Received keep-alive request."
+
+This usually means that flashing is in progress. On some devices, you may get a few
+hundred keep-alive requests before it eventually finishes!
+
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
 
