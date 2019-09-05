@@ -400,8 +400,9 @@ int tftp_put(struct nmrpd_args *args)
 
 		if (timeouts || ackblock == block) {
 			if (!timeouts) {
-				if (block < UINT16_MAX) {
-					++block;
+				if (++block == 0) {
+					// rollover; skip to block 1
+					block = 1;
 				}
 
 				pkt_mknum(tx, DATA);
