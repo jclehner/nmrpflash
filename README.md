@@ -55,7 +55,8 @@ Advertising NMRP server on eth0 ... /
 Received configuration request from a4:2b:8c:00:00:01.
 Sending configuration: ip 10.164.183.252, mask 255.255.255.0.
 Received upload request: filename 'firmware'.
-Uploading EX2700-V1.0.1.8.img ... OK
+Uploading EX2700-V1.0.1.8.img ...
+Upload successful.
 Waiting for remote to respond.
 Remote finished. Closing connection.
 Reboot your device now.
@@ -74,8 +75,10 @@ packages (exact names will vary depending on your distribution).
 
 ###### "The program can't start because wpcap.dll is missing" (Windows)
 
-On Windows 8.1 and older, install [WinPcap](https://www.winpcap.org/install/default.htm).
-On Windows 10, install [Npcap](https://nmap.org/npcap/) (be sure to select "WinPcap Compatibility").
+Install [Npcap](https://nmap.org/npcap/). For `nmrpflash` versions prior
+to 0.9.14, install Npcap with "WinPcap Compatibility" enabled.
+
+Version 0.9.13 is the last version to support Windows XP.
 
 ###### "No suitable network interfaces found."
 
@@ -147,6 +150,12 @@ this case setting the IP address to 192.168.1.2).
 
 This usually means that flashing is in progress. On some devices, you may get a few
 hundred keep-alive requests before it eventually finishes!
+
+###### "TFTP block rollover. Upload might fail!"
+
+By default, file transfers using TFTP are limited to `65535 * 512` bytes
+(almost 32 MiB). Uploading files exceeding this limit might fail, depending
+on the device.
 
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
