@@ -661,7 +661,7 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 
 		if (rx.msg.code == NMRP_C_CLOSE_REQ) {
-			if (ka_count) {
+			if (kareqs) {
 				printf("\n");
 			}
 
