@@ -356,7 +356,7 @@ int nmrp_do(struct nmrpd_args *args)
 	uint16_t region;
 	char *filename;
 	time_t beg;
-	int i, status, ulreqs, expect, upload_ok, autoip;
+	int i, status, ulreqs, expect, upload_ok, autoip, kareqs;
 	struct ethsock *sock;
 	struct ethsock_ip_undo *ip_undo = NULL;
 	struct ethsock_arp_undo *arp_undo = NULL;
@@ -514,6 +514,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 	expect = NMRP_C_CONF_REQ;
 	ulreqs = 0;
+	kareqs = 0;
 
 	while (!g_interrupted) {
 		if (expect != NMRP_C_NONE && rx.msg.code != expect) {
@@ -634,7 +635,7 @@ int nmrp_do(struct nmrpd_args *args)
 			case NMRP_C_KEEP_ALIVE_REQ:
 				tx.msg.code = NMRP_C_KEEP_ALIVE_ACK;
 				ethsock_set_timeout(sock, args->ul_timeout);
-				printf("Received keep-alive request.\n");
+				printf("\rReceived keep-alive request (%d).  ", ++kareqs);
 				break;
 			case NMRP_C_CLOSE_REQ:
 				tx.msg.code = NMRP_C_CLOSE_ACK;
@@ -660,6 +661,10 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 
 		if (rx.msg.code == NMRP_C_CLOSE_REQ) {
+			if (ka_count) {
+				printf("\n");
+			}
+
 			printf("Remote finished. Closing connection.\n");
 			break;
 		}
