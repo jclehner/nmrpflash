@@ -314,7 +314,6 @@ int tftp_put(struct nmrpd_args *args)
 	char rx[2048], tx[2048];
 	const char *file_remote = args->file_remote;
 	char *val, *end;
-	bool freeze_block = false;
 
 	sock = -1;
 	ret = -1;
@@ -401,7 +400,7 @@ int tftp_put(struct nmrpd_args *args)
 
 		if (timeouts || ackblock == block) {
 			if (!timeouts) {
-				if (!freeze_block) {
+				if (block < UINT16_MAX) {
 					++block;
 				}
 
@@ -433,20 +432,9 @@ int tftp_put(struct nmrpd_args *args)
 			}
 
 			if (ackblock != -1 && ++errors > 5) {
-				if (ackblock == UINT16_MAX && block == 0 && !freeze_block) {
-					/* work around the 32 MiB limit if block rollover is not
-					 * supported, by transmitting all remaining packets as
-					 * block #65535 - reported working on a Netgear D7000.
-					 */
-					block = UINT16_MAX;
-					freeze_block = true;
-					errors = 0;
-					printf("Transmitting rest of file as block %d.\n", block);
-				} else {
-					fprintf(stderr, "Protocol error; bailing out.\n");
-					ret = -1;
-					goto cleanup;
-				}
+				fprintf(stderr, "Protocol error; bailing out.\n");
+				ret = -1;
+				goto cleanup;
 			}
 		}
 
