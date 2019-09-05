@@ -314,6 +314,7 @@ int tftp_put(struct nmrpd_args *args)
 	char rx[2048], tx[2048];
 	const char *file_remote = args->file_remote;
 	char *val, *end;
+	bool rollover;
 
 	sock = -1;
 	ret = -1;
@@ -373,6 +374,7 @@ int tftp_put(struct nmrpd_args *args)
 	last_len = -1;
 	len = 0;
 	errors = 0;
+	rollover = false;
 	/* Not really, but this way the loop sends our WRQ before receiving */
 	timeouts = 1;
 
@@ -394,6 +396,10 @@ int tftp_put(struct nmrpd_args *args)
 						ret = -1;
 						goto cleanup;
 					}
+
+					if (verbosity) {
+						printf("Remote accepted blksize option: %d b\n", blksize);
+					}
 				}
 			}
 		}
@@ -401,8 +407,10 @@ int tftp_put(struct nmrpd_args *args)
 		if (timeouts || ackblock == block) {
 			if (!timeouts) {
 				if (++block == 0) {
-					// rollover; skip to block 1
-					block = 1;
+					if (!rollover) {
+						printf("Warning: TFTP block rollover. Upload might fail!\n");
+						rollover = true;
+					}
 				}
 
 				pkt_mknum(tx, DATA);
