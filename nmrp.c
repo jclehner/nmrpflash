@@ -541,8 +541,8 @@ int nmrp_do(struct nmrpd_args *args)
 
 				memcpy(tx.eh.ether_dhost, rx.eh.ether_shost, 6);
 
-				printf("Sending configuration: %s, netmask %s.\n",
-						args->ipaddr, args->ipmask);
+				printf("Sending configuration: %s/%d.\n",
+						args->ipaddr, bitcount(ipmask.s_addr));
 
 				if (ethsock_arp_add(sock, rx.eh.ether_shost, ipaddr.s_addr, &arp_undo) != 0) {
 					goto out;

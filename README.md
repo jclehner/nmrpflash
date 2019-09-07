@@ -53,7 +53,7 @@ immediately after starting `nmrpflash`.
 # nmrpflash -i eth0 -f EX2700-V1.0.1.8.img
 Advertising NMRP server on eth0 ... /
 Received configuration request from a4:2b:8c:00:00:01.
-Sending configuration: ip 10.164.183.252, mask 255.255.255.0.
+Sending configuration: 10.164.183.252/24
 Received upload request: filename 'firmware'.
 Uploading EX2700-V1.0.1.8.img ...
 Upload successful.
