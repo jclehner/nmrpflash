@@ -245,7 +245,6 @@ int main(int argc, char **argv)
 			case 'L':
 				list = 1;
 				break;
-				goto out;
 			case 'h':
 				usage(stdout);
 				val = 0;
