@@ -4,12 +4,12 @@ Name=nmrpflash
 Type=1
 Ver=2
 ObjFiles=
-Includes=Wpdpack\Include
-Libs=Wpdpack\Lib
+Includes=Npcap\Include
+Libs=Npcap\Lib
 PrivateResource=
 ResourceIncludes=
 MakeIncludes=
-Compiler=-DNMRPFLASH_VERSION=\"0.9.13\"_@@_
+Compiler=-DNMRPFLASH_VERSION=\"0.9.14\"_@@_ -D_WIN32_WINNT=0x0600
 CppCompiler=
 Linker=-liphlpapi_@@_-lws2_32_@@_-ladvapi32_@@_-lwpcap_@@_-lpacket_@@__@@_
 IsCpp=0
