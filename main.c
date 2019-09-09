@@ -270,7 +270,7 @@ int main(int argc, char **argv)
 	}
 
 #ifndef NMRPFLASH_FUZZ
-	if (!list && ((!args.file_local && !args.tftpcmd) || !args.intf /*|| !args.ipaddr*/)) {
+	if (!list && ((!args.file_local && !args.tftpcmd) || !args.intf)) {
 		usage(stderr);
 		return 1;
 	}
