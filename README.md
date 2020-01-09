@@ -3,12 +3,12 @@ nmrpflash - Netgear Unbrick Utility
 
 `nmrpflash` uses Netgear's [NMRP protocol](http://www.chubb.wattle.id.au/PeterChubb/nmrp.html)
 to flash a new firmware image to a compatible device. It has been successfully used on a Netgear
-EX2700, DNG3700v2, R6220, R7000, D7000, WNR3500 and R6800, but is likely to be compatible with many
-other Netgear devices.
+EX2700, DNG3700v2, R6220, R7000, D7000, WNR3500, R6400 and R6800, but is likely to be compatible
+with many other Netgear devices.
 
 Prebuilt binaries for Linux, ~OS X~ macOS and Windows are available
 [here](https://github.com/jclehner/nmrpflash/releases)
-([WinPcap](https://www.winpcap.org/install/default.htm) is required on Windows).
+([Npcap](https://nmap.org/npcap/) is required on Windows).
 
 ```
 Usage: nmrpflash [OPTIONS...]
@@ -169,8 +169,8 @@ $ make && sudo make install
 The repository includes a
 [DevCpp](http://sourceforge.net/projects/orwelldevcpp/)
 project file (`nmrpflash.dev`). Download the latest
-[WinPcap Developer Pack](https://www.winpcap.org/devel.htm)
-and extract it into the root folder of the nmrpflash sources.
+[Npcap SDK](https://nmap.org/npcap/)
+and extract it into the root folder of the `nmrpflash` sources.
 
 
 
