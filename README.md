@@ -169,8 +169,8 @@ $ make && sudo make install
 The repository includes a
 [DevCpp](http://sourceforge.net/projects/orwelldevcpp/)
 project file (`nmrpflash.dev`). Download the latest
-[WinPcap Developer Pack](https://www.winpcap.org/devel.htm)
-and extract it into the root folder of the nmrpflash sources.
+[Npcap SDK](https://nmap.org/npcap/)
+and extract it into the root folder of the `nmrpflash` sources.
 
 
 
