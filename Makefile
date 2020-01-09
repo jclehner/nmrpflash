@@ -12,7 +12,7 @@ endif
 
 nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
 
-.PHONY: clean install release release/osx release/linux release/win32
+.PHONY: clean install release release/macos release/linux release/win32
 
 nmrpflash: $(nmrpflash_OBJ)
 	$(CC) $(CFLAGS) -o nmrpflash $(nmrpflash_OBJ) $(LDFLAGS)
@@ -38,9 +38,9 @@ clean:
 install: nmrpflash
 	install -m 755 nmrpflash $(PREFIX)/bin
 
-release/osx:
+release/macos:
 	CFLAGS="-mmacosx-version-min=10.6" make release
-	zip nmrpflash-$(VERSION)-osx.zip nmrpflash
+	zip nmrpflash-$(VERSION)-macos.zip nmrpflash
 
 release/linux: release
 	zip nmrpflash-$(VERSION)-linux.zip nmrpflash
