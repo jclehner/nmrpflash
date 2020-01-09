@@ -8,7 +8,7 @@ with many other Netgear devices.
 
 Prebuilt binaries for Linux, ~OS X~ macOS and Windows are available
 [here](https://github.com/jclehner/nmrpflash/releases)
-([WinPcap](https://www.winpcap.org/install/default.htm) is required on Windows).
+([Npcap](https://nmap.org/npcap/) is required on Windows).
 
 ```
 Usage: nmrpflash [OPTIONS...]
