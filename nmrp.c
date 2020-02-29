@@ -472,7 +472,6 @@ int nmrp_do(struct nmrpd_args *args)
 	memcpy(tx.eh.ether_dhost, dest, 6);
 	tx.eh.ether_type = htons(ETH_P_NMRP);
 
-	msg_mkadvertise(&tx.msg, "NTGR");
 
 	i = 0;
 	upload_ok = 0;
@@ -484,8 +483,13 @@ int nmrp_do(struct nmrpd_args *args)
 		fflush(stdout);
 		i = (i + 1) & 3;
 
+		msg_mkadvertise(&tx.msg, "NTGR");
 		if (pkt_send(sock, &tx) < 0) {
-			xperror("sendto");
+			goto out;
+		}
+
+		msg_mkconfack(&tx.msg, ipaddr.s_addr, ipmask.s_addr, region);
+		if (pkt_send(sock, &tx) < 0) {
 			goto out;
 		}
 
@@ -510,7 +514,14 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 	}
 
+
 	printf("\n");
+
+	memcpy(tx.eh.ether_dhost, rx.eh.ether_shost, 6);
+
+	if (ethsock_arp_add(sock, rx.eh.ether_shost, ipaddr.s_addr, &arp_undo) != 0) {
+		goto out;
+	}
 
 	expect = NMRP_C_CONF_REQ;
 	ulreqs = 0;
@@ -539,14 +550,8 @@ int nmrp_do(struct nmrpd_args *args)
 				printf("Received configuration request from %s.\n",
 						mac_to_str(rx.eh.ether_shost));
 
-				memcpy(tx.eh.ether_dhost, rx.eh.ether_shost, 6);
-
 				printf("Sending configuration: %s/%d.\n",
 						args->ipaddr, bitcount(ipmask.s_addr));
-
-				if (ethsock_arp_add(sock, rx.eh.ether_shost, ipaddr.s_addr, &arp_undo) != 0) {
-					goto out;
-				}
 
 				break;
 			case NMRP_C_TFTP_UL_REQ:
@@ -651,7 +656,6 @@ int nmrp_do(struct nmrpd_args *args)
 
 		if (tx.msg.code != NMRP_C_NONE) {
 			if (pkt_send(sock, &tx) < 0) {
-				xperror("sendto");
 				goto out;
 			}
 
