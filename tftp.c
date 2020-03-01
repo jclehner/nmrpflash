@@ -453,6 +453,12 @@ int tftp_put(struct nmrpd_args *args)
 		} else if (!ret) {
 			if (++timeouts < 5 || (!block && timeouts < 10)) {
 				continue;
+			} else if (args->blind) {
+				timeouts = 0;
+				// fake an ACK packet
+				pkt_mknum(rx, ACK);
+				pkt_mknum(rx + 2, block);
+				continue;
 			} else if (block) {
 				fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);
 			} else {
