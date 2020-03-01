@@ -92,6 +92,7 @@ struct nmrpd_args {
 	const char *intf;
 	const char *mac;
 	enum nmrp_op op;
+	bool blind;
 	uint16_t port;
 	const char *region;
 };

@@ -356,7 +356,7 @@ int nmrp_do(struct nmrpd_args *args)
 	uint16_t region;
 	char *filename;
 	time_t beg;
-	int i, status, ulreqs, expect, upload_ok, autoip, kareqs;
+	int i, timeout, status, ulreqs, expect, upload_ok, autoip, kareqs;
 	struct ethsock *sock;
 	struct ethsock_ip_undo *ip_undo = NULL;
 	struct ethsock_arp_undo *arp_undo = NULL;
@@ -472,9 +472,11 @@ int nmrp_do(struct nmrpd_args *args)
 	memcpy(tx.eh.ether_dhost, dest, 6);
 	tx.eh.ether_type = htons(ETH_P_NMRP);
 
+	msg_mkadvertise(&tx.msg, "NTGR");
 
 	i = 0;
 	upload_ok = 0;
+	timeout = args->blind ? 10 : NMRP_INITIAL_TIMEOUT;
 	beg = time_monotonic();
 
 	while (!g_interrupted) {
@@ -483,12 +485,6 @@ int nmrp_do(struct nmrpd_args *args)
 		fflush(stdout);
 		i = (i + 1) & 3;
 
-		msg_mkadvertise(&tx.msg, "NTGR");
-		if (pkt_send(sock, &tx) < 0) {
-			goto out;
-		}
-
-		msg_mkconfack(&tx.msg, ipaddr.s_addr, ipmask.s_addr, region);
 		if (pkt_send(sock, &tx) < 0) {
 			goto out;
 		}
@@ -507,13 +503,18 @@ int nmrp_do(struct nmrpd_args *args)
 		} else {
 			/* because we don't want nmrpflash's exit status to be zero */
 			status = 1;
-			if ((time_monotonic() - beg) >= NMRP_INITIAL_TIMEOUT) {
-				printf("\nNo response after 60 seconds. Bailing out.\n");
-				goto out;
+			if ((time_monotonic() - beg) >= timeout) {
+				printf("\nNo response after %d seconds. ", timeout);
+				if (!args->blind) {
+					printf("Bailing out.\n");
+					goto out;
+				} else {
+					printf("Continuing blindly.");
+					break;
+				}
 			}
 		}
 	}
-
 
 	printf("\n");
 
@@ -679,7 +680,13 @@ int nmrp_do(struct nmrpd_args *args)
 				fprintf(stderr, "Timeout while waiting for %s.\n",
 						msg_code_str(expect));
 			}
-			goto out;
+
+			if (!args->blind) {
+				goto out;
+			} else {
+				// fake a response
+				msg_init(&rx.msg, expect);
+			}
 		}
 
 		ethsock_set_timeout(sock, args->rx_timeout);

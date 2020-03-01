@@ -33,6 +33,7 @@ void usage(FILE *fp)
 			"Options (-i, -f and/or -c are mandatory):\n"
 			" -a <ipaddr>     IP address to assign to target device\n"
 			" -A <ipaddr>     IP address to assign to seleted interface\n"
+			" -B              Blind mode (don't wait for NMRP responses)\n"
 			" -c <command>    Command to run before (or instead of) TFTP upload\n"
 			" -f <firmware>   Firmware file\n"
 			" -F <filename>   Remote filename to use during TFTP upload\n"
@@ -130,7 +131,7 @@ void require_admin()
 int main(int argc, char **argv)
 {
 	int c, val, max;
-	int list = 0;
+	bool list = false, have_dest_mac = false;
 	struct nmrpd_args args = {
 		.rx_timeout = 200,
 		.ul_timeout = 5 * 60 * 1000,
@@ -145,6 +146,7 @@ int main(int argc, char **argv)
 		.op = NMRP_UPLOAD_FW,
 		.port = 69,
 		.region = NULL,
+		.blind = false,
 	};
 #ifdef NMRPFLASH_WINDOWS
 	char *newpath = NULL;
@@ -181,7 +183,7 @@ int main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "a:A:c:f:F:i:m:M:p:R:t:T:hLVvU")) != -1) {
+	while ((c = getopt(argc, argv, "a:A:Bc:f:F:i:m:M:p:R:t:T:hLVvU")) != -1) {
 		max = 0x7fffffff;
 		switch (c) {
 			case 'a':
@@ -189,6 +191,9 @@ int main(int argc, char **argv)
 				break;
 			case 'A':
 				args.ipaddr_intf = optarg;
+				break;
+			case 'B':
+				args.blind = true;
 				break;
 			case 'c':
 				args.tftpcmd = optarg;
@@ -204,6 +209,7 @@ int main(int argc, char **argv)
 				break;
 			case 'm':
 				args.mac = optarg;
+				have_dest_mac = true;
 				break;
 			case 'M':
 				args.ipmask = optarg;
@@ -243,7 +249,7 @@ int main(int argc, char **argv)
 				++verbosity;
 				break;
 			case 'L':
-				list = 1;
+				list = true;
 				break;
 			case 'h':
 				usage(stdout);
@@ -266,6 +272,11 @@ int main(int argc, char **argv)
 
 	if (args.ipaddr_intf && !args.ipaddr) {
 		fprintf(stderr, "Error: cannot use -A <ipaddr> without using -a <ipaddr>.\n");
+		return 1;
+	}
+
+	if (args.blind && !have_dest_mac) {
+		fprintf(stderr, "Error: use of -B requires -m <mac>.\n");
 		return 1;
 	}
 
