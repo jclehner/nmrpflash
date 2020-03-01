@@ -492,6 +492,8 @@ int nmrp_do(struct nmrpd_args *args)
 		status = pkt_recv(sock, &rx);
 		if (status == 0) {
 			if (memcmp(rx.eh.ether_dhost, src, 6) == 0) {
+				// set the destination MAC for all subsequent packages
+				memcpy(tx.eh.ether_dhost, rx.eh.ether_shost, 6);
 				break;
 			} else if (verbosity) {
 				printf("\nIgnoring bogus response: %s -> %s.\n",
@@ -509,7 +511,10 @@ int nmrp_do(struct nmrpd_args *args)
 					printf("Bailing out.\n");
 					goto out;
 				} else {
-					printf("Continuing blindly.");
+					// we're blind, so fake a response from the MAC specified by -m
+					memcpy(rx.eh.ether_dhost, dest, 6);
+					msg_init(&rx.msg, NMRP_C_CONF_REQ);
+					printf("Faking one.");
 					break;
 				}
 			}
@@ -517,8 +522,6 @@ int nmrp_do(struct nmrpd_args *args)
 	}
 
 	printf("\n");
-
-	memcpy(tx.eh.ether_dhost, rx.eh.ether_shost, 6);
 
 	if (ethsock_arp_add(sock, rx.eh.ether_shost, ipaddr.s_addr, &arp_undo) != 0) {
 		goto out;
@@ -677,15 +680,17 @@ int nmrp_do(struct nmrpd_args *args)
 		status = pkt_recv(sock, &rx);
 		if (status) {
 			if (status == 2) {
-				fprintf(stderr, "Timeout while waiting for %s.\n",
+				fprintf(stderr, "Timeout while waiting for %s. ",
 						msg_code_str(expect));
 			}
 
 			if (!args->blind) {
+				printf("\n");
 				goto out;
 			} else {
-				// fake a response
+				printf("Faking response.\n");
 				msg_init(&rx.msg, expect);
+				memcpy(rx.eh.ether_shost, tx.eh.ether_dhost, 6);
 			}
 		}
 
