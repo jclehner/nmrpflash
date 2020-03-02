@@ -62,6 +62,10 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
+
 #ifndef PACKED
 #define PACKED __attribute__((packed))
 #endif

@@ -315,6 +315,7 @@ int tftp_put(struct nmrpd_args *args)
 	const char *file_remote = args->file_remote;
 	char *val, *end;
 	bool rollover;
+	unsigned rx_timeout = MAX(args->rx_timeout / 200, 1);
 
 	sock = -1;
 	ret = -1;
@@ -367,6 +368,7 @@ int tftp_put(struct nmrpd_args *args)
 		xperror("inet_addr");
 		goto cleanup;
 	}
+
 	addr.sin_port = htons(args->port);
 
 	blksize = 512;
@@ -447,7 +449,7 @@ int tftp_put(struct nmrpd_args *args)
 			}
 		}
 
-		ret = tftp_recvfrom(sock, rx, &port, args->rx_timeout, blksize + 4);
+		ret = tftp_recvfrom(sock, rx, &port, rx_timeout, blksize + 4);
 		if (ret < 0) {
 			goto cleanup;
 		} else if (!ret) {
