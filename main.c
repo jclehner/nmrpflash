@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 	int c, val, max;
 	bool list = false, have_dest_mac = false;
 	struct nmrpd_args args = {
-		.rx_timeout = NMRPFLASH_DEF_RX_TIMEOUT * 1000,
+		.rx_timeout = 200 * 1000,
 		.ul_timeout = 5 * 60 * 1000,
 		.tftpcmd = NULL,
 		.file_local = NULL,

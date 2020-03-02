@@ -315,7 +315,8 @@ int tftp_put(struct nmrpd_args *args)
 	const char *file_remote = args->file_remote;
 	char *val, *end;
 	bool rollover;
-	unsigned rx_timeout = MAX(args->rx_timeout / NMRPFLASH_DEF_RX_TIMEOUT, 1000);
+	const unsigned rx_timeout = MAX(args->rx_timeout / (args->blind ? 50 : 5), 2000);
+	const unsigned max_timeouts = args->blind ? 3 : 5;
 
 	sock = -1;
 	ret = -1;
@@ -453,7 +454,7 @@ int tftp_put(struct nmrpd_args *args)
 		if (ret < 0) {
 			goto cleanup;
 		} else if (!ret) {
-			if (++timeouts < 5 || (!block && timeouts < 10)) {
+			if (++timeouts < max_timeouts || (!block && timeouts < (max_timeouts * 4))) {
 				continue;
 			} else if (args->blind) {
 				timeouts = 0;
