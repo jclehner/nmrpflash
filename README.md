@@ -103,7 +103,9 @@ manner:
 
 If that still doesn't work, you can try "blind mode", which can be
 invoked using `-B`. Note that you also have to specify your router's
-mac address using `-m xx:xx:xx:xx:xx:xx`.
+mac address using `-m xx:xx:xx:xx:xx:xx`. Also beware that in this mode,
+careful timing between running `nmrpflash` and turning on the router may
+be required!
 
 It's also possible that your device does not support the NMRP protocol.
 
