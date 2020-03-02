@@ -634,6 +634,10 @@ int nmrp_do(struct nmrpd_args *args)
 				}
 
 				if (!status) {
+					if (args->blind) {
+						goto out;
+					}
+
 					printf("Waiting for remote to respond.\n");
 					upload_ok = 1;
 					ethsock_set_timeout(sock, args->ul_timeout);
