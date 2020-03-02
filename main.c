@@ -30,9 +30,9 @@ void usage(FILE *fp)
 	fprintf(fp,
 			"Usage: nmrpflash [OPTIONS...]\n"
 			"\n"
-			"Options (-i, -f and/or -c are mandatory):\n"
+			"Options (-i, and -f or -c are mandatory):\n"
 			" -a <ipaddr>     IP address to assign to target device\n"
-			" -A <ipaddr>     IP address to assign to seleted interface\n"
+			" -A <ipaddr>     IP address to assign to selected interface\n"
 			" -B              Blind mode (don't wait for response packets)\n"
 			" -c <command>    Command to run before (or instead of) TFTP upload\n"
 			" -f <firmware>   Firmware file\n"

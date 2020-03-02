@@ -13,16 +13,17 @@ Prebuilt binaries for Linux, ~OS X~ macOS and Windows are available
 ```
 Usage: nmrpflash [OPTIONS...]
 
-Options (-i and -f and/or -c are mandatory):
+Options (-i, and -f or -c are mandatory):
  -a <ipaddr>     IP address to assign to target device
- -A <ipaddr>     IP address to assign to interface
+ -A <ipaddr>     IP address to assign to selected interface
+ -B              Blind mode (don't wait for response packets)
  -c <command>    Command to run before (or instead of) TFTP upload
  -f <firmware>   Firmware file
  -F <filename>   Remote filename to use during TFTP upload
  -i <interface>  Network interface directly connected to device
  -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)
  -M <netmask>    Subnet mask to assign to target device
- -t <timeout>    Timeout (in milliseconds) for regular messages
+ -t <timeout>    Timeout (in milliseconds) for NMRP packets
  -T <timeout>    Time (seconds) to wait after successfull TFTP upload
  -p <port>       Port to use for TFTP upload
  -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP)
@@ -93,9 +94,18 @@ C:\> net start npf
 
 ###### "No response after 60 seconds. Bailing out."
 
-The router did not respond. Try rebooting the device and run `nmrpflash` again.
-You could also try running `nmrpflash` with `-m` and specify your router's
-MAC address. It's also possible that your device does not support the NMRP protocol.
+The router did not respond. Always run `nmrpflash` in the following
+manner:
+
+* Turn off the router.
+* Run `nmrpflash`.
+* Turn on the router.
+
+If that still doesn't work, you can try "blind mode", which can be
+invoked using `-B`. Note that you also have to specify your router's
+mac address using `-m xx:xx:xx:xx:xx:xx`.
+
+It's also possible that your device does not support the NMRP protocol.
 
 ###### "Timeout while waiting for ACK(0)/OACK."
 
