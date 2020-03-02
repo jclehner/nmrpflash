@@ -33,14 +33,14 @@ void usage(FILE *fp)
 			"Options (-i, -f and/or -c are mandatory):\n"
 			" -a <ipaddr>     IP address to assign to target device\n"
 			" -A <ipaddr>     IP address to assign to seleted interface\n"
-			" -B              Blind mode (don't wait for NMRP responses)\n"
+			" -B              Blind mode (don't wait for response packets)\n"
 			" -c <command>    Command to run before (or instead of) TFTP upload\n"
 			" -f <firmware>   Firmware file\n"
 			" -F <filename>   Remote filename to use during TFTP upload\n"
 			" -i <interface>  Network interface directly connected to device\n"
 			" -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)\n"
 			" -M <netmask>    Subnet mask to assign to target device\n"
-			" -t <timeout>    Timeout (in milliseconds) for regular messages\n"
+			" -t <timeout>    Timeout (in milliseconds) for NMRP packets\n"
 			" -T <timeout>    Time (seconds) to wait after successfull TFTP upload\n"
 			" -p <port>       Port to use for TFTP upload\n"
 #ifdef NMRPFLASH_SET_REGION
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 	int c, val, max;
 	bool list = false, have_dest_mac = false;
 	struct nmrpd_args args = {
-		.rx_timeout = 200,
+		.rx_timeout = NMRPFLASH_DEF_RX_TIMEOUT * 1000,
 		.ul_timeout = 5 * 60 * 1000,
 		.tftpcmd = NULL,
 		.file_local = NULL,
@@ -235,7 +235,7 @@ int main(int argc, char **argv)
 				if (c == 'p') {
 					args.port = val;
 				} else if (c == 't') {
-					args.rx_timeout = val;
+					args.rx_timeout = val * 1000;
 				} else if (c == 'T') {
 					args.ul_timeout = val * 1000;
 				}

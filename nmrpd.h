@@ -72,6 +72,8 @@
 
 #define NMRPFLASH_SET_REGION
 
+#define NMRPFLASH_DEF_RX_TIMEOUT 200
+
 struct eth_hdr {
 	uint8_t ether_dhost[6];
 	uint8_t ether_shost[6];

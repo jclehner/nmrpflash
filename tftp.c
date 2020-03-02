@@ -315,7 +315,7 @@ int tftp_put(struct nmrpd_args *args)
 	const char *file_remote = args->file_remote;
 	char *val, *end;
 	bool rollover;
-	unsigned rx_timeout = MAX(args->rx_timeout / 200, 1);
+	unsigned rx_timeout = MAX(args->rx_timeout / NMRPFLASH_DEF_RX_TIMEOUT, 1000);
 
 	sock = -1;
 	ret = -1;

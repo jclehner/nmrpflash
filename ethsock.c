@@ -640,8 +640,8 @@ int select_fd(int fd, unsigned timeout)
 	FD_ZERO(&fds);
 	FD_SET(fd, &fds);
 
-	tv.tv_sec = timeout / 1000;
-	tv.tv_usec = 1000 * (timeout % 1000);
+	tv.tv_sec = timeout / 1000000;
+	tv.tv_usec = timeout % 1000000;
 
 	status = select(fd + 1, &fds, NULL, NULL, &tv);
 	if (status < 0) {
