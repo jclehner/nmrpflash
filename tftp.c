@@ -305,6 +305,8 @@ inline bool tftp_is_valid_filename(const char *filename)
 	return strlen(filename) <= 255 && is_netascii(filename);
 }
 
+static const char *spinner = "\\|/-";
+
 int tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
@@ -415,6 +417,10 @@ int tftp_put(struct nmrpd_args *args)
 						rollover = true;
 					}
 				}
+
+				printf("%c ", spinner[block & 3]);
+				fflush(stdout);
+				printf("\b\b");
 
 				pkt_mknum(tx, DATA);
 				pkt_mknum(tx + 2, block);
