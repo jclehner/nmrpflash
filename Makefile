@@ -1,6 +1,6 @@
 CC ?= gcc
 PREFIX ?= /usr/local
-VERSION = $(shell git describe --always | tail -c +2)
+VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git describe --always | tail -c +2; else echo $$STANDALONE_VERSION; fi)
 LIBS = -lpcap
 CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 LDFLAGS += $(LIBS)
