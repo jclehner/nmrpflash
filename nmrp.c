@@ -360,7 +360,7 @@ int nmrp_do(struct nmrpd_args *args)
 	struct ethsock *sock;
 	struct ethsock_ip_undo *ip_undo = NULL;
 	struct ethsock_arp_undo *arp_undo = NULL;
-	uint32_t intf_addr;
+	uint32_t intf_addr = 0;
 	void (*sigh_orig)(int);
 	struct in_addr ipaddr;
 	struct in_addr ipmask;
