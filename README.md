@@ -172,10 +172,21 @@ on the device.
 ###### "Ignoring extra upload request."
 
 Extraneous upload requests are usually sent by the device if the image validation
-failed. If you downloaded a firmware that's contained in an archive (a `.zip` for
+failed. Some possible causes are:
+
+* If you downloaded a firmware that's contained in an archive (a `.zip` for
 example), you must extract this file, and then use the contained firmware file
 as the argument to the `-f` parameter. Some examples for file extensions used
 for firmware: `.chk`, `.bin`, `.trx`, `.img`.
+
+* Some devices prevent you from downgrading the firmware. See if it works with
+the latest version available for your device. If you're already using the latest
+version, it might be possible to patch the version info of the firmware file. A
+future version of `nmrpflash` might incorporate an auto-patch feature for these
+cases.
+
+* Your device might expect a different image format for `nmrpflash` than when
+flashing via the web interface. 
 
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
