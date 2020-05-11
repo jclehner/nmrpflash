@@ -169,6 +169,14 @@ By default, file transfers using TFTP are limited to `65535 * 512` bytes
 (almost 32 MiB). Uploading files exceeding this limit might fail, depending
 on the device.
 
+###### "Ignoring extra upload request."
+
+Extraneous upload requests are usually sent by the device if the image validation
+failed. If you downloaded a firmware that's contained in an archive (a `.zip` for
+example), you must extract this file, and then use the contained firmware file
+as the argument to the `-f` parameter. Some examples for file extensions used
+for firmware: `.chk`, `.bin`, `.trx`, `.img`.
+
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
 
