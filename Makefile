@@ -1,4 +1,5 @@
 CC ?= gcc
+PKG_CONFIG ?= pkg-config
 PREFIX ?= /usr/local
 VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git describe --always | tail -c +2; else echo $$STANDALONE_VERSION; fi)
 LIBS = -lpcap
@@ -6,8 +7,8 @@ CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 LDFLAGS += $(LIBS)
 
 ifeq ($(shell uname -s),Linux)
-	CFLAGS += $(shell pkg-config libnl-route-3.0 --cflags)
-	LIBS += $(shell pkg-config libnl-route-3.0 --libs)
+	CFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --cflags)
+	LIBS += $(shell $(PKG_CONFIG) libnl-route-3.0 --libs)
 endif
 
 nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
