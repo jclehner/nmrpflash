@@ -193,4 +193,8 @@ project file (`nmrpflash.dev`). Download the latest
 and extract it into the root folder of the `nmrpflash` sources.
 
 
+### Donate
+<a href="https://www.buymeacoffee.com/jclehner" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" style="height: 51px !important;width: 217px !important;" ></a>
+
+
 
