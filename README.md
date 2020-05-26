@@ -205,7 +205,8 @@ and extract it into the root folder of the `nmrpflash` sources.
 
 
 ### Donate
-<a href="https://www.buymeacoffee.com/jclehner" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" style="height: 51px !important;width: 217px !important;" ></a>
 
-
+You can [buy me a coffee](https://www.buymeacoffee.com/jclehner) if you want, but please consider
+donating the money for charity instead - [Médecins Sans Frontiers](https://www.msf.org/donate) comes to mind,
+but any other organization, local or international, that you think deserves support will do. Thank you!
 
