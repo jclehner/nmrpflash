@@ -39,6 +39,11 @@ Your Netgear router must be connected to your network using an
 Ethernet cable. The device running `nmrpflash` must be connected
 to the same network, using either Wi-Fi or Ethernet.
 
+Usage sequence of events:
+1. Connect ethernet cable from computer to router's LAN1
+2. Run nmrpflash on command line
+3. Turn on the router.
+
 All available network interfaces can be listed using
 
 ```
@@ -187,6 +192,18 @@ cases.
 
 * Your device might expect a different image format for `nmrpflash` than when
 flashing via the web interface. 
+
+###### "bind: Cannot assign requested address"
+
+* Specify the address of the router, and address of your computer. For example:
+
+-A 10.0.0.2 -a 10.0.0.1
+
+or
+
+-A 192.168.1.2 -a 192.168.1.1
+
+ 
 
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
