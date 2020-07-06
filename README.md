@@ -195,15 +195,14 @@ flashing via the web interface.
 
 ###### "bind: Cannot assign requested address"
 
-* Specify the address of the router, and address of your computer. For example:
+Specify the address of the router, and address of your computer, using
+`-A` and `-a`. For example:
 
--A 10.0.0.2 -a 10.0.0.1
+`-A 10.0.0.2 -a 10.0.0.1`
 
 or
 
--A 192.168.1.2 -a 192.168.1.1
-
- 
+`-A 192.168.1.2 -a 192.168.1.1`
 
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
