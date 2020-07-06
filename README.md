@@ -39,6 +39,12 @@ Your Netgear router must be connected to your network using an
 Ethernet cable. The device running `nmrpflash` must be connected
 to the same network, using either Wi-Fi or Ethernet.
 
+Usage sequence of events:
+1. Turn off the router
+2. Connect ethernet cable from computer to router's LAN1
+3. Run nmrpflash on command line
+4. Turn on the router.
+
 All available network interfaces can be listed using
 
 ```
@@ -94,12 +100,8 @@ C:\> net start npf
 
 ###### "No response after 60 seconds. Bailing out."
 
-The router did not respond. Always run `nmrpflash` in the following
-manner:
-
-* Turn off the router.
-* Run `nmrpflash`.
-* Turn on the router.
+The router did not respond. Always run `nmrpflash` in the sequence
+described above!
 
 If that still doesn't work, you can try "blind mode", which can be
 invoked using `-B`. Note that you also have to specify your router's
@@ -187,6 +189,17 @@ cases.
 
 * Your device might expect a different image format for `nmrpflash` than when
 flashing via the web interface. 
+
+###### "bind: Cannot assign requested address"
+
+Specify the address of the router, and address of your computer, using
+`-A` and `-a`. For example:
+
+`-A 10.0.0.2 -a 10.0.0.1`
+
+or
+
+`-A 192.168.1.2 -a 192.168.1.1`
 
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
