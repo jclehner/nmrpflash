@@ -36,10 +36,10 @@ fuzz_nmrp: tftp.c util.c nmrp.c fuzz.c
 fuzz_tftp: tftp.c util.c nmrp.c fuzz.c
 	$(AFL) $(CFLAGS) -DNMRPFLASH_FUZZ -DNMRPFLASH_FUZZ_TFTP $^ -o $@
 
-dofuzz_tftp: fuzz
+dofuzz_tftp: fuzz_tftp
 	echo core | sudo tee /proc/sys/kernel/core_pattern
 	echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
-	afl-fuzz -i fuzzin/nmrp -o fuzzout/nmrp -- ./fuzz_tftp
+	afl-fuzz -i fuzzin/tftp -o fuzzout/tftp -- ./fuzz_tftp fuzzin/tftp.bin
 	echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 
 clean:

@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <unistd.h>
 #include <stdint.h>
 #include <string.h>
@@ -36,7 +37,7 @@ int main(int argc, char** argv)
 
 	const size_t fsize = 4096;
 
-	char pkt[1024];
+	char pkt[1024 + 4];
 	char* p;
 	size_t len = 512;
 
@@ -52,14 +53,14 @@ int main(int argc, char** argv)
 		pkt_mknum(p, 0);
 	}
 
-	write(STDOUT_FILENO, pkt, 512);
+	write(STDOUT_FILENO, pkt, len + 4);
 
 	size_t i = 0;
 
-	for (; i < fsize/len; ++i) {
-		memset(pkt, 0, len);
+	for (; i < (fsize/len + 1); ++i) {
+		memset(pkt, 0, sizeof(pkt));
 		p = pkt_mknum(pkt, ACK);
 		pkt_mknum(p, i + 1);
-		write(STDOUT_FILENO, pkt, len);
+		write(STDOUT_FILENO, pkt, len + 4);
 	}
 }

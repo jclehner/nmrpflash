@@ -2,9 +2,12 @@
 
 int main(int argc, char** argv)
 {
+	verbosity = 2;
+
 	struct nmrpd_args args = {
 		.rx_timeout = 60,
 		.ul_timeout = 60,
+		.ipaddr = "10.10.10.10",
 		.ipmask = "255.255.255.0",
 		.mac = "ff:ff:ff:ff:ff:ff",
 		.op = NMRP_UPLOAD_FW,
