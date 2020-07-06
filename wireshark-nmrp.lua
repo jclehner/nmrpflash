@@ -52,13 +52,14 @@ function nmrp_dissect_opt(opt, buffer, tree)
 		return
 	end
 
+	tree:add(opt_len_f, buffer(2, 2))
+
 	if opt == 0x01 or opt == 0x0181 then
 		tree:add(buffer(4), "Value: " .. buffer(4):string())
 	elseif opt == 0x02 then
 		tree:add(buffer(4, 4), "Address: " .. tostring(buffer(4, 4):ipv4()))
 		tree:add(buffer(8, 4), "Netmask: " .. tostring(buffer(8, 4):ipv4()))
 	else
-		tree:add(opt_len_f, buffer(2, 2))
 		tree:add(opt_data_f, buffer(4, buffer:len() - 4))
 	end
 end

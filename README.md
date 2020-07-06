@@ -3,7 +3,7 @@ nmrpflash - Netgear Unbrick Utility
 
 `nmrpflash` uses Netgear's [NMRP protocol](http://www.chubb.wattle.id.au/PeterChubb/nmrp.html)
 to flash a new firmware image to a compatible device. It has been successfully used on a Netgear
-EX2700, DNG3700v2, R6220, R7000, D7000, WNR3500, R6400 and R6800, but is likely to be compatible
+EX2700, EX6120, EX6150v2, DNG3700v2, R6220, R7000, D7000, WNR3500, R6400 and R6800, WNDR3800, but is likely to be compatible
 with many other Netgear devices.
 
 Prebuilt binaries for Linux, ~OS X~ macOS and Windows are available
@@ -13,16 +13,17 @@ Prebuilt binaries for Linux, ~OS X~ macOS and Windows are available
 ```
 Usage: nmrpflash [OPTIONS...]
 
-Options (-i and -f and/or -c are mandatory):
+Options (-i, and -f or -c are mandatory):
  -a <ipaddr>     IP address to assign to target device
- -A <ipaddr>     IP address to assign to interface
+ -A <ipaddr>     IP address to assign to selected interface
+ -B              Blind mode (don't wait for response packets)
  -c <command>    Command to run before (or instead of) TFTP upload
  -f <firmware>   Firmware file
  -F <filename>   Remote filename to use during TFTP upload
  -i <interface>  Network interface directly connected to device
  -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)
  -M <netmask>    Subnet mask to assign to target device
- -t <timeout>    Timeout (in milliseconds) for regular messages
+ -t <timeout>    Timeout (in milliseconds) for NMRP packets
  -T <timeout>    Time (seconds) to wait after successfull TFTP upload
  -p <port>       Port to use for TFTP upload
  -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP)
@@ -37,6 +38,12 @@ Options (-i and -f and/or -c are mandatory):
 Your Netgear router must be connected to your network using an
 Ethernet cable. The device running `nmrpflash` must be connected
 to the same network, using either Wi-Fi or Ethernet.
+
+Usage sequence of events:
+1. Turn off the router
+2. Connect ethernet cable from computer to router's LAN1
+3. Run nmrpflash on command line
+4. Turn on the router.
 
 All available network interfaces can be listed using
 
@@ -93,9 +100,16 @@ C:\> net start npf
 
 ###### "No response after 60 seconds. Bailing out."
 
-The router did not respond. Try rebooting the device and run `nmrpflash` again.
-You could also try running `nmrpflash` with `-m` and specify your router's
-MAC address. It's also possible that your device does not support the NMRP protocol.
+The router did not respond. Always run `nmrpflash` in the sequence
+described above!
+
+If that still doesn't work, you can try "blind mode", which can be
+invoked using `-B`. Note that you also have to specify your router's
+mac address using `-m xx:xx:xx:xx:xx:xx`. Also beware that in this mode,
+careful timing between running `nmrpflash` and turning on the router may
+be required!
+
+It's also possible that your device does not support the NMRP protocol.
 
 ###### "Timeout while waiting for ACK(0)/OACK."
 
@@ -157,6 +171,36 @@ By default, file transfers using TFTP are limited to `65535 * 512` bytes
 (almost 32 MiB). Uploading files exceeding this limit might fail, depending
 on the device.
 
+###### "Ignoring extra upload request."
+
+Extraneous upload requests are usually sent by the device if the image validation
+failed. Some possible causes are:
+
+* If you downloaded a firmware that's contained in an archive (a `.zip` for
+example), you must extract this file, and then use the contained firmware file
+as the argument to the `-f` parameter. Some examples for file extensions used
+for firmware: `.chk`, `.bin`, `.trx`, `.img`.
+
+* Some devices prevent you from downgrading the firmware. See if it works with
+the latest version available for your device. If you're already using the latest
+version, it might be possible to patch the version info of the firmware file. A
+future version of `nmrpflash` might incorporate an auto-patch feature for these
+cases.
+
+* Your device might expect a different image format for `nmrpflash` than when
+flashing via the web interface. 
+
+###### "bind: Cannot assign requested address"
+
+Specify the address of the router, and address of your computer, using
+`-A` and `-a`. For example:
+
+`-A 10.0.0.2 -a 10.0.0.1`
+
+or
+
+`-A 192.168.1.2 -a 192.168.1.1`
+
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
 
@@ -173,4 +217,9 @@ project file (`nmrpflash.dev`). Download the latest
 and extract it into the root folder of the `nmrpflash` sources.
 
 
+### Donate
+
+You can [buy me a coffee](https://www.buymeacoffee.com/jclehner) if you want, but please consider
+donating the money for charity instead - [Médecins Sans Frontiers](https://www.msf.org/donate) comes to mind,
+but any other organization, local or international, that you think deserves support will do. Thank you!
 

@@ -62,6 +62,10 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
+
 #ifndef PACKED
 #define PACKED __attribute__((packed))
 #endif
@@ -92,6 +96,7 @@ struct nmrpd_args {
 	const char *intf;
 	const char *mac;
 	enum nmrp_op op;
+	bool blind;
 	uint16_t port;
 	const char *region;
 };

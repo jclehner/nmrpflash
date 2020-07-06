@@ -317,6 +317,8 @@ inline bool tftp_is_valid_filename(const char *filename)
 	return strlen(filename) <= 255 && is_netascii(filename);
 }
 
+static const char *spinner = "\\|/-";
+
 int tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
@@ -327,6 +329,8 @@ int tftp_put(struct nmrpd_args *args)
 	const char *file_remote = args->file_remote;
 	char *val, *end;
 	bool rollover;
+	const unsigned rx_timeout = MAX(args->rx_timeout / (args->blind ? 50 : 5), 2000);
+	const unsigned max_timeouts = args->blind ? 3 : 5;
 
 	sock = -1;
 	ret = -1;
@@ -383,6 +387,7 @@ int tftp_put(struct nmrpd_args *args)
 		xperror("inet_addr");
 		goto cleanup;
 	}
+
 	addr.sin_port = htons(args->port);
 
 	blksize = 512;
@@ -429,6 +434,10 @@ int tftp_put(struct nmrpd_args *args)
 					}
 				}
 
+				printf("%c ", spinner[block & 3]);
+				fflush(stdout);
+				printf("\b\b");
+
 				pkt_mknum(tx, DATA);
 				pkt_mknum(tx + 2, block);
 				len = read(fd, tx + 4, blksize);
@@ -463,11 +472,17 @@ int tftp_put(struct nmrpd_args *args)
 			}
 		}
 
-		ret = tftp_recvfrom(sock, rx, &port, args->rx_timeout, blksize + 4);
+		ret = tftp_recvfrom(sock, rx, &port, rx_timeout, blksize + 4);
 		if (ret < 0) {
 			goto cleanup;
 		} else if (!ret) {
-			if (++timeouts < 5 || (!block && timeouts < 10)) {
+			if (++timeouts < max_timeouts || (!block && timeouts < (max_timeouts * 4))) {
+				continue;
+			} else if (args->blind) {
+				timeouts = 0;
+				// fake an ACK packet
+				pkt_mknum(rx, ACK);
+				pkt_mknum(rx + 2, block);
 				continue;
 			} else if (block) {
 				fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);

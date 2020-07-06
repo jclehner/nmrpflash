@@ -357,11 +357,11 @@ int nmrp_do(struct nmrpd_args *args)
 	uint16_t region;
 	char *filename;
 	time_t beg;
-	int i, status, ulreqs, expect, upload_ok, autoip, kareqs;
+	int i, timeout, status, ulreqs, expect, upload_ok, autoip, ka_reqs, fake;
 	struct ethsock *sock;
 	struct ethsock_ip_undo *ip_undo = NULL;
 	struct ethsock_arp_undo *arp_undo = NULL;
-	uint32_t intf_addr;
+	uint32_t intf_addr = 0;
 	void (*sigh_orig)(int);
 	struct in_addr ipaddr;
 	struct in_addr ipmask;
@@ -385,8 +385,13 @@ int nmrp_do(struct nmrpd_args *args)
 
 	if (!args->ipaddr) {
 		autoip = true;
-		/* The MAC of the device that was used to test this utility starts
-		 * with a4:2b:8c, hence 164 (0xa4) and 183 (0x2b + 0x8c)
+		/* A random IP address. The MAC of the first device that was
+		 * used to test this utility starts with a4:2b:8c, so we use
+		 * 164 (0xa4) and 183 (0x2b + 0x8c).
+		 *
+		 * These addresses should not cause collisions on most networks,
+		 * and if they do, the user is probably "poweruser" enough to
+		 * be able to use the -a and -A options.
 		 */
 		args->ipaddr = "10.164.183.252";
 
@@ -477,6 +482,8 @@ int nmrp_do(struct nmrpd_args *args)
 
 	i = 0;
 	upload_ok = 0;
+	fake = 0;
+	timeout = args->blind ? 10 : NMRP_INITIAL_TIMEOUT;
 	beg = time_monotonic();
 
 	while (!g_interrupted) {
@@ -486,7 +493,6 @@ int nmrp_do(struct nmrpd_args *args)
 		i = (i + 1) & 3;
 
 		if (pkt_send(sock, &tx) < 0) {
-			xperror("sendto");
 			goto out;
 		}
 
@@ -504,18 +510,34 @@ int nmrp_do(struct nmrpd_args *args)
 		} else {
 			/* because we don't want nmrpflash's exit status to be zero */
 			status = 1;
-			if ((time_monotonic() - beg) >= NMRP_INITIAL_TIMEOUT) {
-				printf("\nNo response after 60 seconds. Bailing out.\n");
-				goto out;
+			if ((time_monotonic() - beg) >= timeout) {
+				printf("\nNo response after %d seconds. ", timeout);
+				if (!args->blind) {
+					printf("Bailing out.\n");
+					goto out;
+				} else {
+					// we're blind, so fake a response from the MAC specified by -m
+					memcpy(rx.eh.ether_shost, dest, 6);
+					msg_init(&rx.msg, NMRP_C_CONF_REQ);
+					printf("Continuing blindly.");
+					fake = 1;
+					break;
+				}
 			}
 		}
 	}
 
 	printf("\n");
 
+	memcpy(tx.eh.ether_dhost, rx.eh.ether_shost, 6);
+
+	if (ethsock_arp_add(sock, rx.eh.ether_shost, ipaddr.s_addr, &arp_undo) != 0) {
+		goto out;
+	}
+
 	expect = NMRP_C_CONF_REQ;
 	ulreqs = 0;
-	kareqs = 0;
+	ka_reqs = 0;
 
 	while (!g_interrupted) {
 		if (expect != NMRP_C_NONE && rx.msg.code != expect) {
@@ -537,17 +559,13 @@ int nmrp_do(struct nmrpd_args *args)
 				msg_mkconfack(&tx.msg, ipaddr.s_addr, ipmask.s_addr, region);
 				expect = NMRP_C_TFTP_UL_REQ;
 
-				printf("Received configuration request from %s.\n",
-						mac_to_str(rx.eh.ether_shost));
-
-				memcpy(tx.eh.ether_dhost, rx.eh.ether_shost, 6);
+				if (!fake) {
+					printf("Received configuration request from %s.\n",
+							mac_to_str(rx.eh.ether_shost));
+				}
 
 				printf("Sending configuration: %s/%d.\n",
 						args->ipaddr, bitcount(ipmask.s_addr));
-
-				if (ethsock_arp_add(sock, rx.eh.ether_shost, ipaddr.s_addr, &arp_undo) != 0) {
-					goto out;
-				}
 
 				break;
 			case NMRP_C_TFTP_UL_REQ:
@@ -575,7 +593,9 @@ int nmrp_do(struct nmrpd_args *args)
 					printf("Received upload request: filename '%s'.\n", filename);
 				} else if (!args->file_remote) {
 					args->file_remote = leafname(args->file_local);
-					printf("Received upload request without filename.\n");
+					if (!fake) {
+						printf("Received upload request without filename.\n");
+					}
 				}
 
 				status = 0;
@@ -621,6 +641,10 @@ int nmrp_do(struct nmrpd_args *args)
 				}
 
 				if (!status) {
+					if (args->blind) {
+						goto out;
+					}
+
 					printf("Waiting for remote to respond.\n");
 					upload_ok = 1;
 					ethsock_set_timeout(sock, args->ul_timeout);
@@ -636,7 +660,7 @@ int nmrp_do(struct nmrpd_args *args)
 			case NMRP_C_KEEP_ALIVE_REQ:
 				tx.msg.code = NMRP_C_KEEP_ALIVE_ACK;
 				ethsock_set_timeout(sock, args->ul_timeout);
-				printf("\rReceived keep-alive request (%d).  ", ++kareqs);
+				printf("\rReceived keep-alive request (%d).  ", ++ka_reqs);
 				break;
 			case NMRP_C_CLOSE_REQ:
 				tx.msg.code = NMRP_C_CLOSE_ACK;
@@ -651,18 +675,13 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 
 		if (tx.msg.code != NMRP_C_NONE) {
-			if (pkt_send(sock, &tx) < 0) {
-				xperror("sendto");
-				goto out;
-			}
-
-			if (tx.msg.code == NMRP_C_CLOSE_REQ) {
+			if (pkt_send(sock, &tx) != 0 || tx.msg.code == NMRP_C_CLOSE_REQ) {
 				goto out;
 			}
 		}
 
 		if (rx.msg.code == NMRP_C_CLOSE_REQ) {
-			if (kareqs) {
+			if (ka_reqs) {
 				printf("\n");
 			}
 
@@ -673,10 +692,21 @@ int nmrp_do(struct nmrpd_args *args)
 		status = pkt_recv(sock, &rx);
 		if (status) {
 			if (status == 2) {
-				fprintf(stderr, "Timeout while waiting for %s.\n",
-						msg_code_str(expect));
+				if (!args->blind) {
+					fprintf(stderr, "Timeout while waiting for %s.\n",
+							msg_code_str(expect));
+					goto out;
+				}
+
+				// fake response
+				msg_init(&rx.msg, expect);
+				memcpy(rx.eh.ether_shost, tx.eh.ether_dhost, 6);
+				fake = 1;
+			} else {
+				goto out;
 			}
-			goto out;
+		} else {
+			fake = 0;
 		}
 
 		ethsock_set_timeout(sock, args->rx_timeout);
