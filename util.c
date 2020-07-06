@@ -28,6 +28,7 @@
 #endif
 
 volatile sig_atomic_t g_interrupted = 0;
+int verbosity = 0;
 
 time_t time_monotonic()
 {
@@ -58,6 +59,14 @@ char *lltostr(long long ll, int base)
 	return buf;
 }
 
+const char *mac_to_str(uint8_t *mac)
+{
+	static char buf[18];
+	snprintf(buf, sizeof(buf), "%02x:%02x:%02x:%02x:%02x:%02x",
+			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	return buf;
+}
+
 uint32_t bitcount(uint32_t n)
 {
 	uint32_t c;
@@ -70,6 +79,26 @@ uint32_t bitcount(uint32_t n)
 uint32_t netmask(uint32_t count)
 {
 	return htonl(count <= 32 ? 0xffffffff << (32 - count) : 0);
+}
+
+int select_fd(int fd, unsigned timeout)
+{
+	struct timeval tv;
+	int status;
+	fd_set fds;
+
+	FD_ZERO(&fds);
+	FD_SET(fd, &fds);
+
+	tv.tv_sec = timeout / 1000;
+	tv.tv_usec = 1000 * (timeout % 1000);
+
+	status = select(fd + 1, &fds, NULL, NULL, &tv);
+	if (status < 0) {
+		sock_perror("select");
+	}
+
+	return status;
 }
 
 void xperror(const char *msg)

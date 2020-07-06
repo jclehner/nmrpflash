@@ -193,12 +193,20 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 		return 0;
 	}
 
+#ifndef NMRPFLASH_FUZZ
 	alen = sizeof(src);
 	len = recvfrom(sock, pkt, pktlen, 0, (struct sockaddr*)&src, &alen);
 	if (len < 0) {
 		sock_perror("recvfrom");
 		return -1;
 	}
+#else
+	len = read(sock, pkt, pktlen);
+	if (len < 0) {
+		perror("read");
+		return -1;
+	}
+#endif
 
 	*port = ntohs(src.sin_port);
 
@@ -263,10 +271,14 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 		printf("\n");
 	}
 
+#ifndef NMRPFLASH_FUZZ
 	sent = sendto(sock, pkt, len, 0, (struct sockaddr*)dst, sizeof(*dst));
 	if (sent < 0) {
 		sock_perror("sendto");
 	}
+#else
+	sent = len;
+#endif
 
 	return sent;
 }
@@ -340,12 +352,16 @@ int tftp_put(struct nmrpd_args *args)
 		}
 	}
 
+#ifndef NMRPFLASH_FUZZ_TFTP
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (sock < 0) {
 		sock_perror("socket");
 		ret = sock;
 		goto cleanup;
 	}
+#else
+	sock = STDIN_FILENO;
+#endif
 
 	memset(&addr, 0, sizeof(addr));
 

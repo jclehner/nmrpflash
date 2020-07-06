@@ -240,6 +240,7 @@ static void msg_mkconfack(struct nmrp_msg *msg, uint32_t ipaddr, uint32_t ipmask
 #define ethsock_ip_add(a, b, c, d) (0)
 #define ethsock_ip_del(a, b) (0)
 #define ethsock_close(a) (0)
+#define ethsock_for_each_ip(a, b, c) (1)
 #define tftp_put(a) (0)
 
 static uint8_t *ethsock_get_hwaddr_fake(struct ethsock* sock)

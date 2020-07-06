@@ -23,8 +23,6 @@
 #include <stdio.h>
 #include "nmrpd.h"
 
-int verbosity = 0;
-
 void usage(FILE *fp)
 {
 	fprintf(fp,
