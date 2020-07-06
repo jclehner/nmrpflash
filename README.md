@@ -40,9 +40,10 @@ Ethernet cable. The device running `nmrpflash` must be connected
 to the same network, using either Wi-Fi or Ethernet.
 
 Usage sequence of events:
-1. Connect ethernet cable from computer to router's LAN1
-2. Run nmrpflash on command line
-3. Turn on the router.
+1. Turn off the router
+2. Connect ethernet cable from computer to router's LAN1
+3. Run nmrpflash on command line
+4. Turn on the router.
 
 All available network interfaces can be listed using
 
@@ -99,12 +100,8 @@ C:\> net start npf
 
 ###### "No response after 60 seconds. Bailing out."
 
-The router did not respond. Always run `nmrpflash` in the following
-manner:
-
-* Turn off the router.
-* Run `nmrpflash`.
-* Turn on the router.
+The router did not respond. Always run `nmrpflash` in the sequence
+described above!
 
 If that still doesn't work, you can try "blind mode", which can be
 invoked using `-B`. Note that you also have to specify your router's
