@@ -35,31 +35,38 @@ Options (-i, and -f or -c are mandatory):
 
 ### Using nmrpflash
 
-Your Netgear router must be connected to your network using an
-Ethernet cable. The device running `nmrpflash` must be connected
-to the same network, using either Wi-Fi or Ethernet.
+Download the correct firmware image for your device. When downloading from the Netgear site,
+the firmware is usually contained in a `.zip` file - extract this first. The actual firmware
+file will have an extension such as `.chk`, `.bin`, `.trx` or `.img`.
 
-Usage sequence of events:
-1. Turn off the router
-2. Connect ethernet cable from computer to router's LAN1
-3. Run nmrpflash on command line
-4. Turn on the router.
+Now, using an Ethernet cable, connect your Netgear router to the computer that will run
+`nmrpflash`.
 
-All available network interfaces can be listed using
+Next, you'll have to determine which network interface corresponds to the one connected to
+the Netgear router. All available interfaces can be listed using  
 
 ```
 # nmrpflash -L
-eth0      192.168.1.2  f2:11:a1:02:03:b1
+eth0      192.168.1.2  c0:de:fa:ce:01:23
+eth2      0.0.0.0      ca:fe:ba:be:45:67
+wifi0     10.0.10.138  de:ad:be:ef:89:ab
 ```
 
-Once you've determined the interface to use, we can flash the image. Firmware
-images can usually be downloaded directly from Netgear. Power on your device
-immediately after starting `nmrpflash`.
+For the rest of this example, let's assume that your router is connected to `eth2`, and that
+you want to flash a firmware image named `EX2700-V1.0.1.8.img`.
+
+First of all, turn *off* the router. Then start `nmrpflash` using the following command:
 
 ```
-# nmrpflash -i eth0 -f EX2700-V1.0.1.8.img
-Advertising NMRP server on eth0 ... /
-Received configuration request from a4:2b:8c:00:00:01.
+# nmrpflash -i eth2 -f EX2700-V1.0.1.8.img
+Advertising NMRP server on eth2 ... /
+```
+
+As soon as you see the `Advertising NMRP server` message, turn the router *on*. If all went
+well, `nmrpflash` will continue printing messages:
+
+```
+Received configuration request from fe:ed:1b:ad:f0:0d
 Sending configuration: 10.164.183.252/24
 Received upload request: filename 'firmware'.
 Uploading EX2700-V1.0.1.8.img ...
@@ -69,11 +76,11 @@ Remote finished. Closing connection.
 Reboot your device now.
 ```
 
+Now reboot the device, and you're good to go.
+
 ### Common issues
 
-In any case, run `nmrpflash` with `-vvv` before filing a bug report. Also,
-try connecting your Netgear router *directly* to the computer running
-`nmrpflash`.
+**In any case, run `nmrpflash` with `-vvv` before filing a bug report!**
 
 ###### "Error while loading shared libraries: ..." (Linux)
 
