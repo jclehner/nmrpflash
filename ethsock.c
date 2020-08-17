@@ -27,7 +27,6 @@
 #include "nmrpd.h"
 
 #if defined(NMRPFLASH_WINDOWS)
-#define NMRPFLASH_NETALIAS_PREFIX "net"
 #define WPCAP
 #include <pcap.h>
 #else
@@ -425,42 +424,54 @@ static bool intf_get_info(const char *intf, uint8_t *hwaddr, DWORD *index)
 	return found;
 }
 
-static const char *intf_alias_to_wpcap(const char *intf)
+static const char *intf_name_to_wpcap(const char *intf)
 {
 	static char buf[128];
-	pcap_if_t *devs, *dev;
-	unsigned i = 0, dev_num = 0;
 
 	if (intf[0] == '\\') {
 		return intf;
-	} else if (sscanf(intf, NMRPFLASH_NETALIAS_PREFIX "%u", &dev_num) != 1) {
-		fprintf(stderr, "Invalid interface alias.\n");
-		return NULL;
 	}
 
-	if (x_pcap_findalldevs(&devs) != 0) {
-		return NULL;
-	}
+	do {
+		NET_IFINDEX index;
+		DWORD err;
+		NET_LUID luid;
+		GUID guid;
 
-	for (dev = devs; dev; dev = dev->next, ++i) {
-		if (i == dev_num) {
-			if (verbosity) {
-				printf("%s%u: %s\n", NMRPFLASH_NETALIAS_PREFIX, i, dev->name);
-			}
-			strncpy(buf, dev->name, sizeof(buf) - 1);
-			buf[sizeof(buf) - 1] = '\0';
+		index = if_nametoindex(intf);
+		if (!index) {
 			break;
 		}
-	}
 
-	pcap_freealldevs(devs);
+		err = ConvertInterfaceIndexToLuid(index, &luid);
+		if (err != NO_ERROR) {
+			if (verbosity) {
+				win_perror2("ConvertInterfaceIndexToLuid", err);
+			}
 
-	if (!dev) {
-		fprintf(stderr, "Interface alias not found.\n");
-		return NULL;
-	}
+			break;
+		}
 
-	return buf;
+		err = ConvertInterfaceLuidToGuid(&luid, &guid);
+		if (err != NO_ERROR) {
+			if (verbosity) {
+				win_perror2("ConvertInterfaceLuidToGuid", err);
+			}
+		}
+
+		snprintf(buf, sizeof(buf),
+			"\\Device\\NPF{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
+			guid.Data1, guid.Data2, guid.Data3,
+			guid.Data4[0], guid.Data4[1], guid.Data4[2],
+			guid.Data4[3], guid.Data4[4], guid.Data4[5],
+			guid.Data4[6], guid.Data4[7]);
+
+		return buf;
+
+	} while (false);
+
+	fprintf(stderr, "Invalid interface name.\n");
+	return NULL;
 }
 
 static const char *intf_get_pretty_name(const char *intf)
@@ -516,10 +527,12 @@ bool ethsock_is_unplugged(struct ethsock *sock)
 {
 #ifdef NMRPFLASH_WINDOWS
 	MIB_IF_ROW2 row;
+	DWORD err;
+
 	memset(&row, 0, sizeof(row));
 	row.InterfaceIndex = sock->index;
 
-	DWORD err = GetIfEntry2(&row);
+	err = GetIfEntry2(&row);
 	if (err != NO_ERROR) {
 		win_perror2("GetIfEntry2", err);
 		return false;
@@ -529,9 +542,6 @@ bool ethsock_is_unplugged(struct ethsock *sock)
 #else
 	return false;
 #endif
-
-
-
 }
 
 struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
@@ -543,7 +553,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	int err;
 
 #ifdef NMRPFLASH_WINDOWS
-	intf = intf_alias_to_wpcap(intf);
+	intf = intf_name_to_wpcap(intf);
 	if (!intf) {
 		return NULL;
 	}
@@ -868,7 +878,8 @@ int ethsock_list_all(void)
 		pretty = intf_get_pretty_name(dev->name);
 
 		if (!verbosity) {
-			printf("%s%-2u", NMRPFLASH_NETALIAS_PREFIX, dev_num);
+			char buf[IF_MAX_STRING_SIZE];
+			printf("%-15s", if_indextoname(dev->index, buf));
 		} else {
 			printf("%s", dev->name);
 		}
