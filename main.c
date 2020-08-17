@@ -80,7 +80,7 @@ void usage(FILE *fp)
 #ifdef NMRPFLASH_WINDOWS
 void require_admin()
 {
-	SID_IDENTIFIER_AUTHORITY auth = SECURITY_NT_AUTHORITY;
+	SID_IDENTIFIER_AUTHORITY auth = { SECURITY_NT_AUTHORITY };
 	PSID group = NULL;
 	BOOL admin, success = AllocateAndInitializeSid(
 		&auth, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS,

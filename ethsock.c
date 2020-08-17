@@ -384,7 +384,7 @@ static bool intf_get_info(const char *intf, uint8_t *hwaddr, DWORD *index)
 {
 	PIP_ADAPTER_INFO adapters, adapter;
 	DWORD ret;
-	ULONG i, bufLen = 0;
+	ULONG bufLen = 0;
 	bool found = false;
 
 	if ((ret = GetAdaptersInfo(NULL, &bufLen)) != ERROR_BUFFER_OVERFLOW) {

@@ -56,6 +56,7 @@
 #include <iphlpapi.h>
 #include <ws2tcpip.h>
 #include <windows.h>
+#include <conio.h>
 #endif
 
 #ifndef MIN
