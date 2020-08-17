@@ -505,16 +505,33 @@ static const char *intf_get_pretty_name(const char *intf)
 	return intf;
 }
 
-void init_unicast_row(MIB_UNICASTIPADDRESS_ROW* row, DWORD index, uint32_t ipaddr, uint32_t ipmask)
-{
-}
-
-
 #endif
 
 inline uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
 {
 	return sock->hwaddr;
+}
+
+bool ethsock_is_unplugged(struct ethsock *sock)
+{
+#ifdef NMRPFLASH_WINDOWS
+	MIB_IF_ROW2 row;
+	memset(&row, 0, sizeof(row));
+	row.InterfaceIndex = sock->index;
+
+	DWORD err = GetIfEntry2(&row);
+	if (err != NO_ERROR) {
+		win_perror2("GetIfEntry2", err);
+		return false;
+	}
+
+	return row.InterfaceAndOperStatusFlags.NotMediaConnected;
+#else
+	return false;
+#endif
+
+
+
 }
 
 struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
@@ -1049,6 +1066,7 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 
 		/* Wait until the new IP has actually been added */
 
+		/*
 		while (bind(fd, (struct sockaddr*)&row.Address.Ipv4, sizeof(row.Address.Ipv4)) != 0) {
 			if ((time_monotonic() - beg) >= 5) {
 				fprintf(stderr, "Failed to bind after 5 seconds: ");
@@ -1057,6 +1075,7 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 				goto out;
 			}
 		}
+		*/
 	} else {
 		err = DeleteUnicastIpAddressEntry(&row);
 		if (err != NO_ERROR) {

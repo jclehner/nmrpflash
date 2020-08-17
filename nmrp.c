@@ -446,6 +446,25 @@ int nmrp_do(struct nmrpd_args *args)
 
 	sigh_orig = signal(SIGINT, sigh);
 
+	if (ethsock_is_unplugged(sock)) {
+		printf("Waiting for Ethernet cable to be plugged in.\n");
+
+		bool unplugged = true;
+		time_t beg = time_monotonic();
+
+		while (!g_interrupted && (time_monotonic() - beg) < 20) {
+			if (!ethsock_is_unplugged(sock)) {
+				unplugged = false;
+				break;
+			}
+		}
+
+		if (unplugged) {
+			fprintf(stderr, "Error: Ethernet cable is unplugged.");
+			goto out;
+		}
+	}
+
 	if (!autoip) {
 		status = is_valid_ip(sock, &ipaddr, &ipmask);
 		if (status <= 0) {

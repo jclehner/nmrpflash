@@ -125,6 +125,7 @@ struct ethsock_arp_undo;
 struct ethsock_ip_undo;
 
 struct ethsock *ethsock_create(const char *intf, uint16_t protocol);
+bool ethsock_is_unplugged(struct ethsock *sock);
 int ethsock_close(struct ethsock *sock);
 int ethsock_send(struct ethsock *sock, void *buf, size_t len);
 ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len);
