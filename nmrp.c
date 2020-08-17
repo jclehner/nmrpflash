@@ -229,7 +229,7 @@ static void msg_mkconfack(struct nmrp_msg *msg, uint32_t ipaddr, uint32_t ipmask
 }
 
 #ifdef NMRPFLASH_FUZZ
-#define NMRP_INITIAL_TIMEOUT 0
+#define NMRP_ADVERTISE_TIMEOUT 0
 #define ethsock_create(a, b) ((struct ethsock*)1)
 #define ethsock_get_hwaddr(a) ethsock_get_hwaddr_fake(a)
 #define ethsock_recv(sock, buf, len) read(STDIN_FILENO, buf, len)
@@ -249,7 +249,7 @@ static uint8_t *ethsock_get_hwaddr_fake(struct ethsock* sock)
 	return hwaddr;
 }
 #else
-#define NMRP_INITIAL_TIMEOUT 60
+#define NMRP_ADVERTISE_TIMEOUT 60
 #endif
 
 static int pkt_send(struct ethsock *sock, struct nmrp_pkt *pkt)
@@ -465,7 +465,7 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 	}
 
-	if (ethsock_set_timeout(sock, args->rx_timeout)) {
+	if (ethsock_set_timeout(sock, 200)) {
 		goto out;
 	}
 
@@ -483,7 +483,7 @@ int nmrp_do(struct nmrpd_args *args)
 	i = 0;
 	upload_ok = 0;
 	fake = 0;
-	timeout = args->blind ? 10 : NMRP_INITIAL_TIMEOUT;
+	timeout = args->blind ? 10 : NMRP_ADVERTISE_TIMEOUT;
 	beg = time_monotonic();
 
 	while (!g_interrupted) {
@@ -532,6 +532,10 @@ int nmrp_do(struct nmrpd_args *args)
 	memcpy(tx.eh.ether_dhost, rx.eh.ether_shost, 6);
 
 	if (ethsock_arp_add(sock, rx.eh.ether_shost, ipaddr.s_addr, &arp_undo) != 0) {
+		goto out;
+	}
+
+	if (ethsock_set_timeout(sock, args->rx_timeout)) {
 		goto out;
 	}
 

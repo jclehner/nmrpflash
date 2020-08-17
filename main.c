@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 	int c, val, max;
 	bool list = false, have_dest_mac = false;
 	struct nmrpd_args args = {
-		.rx_timeout = 200,
+		.rx_timeout = 1000,
 		.ul_timeout = 5 * 60,
 		.tftpcmd = NULL,
 		.file_local = NULL,
