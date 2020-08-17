@@ -129,42 +129,44 @@ static inline bool sockaddr_get_hwaddr(struct sockaddr *sa, uint8_t *hwaddr)
 }
 
 #ifdef NMRPFLASH_LINUX
-static int bridge_stp_state(const char *intf)
+static int intf_sys_open(const char* intf, const char* file)
 {
 	char name[256];
-	snprintf(name, sizeof(name), "/sys/class/net/%s/bridge/stp_state", intf);
+	snprintf(name, sizeof(name), "/sys/class/net/%s/%s", intf, file);
 	return open(name, O_RDWR, 0644);
 }
 
-static bool bridge_stp_enabled(const char *intf)
+static bool intf_sys_read(const char* intf, const char* file, bool def)
 {
 	char c;
-	int fd = bridge_stp_state(intf);
+	int fd;
+
+	fd = intf_sys_open(intf, file);
 	if (fd == -1) {
-		return false;
+		return def;
 	}
 
-	if (read(fd, &c, 1) != 1) {
-		c = '0';
-	}
-
+	c = 0;
+	read(fd, &c, 1);
 	close(fd);
-	return c == '1';
+
+	return c ? (c == '1') : def;
 }
 
-static bool bridge_stp(const char *intf, bool enabled)
+static bool intf_stp_enable(const char *intf, bool enabled)
 {
-	bool ret;
-	const char *s = enabled ? "1\n" : "0\n";
-	int fd = bridge_stp_state(intf);
+	int fd;
+	ssize_t n;
+
+	fd = intf_sys_open(intf, "bridge/stp_state");
 	if (fd == -1) {
 		return false;
 	}
 
-	ret = (write(fd, s, 2) == 2);
+	n = write(fd, enabled ? "1\n" : "0\n", 2);
 	close(fd);
 
-	return ret;
+	return n == 2;
 }
 
 static struct nl_addr *build_ip(uint32_t ip)
@@ -525,7 +527,9 @@ inline uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
 
 bool ethsock_is_unplugged(struct ethsock *sock)
 {
-#ifdef NMRPFLASH_WINDOWS
+#if defined(NMRPFLASH_LINUX)
+	return intf_sys_read(sock->intf, "carrier", false);
+#elif defined(NMRPFLASH_WINDOWS)
 	MIB_IF_ROW2 row;
 	DWORD err;
 
@@ -633,8 +637,8 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 
 #ifdef NMRPFLASH_LINUX
 	// nmrpflash does not work on bridge interfaces with STP enabled
-	if ((sock->stp = bridge_stp_enabled(intf))) {
-		if (!bridge_stp(intf, false)) {
+	if ((sock->stp = intf_sys_read(intf, "bridge/stp_state", false))) {
+		if (!intf_stp_enable(intf, false)) {
 			fprintf(stderr, "Warning: failed to disable STP on %s.\n", intf);
 		}
 	}
@@ -723,7 +727,7 @@ int ethsock_close(struct ethsock *sock)
 
 #ifdef NMRPFLASH_LINUX
 	if (sock->stp) {
-		bridge_stp(sock->intf, true);
+		intf_stp_enable(sock->intf, true);
 	}
 #endif
 	if (sock->pcap) {
