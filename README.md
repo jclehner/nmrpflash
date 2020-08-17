@@ -40,7 +40,8 @@ the firmware is usually contained in a `.zip` file - extract this first. The act
 file will have an extension such as `.chk`, `.bin`, `.trx` or `.img`.
 
 Now, using an Ethernet cable, connect your Netgear router to the computer that will run
-`nmrpflash`.
+`nmrpflash`. Use the LAN port, which is often colored blue on Netgear devices. If the
+router has multiple LAN ports, use the one labled `1`.
 
 Next, you'll have to determine which network interface corresponds to the one connected to
 the Netgear router. All available interfaces can be listed using  
