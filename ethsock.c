@@ -528,7 +528,7 @@ inline uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
 bool ethsock_is_unplugged(struct ethsock *sock)
 {
 #if defined(NMRPFLASH_LINUX)
-	return intf_sys_read(sock->intf, "carrier", false);
+	return !intf_sys_read(sock->intf, "carrier", true);
 #elif defined(NMRPFLASH_WINDOWS)
 	MIB_IF_ROW2 row;
 	DWORD err;
