@@ -1055,7 +1055,8 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 			return -1;
 		}
 
-		memset(*undo, 0, sizeof(**undo));
+		(*undo)->ip[0] = ipaddr;
+		(*undo)->ip[1] = ipmask;
 	}
 
 	ret = -1;
@@ -1067,11 +1068,6 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 
 #ifndef NMRPFLASH_WINDOWS
 #ifdef NMRPFLASH_LINUX
-	if (add) {
-		(*undo)->ip[0] = ipaddr;
-		(*undo)->ip[1] = ipmask;
-	}
-
 	if (!intf_add_del_ip(sock->intf, (*undo)->ip[0], (*undo)->ip[1], add)) {
 		goto out;
 	}
@@ -1104,13 +1100,17 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 	memset(&row, 0, sizeof(row));
 
 	row.InterfaceIndex = sock->index;
-	row.PrefixOrigin = IpPrefixOriginManual;
-	row.SuffixOrigin = IpPrefixOriginManual;
-	row.OnLinkPrefixLength = bitcount(ipmask);
-	row.SkipAsSource = false;
-	row.PreferredLifetime = 0xffffffff;
-	row.ValidLifetime = 0xffffffff;
 	set_addr(&row.Address.Ipv4, ipaddr);
+	row.Address.si_family = AF_INET;
+	
+	if (add) {
+		row.PrefixOrigin = IpPrefixOriginManual;
+		row.SuffixOrigin = IpPrefixOriginManual;
+		row.OnLinkPrefixLength = bitcount(ipmask);
+		row.SkipAsSource = false;
+		row.PreferredLifetime = 0xffffffff;
+		row.ValidLifetime = 0xffffffff;
+	}
 
 	DWORD err;
 
