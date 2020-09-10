@@ -44,6 +44,7 @@ void usage(FILE *fp)
 #ifdef NMRPFLASH_SET_REGION
 			" -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP)\n"
 #endif
+			" -S <n>          Skip <n> bytes of the firmware file\n"
 #ifdef NMRPFLASH_TFTP_TEST
 			" -U              Test TFTP upload\n"
 #endif
@@ -145,6 +146,7 @@ int main(int argc, char **argv)
 		.port = 69,
 		.region = NULL,
 		.blind = false,
+		.offset = 0,
 	};
 #ifdef NMRPFLASH_WINDOWS
 	char *newpath = NULL;
@@ -181,7 +183,7 @@ int main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "a:A:Bc:f:F:i:m:M:p:R:t:T:hLVvU")) != -1) {
+	while ((c = getopt(argc, argv, "a:A:Bc:f:F:i:m:M:p:R:S:t:T:hLVvU")) != -1) {
 		max = 0x7fffffff;
 		switch (c) {
 			case 'a':
@@ -218,6 +220,7 @@ int main(int argc, char **argv)
 				break;
 #endif
 			case 'p':
+			case 'S':
 			case 'T':
 			case 't':
 				if (c == 'p') {
@@ -236,6 +239,8 @@ int main(int argc, char **argv)
 					args.rx_timeout = val;
 				} else if (c == 'T') {
 					args.ul_timeout = val * 1000;
+				} else if (c == 'S') {
+					args.offset = val;
 				}
 
 				break;

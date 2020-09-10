@@ -100,6 +100,7 @@ struct nmrpd_args {
 	bool blind;
 	uint16_t port;
 	const char *region;
+	off_t offset;
 };
 
 const char *leafname(const char *path);

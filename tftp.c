@@ -349,10 +349,14 @@ int tftp_put(struct nmrpd_args *args)
 		fd = open(args->file_local, O_RDONLY | O_BINARY);
 		if (fd < 0) {
 			xperror("open");
-			ret = fd;
 			goto cleanup;
 		} else if (!file_remote) {
 			file_remote = args->file_local;
+		}
+
+		if (lseek(fd, args->offset, SEEK_SET) == (off_t)-1) {
+			xperror("lseek");
+			goto cleanup;
 		}
 	}
 
