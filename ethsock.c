@@ -464,7 +464,7 @@ static const char *intf_name_to_wpcap(const char *intf)
 		}
 
 		snprintf(buf, sizeof(buf),
-			"\\Device\\NPF_{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
+			"\\Device\\NPF_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
 			guid.Data1, guid.Data2, guid.Data3,
 			guid.Data4[0], guid.Data4[1], guid.Data4[2],
 			guid.Data4[3], guid.Data4[4], guid.Data4[5],
