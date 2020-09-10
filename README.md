@@ -93,7 +93,7 @@ packages (exact names will vary depending on your distribution).
 Install [Npcap](https://nmap.org/npcap/). For `nmrpflash` versions prior
 to 0.9.14, install Npcap with "WinPcap Compatibility" enabled.
 
-Version 0.9.13 is the last version to support Windows XP.
+Version 0.9.13 was the last version to support Windows XP.
 
 ###### "No suitable network interfaces found."
 
@@ -128,14 +128,6 @@ address assigned to the target (e.g. if your network is `192.168.1.0/24`, specif
 IP address, such as `-a 192.168.1.252`), and `-A` to change the IP address used for the
 network interface.
 
-This error message could also indicate a bug in the TFTP code; try using an external tftp
-client (busybox in this example), by specifying the `-c` flag instead of the `-f` flag:
-
-`# nmrpflash -i eth0 -c 'busybox tftp -p -l EX2700-V1.0.1.8.img $IP'`
-
-The environment variable `IP` is set by `nmrpflash` (other environment variables
-are: `MAC`, `PORT`, `NETMASK`).
-
 ###### "Timeout while waiting for CLOSE_REQ."
 
 After a successful file upload, `nmrpflash` waits for up to 5 minutes for an
@@ -159,14 +151,6 @@ This can happen if the network interface in question automatically detects that
 the network cable has been connected, and your computer tries to reconfigure that
 interface (NetworkManager on Linux does this for example) - this can usually be
 disabled.
-
-An alternative would be to add `-c 'ifconfig <interface> <ip>'` to the command line,
-for example:
-
-`# nmrpflash -i eth0 -a 192.168.1.1 -f firmware.bin -c 'ifconfig eth0 192.168.1.2'`
-
-This will execute the command specified by `-c` prior to starting the TFTP upload (in
-this case setting the IP address to 192.168.1.2).
 
 ###### "Received keep-alive request."
 
@@ -196,12 +180,12 @@ future version of `nmrpflash` might incorporate an auto-patch feature for these
 cases.
 
 * Your device might expect a different image format for `nmrpflash` than when
-flashing via the web interface. 
+flashing via the web interface.
 
 ###### "bind: Cannot assign requested address"
 
-Specify the address of the router, and address of your computer, using
-`-A` and `-a`. For example:
+Specify the address of the router (`-a`), and address of your computer (`-A`).
+For example:
 
 `-A 10.0.0.2 -a 10.0.0.1`
 
