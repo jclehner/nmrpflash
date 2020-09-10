@@ -440,9 +440,11 @@ static const char *intf_name_to_wpcap(const char *intf)
 		NET_LUID luid;
 		GUID guid;
 
-		index = if_nametoindex(intf);
-		if (!index) {
-			break;
+		if (sscanf(intf, "net%d", &index) != 1) {
+			index = if_nametoindex(intf);
+			if (!index) {
+				break;
+			}
 		}
 
 		err = ConvertInterfaceIndexToLuid(index, &luid);
@@ -450,7 +452,6 @@ static const char *intf_name_to_wpcap(const char *intf)
 			if (verbosity) {
 				win_perror2("ConvertInterfaceIndexToLuid", err);
 			}
-
 			break;
 		}
 
@@ -459,10 +460,11 @@ static const char *intf_name_to_wpcap(const char *intf)
 			if (verbosity) {
 				win_perror2("ConvertInterfaceLuidToGuid", err);
 			}
+			break;
 		}
 
 		snprintf(buf, sizeof(buf),
-			"\\Device\\NPF{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
+			"\\Device\\NPF_{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
 			guid.Data1, guid.Data2, guid.Data3,
 			guid.Data4[0], guid.Data4[1], guid.Data4[2],
 			guid.Data4[3], guid.Data4[4], guid.Data4[5],
@@ -516,6 +518,46 @@ static const char *intf_get_pretty_name(const char *intf)
 
 	RegCloseKey(hkey);
 	return intf;
+}
+
+NET_IFINDEX intf_get_index(const char* intf)
+{
+	const char* p;
+	GUID guid;
+	NET_LUID luid;
+	DWORD err;
+	NET_IFINDEX ret;
+	int n;
+
+	p = strstr(intf, "NPF_{");
+	if (!p) {
+		return 0;
+	}
+
+	sscanf(p + 5,
+			"%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X%n",
+			&guid.Data1, &guid.Data2, &guid.Data3,
+			&guid.Data4[0], &guid.Data4[1], &guid.Data4[2],
+			&guid.Data4[3], &guid.Data4[4], &guid.Data4[5],
+			&guid.Data4[6], &guid.Data4[7], &n);
+
+	if (n != 36) {
+		return 0;
+	}
+
+	err = ConvertInterfaceGuidToLuid(&guid, &luid);
+	if (err) {
+		win_perror2("ConvertInterfaceGuidToLuid", err);
+		return 0;
+	}
+
+	err = ConvertInterfaceLuidToIndex(&luid, &ret);
+	if (err) {
+		win_perror2("ConvertInterfaceLuidToIndex", err);
+		return 0;
+	}
+
+	return ret;
 }
 
 #endif
@@ -850,7 +892,9 @@ int ethsock_list_all(void)
 	uint8_t hwaddr[6];
 	unsigned dev_num = 0, dev_ok = 0;
 #ifdef NMRPFLASH_WINDOWS
+	char buf[IF_MAX_STRING_SIZE];
 	const char *pretty;
+	NET_IFINDEX index;
 #endif
 
 	if (x_pcap_findalldevs(&devs) != 0) {
@@ -880,12 +924,12 @@ int ethsock_list_all(void)
 #else
 		/* Call this here so *_perror() calls don't happen within a line */
 		pretty = intf_get_pretty_name(dev->name);
+		index = intf_get_index(dev->name);
 
-		if (!verbosity) {
-			char buf[IF_MAX_STRING_SIZE];
-			printf("%-15s", if_indextoname(dev->index, buf));
+		if (!verbosity && index) {
+			printf("net%-2d", index);
 		} else {
-			printf("%s", dev->name);
+			printf("%-15s", dev->name);
 		}
 #endif
 
