@@ -331,6 +331,11 @@ int tftp_put(struct nmrpd_args *args)
 	bool rollover;
 	const unsigned rx_timeout = MAX(args->rx_timeout / (args->blind ? 50 : 5), 2000);
 	const unsigned max_timeouts = args->blind ? 3 : 5;
+#ifndef NMRPFLASH_WINDOWS
+	int enabled = 1;
+#else
+	BOOL enabled = TRUE;
+#endif
 
 	sock = -1;
 	ret = -1;
@@ -361,27 +366,34 @@ int tftp_put(struct nmrpd_args *args)
 	}
 
 #ifndef NMRPFLASH_FUZZ_TFTP
-	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock < 0) {
 		sock_perror("socket");
-		ret = sock;
 		goto cleanup;
 	}
+
+	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(enabled)) != 0) {
+		sock_perror("setsockopt");
+		goto cleanup;
+	}
+
 #else
 	sock = STDIN_FILENO;
 #endif
 
 	memset(&addr, 0, sizeof(addr));
-
 	addr.sin_family = AF_INET;
 
+	// check if we have an interface address, and bind to it if we do
 	if (args->ipaddr_intf) {
+		addr.sin_addr.s_addr = inet_addr(args->ipaddr_intf);
 		if ((addr.sin_addr.s_addr = inet_addr(args->ipaddr_intf)) == INADDR_NONE) {
 			xperror("inet_addr");
 			goto cleanup;
 		}
 
 		if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
+			printf("errno=%d\n", errno);
 			sock_perror("bind");
 			goto cleanup;
 		}
