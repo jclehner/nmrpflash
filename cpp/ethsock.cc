@@ -353,25 +353,25 @@ void eth_interface::add_del_ip(const ip_addr& ip, bool add)
 {
 	check_ip_addr(ip);
 
-	boost::format cmd;
+	cmdfmt cmd;
 
 #if BOOST_OS_WINDOWS
 	if (add) {
-		cmd = boost::format("netsh interface add address %s addr=%s mask=%s gateway=0.0.0.0")
+		cmd = cmdfmt(L"netsh interface add address %s addr=%s mask=%s gateway=0.0.0.0")
 				% quote(m_alias) % stringify(ip.address()) % stringify(ip.netmask());
 	} else {
-		cmd = boost::format("netsh interface delete address %s addr=%s")
+		cmd = cmdfmt(L"netsh interface delete address %s addr=%s")
 				% quote(m_alias) % stringify(ip.address());
 	}
 #elif BOOST_OS_LINUX
-	cmd = boost::format("ip address %s %s dev %s") % (add ? "add" : "del")
+	cmd = cmdfmt("ip address %s %s dev %s") % (add ? "add" : "del")
 			% stringify(ip) % quote(m_name);
 #else
-	cmd = boost::format("ifconfig %s inet %s netmask %s %s") % quote(m_name)
+	cmd = cmdfmt("ifconfig %s inet %s netmask %s %s") % quote(m_name)
 			% stringify(ip.address()) % stringify(ip.netmask()) % (add ? "add" : "delete");
 #endif
 
-	run(cmd.str(), add);
+	run(cmd, add);
 
 #if 0
 #if defined(NMRPFLASH_WINDOWS)
@@ -486,25 +486,25 @@ void eth_interface::add_del_arp(const mac_addr& mac, const ip_addr& ip, bool add
 #endif
 #endif
 
-	boost::format cmd;
+	cmdfmt cmd;
 
 	if (add) {
 #if BOOST_OS_WINDOWS
-		cmd = boost::format("netsh add neighbors interface=%s address=%s neighbor=%s store=active"
+		cmd = cmdfmt(L"netsh add neighbors interface=%s address=%s neighbor=%s store=active"
 				% quote(m_alias) % stringify(ip.address()) % mac.to_string('-');
 #else
-		cmd = boost::format("arp -s %s %s") % stringify(ip.address()) % stringify(mac);
+		cmd = cmdfmt("arp -s %s %s") % stringify(ip.address()) % stringify(mac);
 #endif
 	} else {
 #if BOOST_OS_WINDOWS
-		cmd = boost::format("netsh delete neighbors interface=%s address=%s")
+		cmd = cmdfmt(L"netsh delete neighbors interface=%s address=%s")
 				% quote(m_alias) % stringify(ip.address()));
 #else
-		cmd = boost::format("arp -d %s") % stringify(ip.address());
+		cmd = cmdfmt("arp -d %s") % stringify(ip.address());
 #endif
 	}
 
-	run(cmd.str(), add);
+	run(cmd, add);
 
 	if (add) {
 		m_undo_arp[ip] = mac;
@@ -519,7 +519,9 @@ list<eth_interface> eth_interface::all()
 	pcap_devices devs;
 
 	for (auto dev : devs.get()) {
-		ret.emplace_back(dev);
+		if (if_nametoindex(dev->name)) {
+			ret.emplace_back(dev);
+		}
 	}
 
 	return ret;

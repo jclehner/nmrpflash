@@ -55,7 +55,7 @@ string mac_addr::to_string(char delim) const
 			ret += delim;
 		}
 
-		ret += (boost::format("%02x") % m_mac[i]).str();
+		ret += (boost::format("%02x") % int(m_mac[i])).str();
 	}
 
 	return ret;
@@ -63,18 +63,17 @@ string mac_addr::to_string(char delim) const
 
 ip_addr::ip_addr(const std::string& ip)
 {
-	auto tok = split(ip, '/', 2);
+	auto pos = ip.find('/');
+	if (pos != string::npos && (pos + 1) < ip.size()) {
+		prefix(stoi(ip.substr(pos + 1)));
+	}
 
 	in_addr addr;
-	if (!inet_aton(tok[0].c_str(), &addr)) {
-		throw invalid_argument("Invalid IP address: " + tok[1]);
+	if (!inet_aton(ip.substr(0, pos).c_str(), &addr)) {
+		throw invalid_argument("Invalid IP address: " + ip);
 	}
 
 	m_ip = addr.s_addr;
-	
-	if (tok.size() > 1) {
-		prefix(stoi(tok[1]));
-	}
 }
 
 ip_addr ip_addr::address() const
@@ -113,5 +112,119 @@ void ip_addr::prefix(int pfx)
 	}
 
 	m_prefix = pfx;
+}
+
+#if BOOST_OS_WINDOWS
+wstring quote(const wstring& str)
+{
+	// https://docs.microsoft.com/en-gb/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
+	
+	if (!str.empty() && str.find_first_of(L" \t\n\v\"") == wstring::npos) {
+		return str;
+	} else {
+		wstring quoted = L"\"";
+
+		for (auto it = str.begin();; ++it) {
+			unsigned backslashes = 0;
+
+			for (; it != str.end() && *it == L'\\'; ++it) {
+				++backslashes;
+			}
+
+			if (it == str.end()) {
+				quoted.append(backslashes * 2, L'\\'); 
+			} else if (it == L'"') {
+				quoted.append(backslashes * 2 + 1, L'\\');
+				quoted.append(*it);
+			} else {
+				quoted.append(backslashes, L'\\');
+				quoted.append(*it);
+			}
+		}
+
+		return quoted + L'"';
+	}
+}
+#else
+string quote(const string& str)
+{
+	auto pos = str.find('\'');
+	if (pos == string::npos) {
+		return "'" + str + "'";
+	} else {
+		string quoted = str;
+
+		do {
+			quoted.replace(pos, 1, "'\\''");
+			pos = quoted.find('\'', pos + 4);
+		} while (pos != string::npos);
+
+		return "'" + quoted + "'";
+	}
+}
+#endif
+
+int run(const cmdfmt& cmd, bool throw_on_error)
+{
+#if BOOST_OS_WINDOWS
+	PROCESS_INFORMATION pi;
+	STARTUPINFO si;
+
+	memset(&si, 0, sizeof(si));
+	si.cb = sizeof(si);	
+
+	DWORD ret = CreateProcessW(
+			nullptr,
+			cmd.str(),
+			nullptr,
+			nullptr,
+			FALSE,
+			0,
+			nullptr,
+			nullptr,
+			&si,
+			&pi);
+
+	if (!ret) {
+		throw winapi_error("CreateProcessW");
+	}
+
+	DWORD wait = WaitForSingleObject(pi.hProcess);
+	DWORD ret = -1;
+
+	if (wait == WAIT_OBJECT_0) {
+		if (!GetExitCodeProcess(pi.hProcess, &ret)) {
+			ret = -1;
+		}
+	}
+
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+
+	if (wait == WAIT_FAILED) {
+		throw winapi_error("WaitForSingleObject");
+	}
+#else
+	int ret = system(cmd.str().c_str());
+	if (ret == -1 || ret == 127) {
+		throw errno_error("system");
+	}
+#endif
+
+	if (ret != 0 && throw_on_error) {
+		throw runtime_error("command failed with exit status " + to_string(ret));		
+	}
+
+	return ret;
+}
+
+bool select_readfd(int fd, unsigned timeout)
+{
+	return true;
+}
+
+void log::w(const string& msg)
+{
+	cerr << msg << endl;
 }
 }

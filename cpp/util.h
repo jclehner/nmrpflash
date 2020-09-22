@@ -28,6 +28,7 @@
 #include <iostream>
 #include <cstdint>
 #include <cstring>
+#include <sstream>
 #include <cerrno>
 #include <vector>
 #include <string>
@@ -220,12 +221,25 @@ int xsocket(int domain, int type, int protocol);
 
 bool select_readfd(int fd, unsigned timeout);
 
-template<class T> std::string stringify(const T& t);
-std::string format(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
-std::vector<std::string> split(const std::string& str, char delim, unsigned max);
+template<class T> std::string stringify(const T& t)
+{
+	std::ostringstream ostr;
+	ostr << t;
+	return ostr.str();
+}
+
+std::vector<std::string> split(const std::string& str, char delim, bool empties = true, size_t limit = 0);
 template<class CharT> std::basic_string<CharT> quote(const std::basic_string<CharT>& str);
 
-int run(const std::string& cmd, bool throw_on_error = true);
+#if BOOST_OS_WINDOWS
+typedef boost::wformat cmdfmt;
+std::wstring quote(const std::wstring& str);
+#else
+typedef boost::format cmdfmt;
+std::string quote(const std::string& str);
+#endif
+
+int run(const cmdfmt& cmd, bool throw_on_error = true);
 
 class errno_error : public std::system_error
 {
