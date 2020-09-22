@@ -182,6 +182,12 @@ cases.
 * Your device might expect a different image format for `nmrpflash` than when
 flashing via the web interface.
 
+###### "Timeout while waiting for 0000." after "Waiting for remote to respond."
+
+This could indicate that the device hasn't finished flashing, after the default timeout
+(5 minutes until version `0.9.4`). Try increasing the timeout, using the `-T <seconds>` option,
+for example use `-T 1800` to specify a timeout of 30 minutes.
+
 ###### "bind: Cannot assign requested address"
 
 Specify the address of the router (`-a`), and address of your computer (`-A`).
