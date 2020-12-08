@@ -1096,13 +1096,15 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 #endif
 #else // NMRPFLASH_WINDOWS
 	MIB_UNICASTIPADDRESS_ROW row;
+	DWORD err;
+	int i;
 
 	memset(&row, 0, sizeof(row));
 
 	row.InterfaceIndex = sock->index;
 	set_addr(&row.Address.Ipv4, ipaddr);
 	row.Address.si_family = AF_INET;
-	
+
 	if (add) {
 		row.PrefixOrigin = IpPrefixOriginManual;
 		row.SuffixOrigin = IpPrefixOriginManual;
@@ -1112,8 +1114,6 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 		row.ValidLifetime = 0xffffffff;
 	}
 
-	DWORD err;
-
 	if (add) {
 		err = CreateUnicastIpAddressEntry(&row);
 		if (err != NO_ERROR && err != ERROR_OBJECT_ALREADY_EXISTS) {
@@ -1121,20 +1121,27 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 			goto out;
 		}
 
-		time_t beg = time_monotonic();
+		if (err != ERROR_OBJECT_ALREADY_EXISTS) {
+			/* Wait until the new IP has actually been added */
+			for (i = 0; i < 20; ++i) {
+				err = GetUnicastIpAddressEntry(&row);
+				if (err != NO_ERROR) {
+					win_perror2("GetUnicastIpAddressEntry", err);
+					goto out;
+				}
 
-		/* Wait until the new IP has actually been added */
+				if (row.DadState == IpDadStateTentative) {
+					Sleep(500);
+				} else {
+					break;
+				}
+			}
 
-		/*
-		while (bind(fd, (struct sockaddr*)&row.Address.Ipv4, sizeof(row.Address.Ipv4)) != 0) {
-			if ((time_monotonic() - beg) >= 5) {
-				fprintf(stderr, "Failed to bind after 5 seconds: ");
-				sock_perror("bind");
-				DeleteUnicastIpAddressEntry(&row);
+			if (row.DadState != IpDadStatePreferred) {
+				fprintf(stderr, "Failed to add IP address (state=%d).\n", row.DadState);
 				goto out;
 			}
 		}
-		*/
 	} else {
 		err = DeleteUnicastIpAddressEntry(&row);
 		if (err != NO_ERROR) {
