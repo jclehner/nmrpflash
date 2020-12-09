@@ -334,7 +334,7 @@ int tftp_put(struct nmrpd_args *args)
 #ifndef NMRPFLASH_WINDOWS
 	int enabled = 1;
 #else
-	BOOL enabled = TRUE;
+	char enabled = TRUE;
 #endif
 
 	sock = -1;
