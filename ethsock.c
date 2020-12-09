@@ -381,6 +381,22 @@ void win_perror2(const char *msg, DWORD err)
 	}
 }
 
+static bool intf_get_if_row(NET_IFINDEX index, MIB_IF_ROW2* row)
+{
+	DWORD err;
+
+	memset(row, 0, sizeof(*row));
+	row->InterfaceIndex = index;
+
+	err = GetIfEntry2(row);
+	if (err != NO_ERROR) {
+		win_perror2("GetIfEntry2", err);
+		return false;
+	}
+
+	return true;
+}
+
 static bool intf_get_info(const char *intf, uint8_t *hwaddr, DWORD *index)
 {
 	PIP_ADAPTER_INFO adapters, adapter;
@@ -478,48 +494,6 @@ static const char *intf_name_to_wpcap(const char *intf)
 	return NULL;
 }
 
-static const char *intf_get_pretty_name(const char *intf)
-{
-	static char buf[512];
-	char *guid;
-	HKEY hkey;
-	LONG err;
-	DWORD len;
-
-	guid = strstr(intf, "NPF_{");
-	if (!guid) {
-		return NULL;
-	}
-
-	guid += 4;
-
-	snprintf(buf, sizeof(buf),
-			"System\\CurrentControlSet\\Control\\Network\\"
-			"{4D36E972-E325-11CE-BFC1-08002BE10318}\\"
-			"%s\\Connection", guid);
-	err = RegOpenKeyExA(HKEY_LOCAL_MACHINE, buf, 0, KEY_READ, &hkey);
-	if (err != ERROR_SUCCESS) {
-		if (verbosity > 1) {
-			win_perror2("RegOpenKeyExA", err);
-		}
-		return NULL;
-	}
-
-	len = sizeof(buf);
-	err = RegQueryValueExA(hkey, "Name", NULL, NULL, (LPBYTE)buf, &len);
-	if (err == ERROR_SUCCESS) {
-		intf = buf;
-	} else {
-		if (verbosity > 1) {
-			win_perror2("RegQueryValueExA", err);
-		}
-		intf = NULL;
-	}
-
-	RegCloseKey(hkey);
-	return intf;
-}
-
 NET_IFINDEX intf_get_index(const char* intf)
 {
 	const char* p;
@@ -573,18 +547,12 @@ bool ethsock_is_unplugged(struct ethsock *sock)
 	return !intf_sys_read(sock->intf, "carrier", true);
 #elif defined(NMRPFLASH_WINDOWS)
 	MIB_IF_ROW2 row;
-	DWORD err;
 
-	memset(&row, 0, sizeof(row));
-	row.InterfaceIndex = sock->index;
-
-	err = GetIfEntry2(&row);
-	if (err != NO_ERROR) {
-		win_perror2("GetIfEntry2", err);
-		return false;
+	if (intf_get_if_row(sock->index, &row)) {
+		return row.InterfaceAndOperStatusFlags.NotMediaConnected;
 	}
 
-	return row.InterfaceAndOperStatusFlags.NotMediaConnected;
+	return false;
 #else
 	return false;
 #endif
@@ -893,8 +861,9 @@ int ethsock_list_all(void)
 	unsigned dev_num = 0, dev_ok = 0;
 #ifdef NMRPFLASH_WINDOWS
 	char buf[IF_MAX_STRING_SIZE];
-	const char *pretty;
+	wchar_t *pretty = NULL;
 	NET_IFINDEX index;
+	MIB_IF_ROW2 row;
 #endif
 
 	if (x_pcap_findalldevs(&devs) != 0) {
@@ -922,9 +891,20 @@ int ethsock_list_all(void)
 #ifndef NMRPFLASH_WINDOWS
 		printf("%-15s", dev->name);
 #else
-		/* Call this here so *_perror() calls don't happen within a line */
-		pretty = intf_get_pretty_name(dev->name);
 		index = intf_get_index(dev->name);
+
+		if (intf_get_if_row(index, &row)) {
+			if (!row.InterfaceAndOperStatusFlags.HardwareInterface) {
+				if (verbosity) {
+					printf("%-15s  (virtual interface)\n", dev->name);
+				}
+				continue;
+			}
+
+			if (row.Alias[0]) {
+				pretty = row.Alias;
+			}
+		}
 
 		if (!verbosity && index) {
 			printf("net%-2d", index);
@@ -949,7 +929,7 @@ int ethsock_list_all(void)
 
 #ifdef NMRPFLASH_WINDOWS
 		if (pretty) {
-			printf("  (%s)", pretty);
+			printf("  (%ls)", pretty);
 		} else if (dev->description) {
 			printf("  (%s)", dev->description);
 		}
