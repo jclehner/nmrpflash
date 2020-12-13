@@ -34,7 +34,7 @@
 #	if defined(__linux__)
 #		define NMRPFLASH_LINUX
 #	elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
-#			define NMRPFLASH_BSD
+#		define NMRPFLASH_BSD
 #	else
 #		warning "nmrpflash is not fully supported on this platform"
 #	endif

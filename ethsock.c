@@ -553,6 +553,20 @@ bool ethsock_is_unplugged(struct ethsock *sock)
 	}
 
 	return false;
+#elif defined(NMRPFLASH_BSD)
+	struct ifmediareq ifmr;
+
+	memset(&ifmr, 0, sizeof(ifmr));
+	strncpy(ifmr.ifr_name, name, sizeof(ifmr.ifr_name));
+
+	if (ioctl(fd, SIOCGIFMEDIA, &ifmr) < 0) {
+		if (verbosity > 1) {
+			perror("ioctl(SIOCGIFMEDIA)");
+		}
+		return false;
+	}
+
+	return (ifmr.ifm_status & IFM_AVALID) && !(ifmr.ifm_status & IFM_ACTIVE);
 #else
 	return false;
 #endif
