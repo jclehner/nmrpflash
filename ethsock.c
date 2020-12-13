@@ -554,19 +554,30 @@ bool ethsock_is_unplugged(struct ethsock *sock)
 
 	return false;
 #elif defined(NMRPFLASH_BSD)
-	struct ifmediareq ifmr;
+	struct ifmediareq ifm;
+	int fd;
 
-	memset(&ifmr, 0, sizeof(ifmr));
-	strncpy(ifmr.ifr_name, name, sizeof(ifmr.ifr_name));
-
-	if (ioctl(fd, SIOCGIFMEDIA, &ifmr) < 0) {
-		if (verbosity > 1) {
-			perror("ioctl(SIOCGIFMEDIA)");
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (fd < 0) {
+		if (verbosity) {
+			perror("socket");
 		}
 		return false;
 	}
 
-	return (ifmr.ifm_status & IFM_AVALID) && !(ifmr.ifm_status & IFM_ACTIVE);
+	memset(&ifm, 0, sizeof(ifm));
+	strncpy(ifm.ifm_name, sock->intf, sizeof(ifm.ifm_name));
+
+	if (ioctl(fd, SIOCGIFMEDIA, &ifm) < 0) {
+		if (verbosity) {
+			perror("ioctl(SIOCGIFMEDIA)");
+		}
+		goto out;
+	}
+
+out:
+	close(fd);
+	return (ifm.ifm_status & IFM_AVALID) && !(ifm.ifm_status & IFM_ACTIVE);
 #else
 	return false;
 #endif
