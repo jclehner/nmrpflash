@@ -9,7 +9,7 @@ Libs=Npcap\Lib
 PrivateResource=
 ResourceIncludes=
 MakeIncludes=
-Compiler=-DNMRPFLASH_VERSION=\"0.9.15-rc2\"_@@_ -D_WIN32_WINNT=0x0600_@@_
+Compiler=-DNMRPFLASH_VERSION=\"0.9.15-rc3\"_@@_ -D_WIN32_WINNT=0x0600_@@_
 CppCompiler=
 Linker=-liphlpapi_@@_-lws2_32_@@_-ladvapi32_@@_-lwpcap_@@_-lpacket_@@__@@_
 IsCpp=0
