@@ -447,7 +447,7 @@ int nmrp_do(struct nmrpd_args *args)
 	sigh_orig = signal(SIGINT, sigh);
 
 	if (ethsock_is_unplugged(sock)) {
-		printf("Waiting for phyiscal connection.\n");
+		printf("Waiting for physical connection.\n");
 
 		bool unplugged = true;
 		time_t beg = time_monotonic();
