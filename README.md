@@ -3,7 +3,7 @@ nmrpflash - Netgear Unbrick Utility
 
 `nmrpflash` uses Netgear's [NMRP protocol](http://www.chubb.wattle.id.au/PeterChubb/nmrp.html)
 to flash a new firmware image to a compatible device. It has been successfully used on a Netgear
-EX2700, EX6120, EX6150v2, DNG3700v2, R6100, R6220, R7000, D7000, WNR3500, R6400 and R6800, R8000,
+EX2700, EX6100v2, EX6120, EX6150v2, DNG3700v2, R6100, R6220, R7000, D7000, WNR3500, R6400 and R6800, R8000,
 R8500, WNDR3800, but is likely to be compatible with many other Netgear devices.
 
 Prebuilt binaries for Linux, ~OS X~ macOS and Windows are available
@@ -89,6 +89,10 @@ Now reboot the device, and you're good to go.
 
 You must install your Linux distribution's `libpcap` and `libnl-3`
 packages (exact names will vary depending on your distribution).
+
+On Ubuntu based distros you can install these dependencies with
+
+    sudo apt install libpcap-dev libnl-3-dev
 
 ###### "The program can't start because wpcap.dll is missing" (Windows)
 
