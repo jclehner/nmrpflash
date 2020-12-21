@@ -90,13 +90,9 @@ Now reboot the device, and you're good to go.
 You must install your Linux distribution's `libpcap` and `libnl-3`
 packages (exact names will vary depending on your distribution).
 
-On Ubuntu based distros you can install these dependencies with
+On Debian based distros you can install these dependencies with
 
-    sudo apt install libpcap-dev libnl-3-dev
-
-On Ubuntu based distros you can install these dependencies with
-
-    sudo apt install libpcap-dev libnl-3-dev
+    sudo apt install libpcap libnl-3
 
 ###### "The program can't start because wpcap.dll is missing" (Windows)
 
@@ -211,6 +207,14 @@ or
 
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
+
+On Linux, developer packages for libpcap and libnl must be installed:
+
+```
+$ sudo apt install libpcap-dev libnl-3-dev
+```
+
+Then, it's as easy as 
 
 ```
 $ make && sudo make install
