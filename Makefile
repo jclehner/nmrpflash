@@ -4,6 +4,7 @@ PREFIX ?= /usr/local
 VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git describe --always | tail -c +2; else echo $$STANDALONE_VERSION; fi)
 CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 LDFLAGS += -lpcap
+SUFFIX ?= 
 
 ifeq ($(shell uname -s),Linux)
 	CFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --cflags)
@@ -20,8 +21,8 @@ nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
 
 .PHONY: clean install release release/macos release/linux release/win32
 
-nmrpflash: $(nmrpflash_OBJ)
-	$(CC) $(CFLAGS) -o nmrpflash $(nmrpflash_OBJ) $(LDFLAGS)
+nmrpflash$(SUFFIX): $(nmrpflash_OBJ)
+	$(CC) $(CFLAGS) -o nmrpflash$(SUFFIX) $(nmrpflash_OBJ) $(LDFLAGS)
 
 tftptest:
 	CFLAGS=-DNMRPFLASH_TFTP_TEST make clean nmrpflash
@@ -48,7 +49,9 @@ install: nmrpflash
 	install -m 755 nmrpflash $(PREFIX)/bin
 
 release/macos:
-	CFLAGS="-mmacosx-version-min=10.6" make release
+	CFLAGS="-target arm64-apple-macos11" SUFFIX=".arm64" make release
+	CFLAGS="-target x86_64-apple-macos10.12" SUFFIX=".x86_64" make release
+	lipo -create -output nmrpflash nmrpflash.x86_64 nmrpflash.arm64
 	zip nmrpflash-$(VERSION)-macos.zip nmrpflash
 
 release/linux: release
@@ -57,5 +60,5 @@ release/linux: release
 release/win32:
 	zip nmrpflash-$(VERSION)-win32.zip nmrpflash.exe
 
-release: clean nmrpflash
-	strip nmrpflash
+release: clean nmrpflash$(SUFFIX)
+	strip nmrpflash$(SUFFIX)
