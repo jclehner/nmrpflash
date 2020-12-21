@@ -90,7 +90,7 @@ Now reboot the device, and you're good to go.
 You must install your Linux distribution's `libpcap` and `libnl-3`
 packages (exact names will vary depending on your distribution).
 
-On Debian based distros you can install these dependencies with
+On Debian based distros (such as Ubuntu) you can install these dependencies with
 
     sudo apt install libpcap libnl-3
 
@@ -208,7 +208,7 @@ or
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
 
-On Linux, developer packages for libpcap and libnl must be installed:
+On Linux, developer packages for `libpcap` and `libnl` must be installed:
 
 ```
 $ sudo apt install libpcap-dev libnl-3-dev
