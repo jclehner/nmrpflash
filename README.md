@@ -9,6 +9,7 @@ R8500, WNDR3800, but is likely to be compatible with many other Netgear devices.
 Prebuilt binaries for Linux, ~OS X~ macOS and Windows are available
 [here](https://github.com/jclehner/nmrpflash/releases)
 ([Npcap](https://nmap.org/npcap/) is required on Windows).
+FreeBSD packages can be fetched and installed using the FreeBSD pkg command.
 
 ```
 Usage: nmrpflash [OPTIONS...]
@@ -218,6 +219,19 @@ Then, it's as easy as
 
 ```
 $ make && sudo make install
+```
+
+On FreeBSD (assuming the ports infrastructure is installed and you have root permissions):
+
+```
+$ cd /usr/ports/sysutils/nmrpflash
+$ make install
+```
+
+Or install the FreeBSD binary package with:
+
+```
+$ package install nmrpflash
 ```
 
 ###### Windows
