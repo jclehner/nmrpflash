@@ -50,7 +50,7 @@ install: nmrpflash
 
 release/macos:
 	CFLAGS="-target arm64-apple-macos11" SUFFIX=".arm64" make release
-	CFLAGS="-target x86_64-apple-macos10.12" SUFFIX=".x86_64" make release
+	CFLAGS="-target x86_64-apple-macos10.8" SUFFIX=".x86_64" make release
 	lipo -create -output nmrpflash nmrpflash.x86_64 nmrpflash.arm64
 	zip nmrpflash-$(VERSION)-macos.zip nmrpflash
 
