@@ -6,10 +6,9 @@ to flash a new firmware image to a compatible device. It has been successfully u
 EX2700, EX6100v2, EX6120, EX6150v2, DNG3700v2, R6100, R6220, R7000, D7000, WNR3500, R6400 and R6800, R8000,
 R8500, WNDR3800, but is likely to be compatible with many other Netgear devices.
 
-Prebuilt binaries for Linux, ~OS X~ macOS and Windows are available
-[here](https://github.com/jclehner/nmrpflash/releases)
-([Npcap](https://nmap.org/npcap/) is required on Windows).
-FreeBSD packages can be fetched and installed using the FreeBSD `pkg` command.
+Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases)
+([Npcap](https://nmap.org/npcap/) is required on Windows). FreeBSD packages can be fetched and installed using the
+FreeBSD `pkg` command.
 
 ```
 Usage: nmrpflash [OPTIONS...]
@@ -101,6 +100,14 @@ Install [Npcap](https://nmap.org/npcap/). For `nmrpflash` versions prior
 to 0.9.14, install Npcap with "WinPcap Compatibility" enabled.
 
 Version 0.9.13 was the last version to support Windows XP.
+
+###### "nmrpflash cannot be opened because the developer cannot be verified." (macOS)
+
+Go to ` -> System Preferences -> Security & Privacy`. Under the `General` tab, there
+should be a text like "nmrpflash was blocked from use because it is not from an identified
+developer". Click the `Allow anyway` button next to it, and run `nmrpflash` again.
+
+If that doesn't work, try [this](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac).
 
 ###### "No suitable network interfaces found."
 
@@ -231,7 +238,7 @@ $ make install
 Or install the FreeBSD binary package with:
 
 ```
-$ package install nmrpflash
+$ pkg install nmrpflash
 ```
 
 ###### Windows
