@@ -3,8 +3,8 @@ nmrpflash - Netgear Unbrick Utility
 
 `nmrpflash` uses Netgear's [NMRP protocol](http://www.chubb.wattle.id.au/PeterChubb/nmrp.html)
 to flash a new firmware image to a compatible device. It has been successfully used on a Netgear
-EX2700, EX6100v2, EX6120, EX6150v2, DNG3700v2, R6100, R6220, R7000, D7000, WNR3500, R6400 and R6800, R8000,
-R8500, WNDR3800, but is likely to be compatible with many other Netgear devices.
+EX2700, EX6100v2, EX6120, EX6150v2, DNG3700v2, R6100, R6220, R7000, D7000, WNR3500, R6080, R6400
+and R6800, R8000, R8500, WNDR3800, but is likely to be compatible with many other Netgear devices.
 
 Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases)
 ([Npcap](https://nmap.org/npcap/) is required on Windows). FreeBSD packages can be fetched and installed using the
