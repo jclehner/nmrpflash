@@ -216,10 +216,10 @@ or
 ### Building and installing
 ###### Linux, Mac OS X, BSDs
 
-On Linux, developer packages for `libpcap` and `libnl` must be installed:
+On Linux, developer packages for `libpcap`, `libnl` and `libnl-route` must be installed:
 
 ```
-$ sudo apt install libpcap-dev libnl-3-dev
+$ sudo apt install libpcap-dev libnl-3-dev libnl-route-3-dev
 ```
 
 Then, it's as easy as 
