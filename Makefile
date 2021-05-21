@@ -43,7 +43,7 @@ dofuzz_tftp: fuzz_tftp
 	echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 
 clean:
-	rm -f $(nmrpflash_OBJ) nmrpflash nmrpflash.x86_64 nmrpflash.arm64 fuzz_nmrp fuzz_tftp
+	rm -f $(nmrpflash_OBJ) nmrpflash fuzz_nmrp fuzz_tftp
 
 install: nmrpflash
 	install -m 755 nmrpflash $(PREFIX)/bin
@@ -53,6 +53,7 @@ release/macos:
 	CFLAGS="-target x86_64-apple-macos10.8" SUFFIX=".x86_64" make release
 	lipo -create -output nmrpflash nmrpflash.x86_64 nmrpflash.arm64
 	zip nmrpflash-$(VERSION)-macos.zip nmrpflash
+	rm -f nmrpflash.x86_64 nmrpflash.arm64
 
 release/linux: release
 	zip nmrpflash-$(VERSION)-linux.zip nmrpflash
