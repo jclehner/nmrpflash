@@ -312,8 +312,8 @@ static bool intf_add_del_arp(const char *intf, uint32_t ipaddr, uint8_t *hwaddr,
 		err = rtnl_neigh_add(sk, neigh, NLM_F_CREATE);
 	}
 
-	if (err && (add || verbosity > 1)) {
-		nl_perror(err, add ? "rtnl_neigh_add" : "rtnl_neigh_delete");
+	if (err && add) {
+		nl_perror(err, "rtnl_neigh_add");
 	}
 
 out:
@@ -837,7 +837,9 @@ static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, s
 
 int ethsock_arp_add(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, struct ethsock_arp_undo **undo)
 {
+	// remove any previous ARP entry
 	ethsock_arp(sock, hwaddr, ipaddr, NULL);
+	// add the new ARP entry
 	return undo ? ethsock_arp(sock, hwaddr, ipaddr, undo) : -1;
 }
 
