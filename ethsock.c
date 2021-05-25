@@ -55,6 +55,8 @@ struct ethsock
 	int fd;
 #ifdef NMRPFLASH_LINUX
 	bool stp;
+	// managed by NetworkManager
+	bool nm_managed;
 #endif
 #else
 	HANDLE handle;
@@ -86,7 +88,6 @@ static int x_pcap_findalldevs(pcap_if_t **devs)
 	return 0;
 }
 
-#ifndef NMRPFLASH_LINUX
 static int systemf(const char *fmt, ...)
 {
 	char cmd[1024];
@@ -104,7 +105,6 @@ static int systemf(const char *fmt, ...)
 
 	return ret;
 }
-#endif
 
 #ifndef NMRPFLASH_WINDOWS
 static inline bool sockaddr_get_hwaddr(struct sockaddr *sa, uint8_t *hwaddr)
@@ -677,6 +677,24 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 			fprintf(stderr, "Warning: failed to disable STP on %s.\n", intf);
 		}
 	}
+
+	err = system("nmcli -v > /dev/null");
+	if (!err) {
+		err = systemf("nmcli -f GENERAL.STATE device show %s | grep -q unmanaged", sock->intf);
+		if (!err) {
+			sock->nm_managed = false;
+		} else {
+			sock->nm_managed = true;
+			err = systemf("nmcli device set ifname %s managed no", sock->intf);
+			if (err) {
+				printf("Warning: failed to temporarily disable NetworkManager\n");
+			}
+				printf("Temporarily disabling NetworkManager on interface.\n");
+			}
+		}
+	} else {
+		sock->nm_managed = false;
+	}
 #else
 	if (is_bridge) {
 		fprintf(stderr, "Warning: bridge interfaces are not fully "
@@ -763,6 +781,10 @@ int ethsock_close(struct ethsock *sock)
 #ifdef NMRPFLASH_LINUX
 	if (sock->stp) {
 		intf_stp_enable(sock->intf, true);
+	}
+
+	if (sock->nm_managed) {
+		systemf("nmcli device set ifname %s managed yes", sock->intf);
 	}
 #endif
 	if (sock->pcap) {
