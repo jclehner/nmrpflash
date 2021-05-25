@@ -200,11 +200,22 @@ static bool intf_add_del_ip(const char *intf, uint32_t ipaddr, uint32_t ipmask, 
 {
 	struct rtnl_addr *ra = NULL;
 	struct nl_sock *sk = NULL;
-	struct nl_addr *na = NULL;
+	struct nl_addr *laddr = NULL;
+	struct nl_addr *bcast = NULL;
 	int err = 1;
 
 	if (!(sk = xnl_socket_route())) {
 		return false;
+	}
+
+	if (!(laddr = build_ip(ipaddr))) {
+		goto out;
+	}
+
+	nl_addr_set_prefixlen(laddr, bitcount(ipmask));
+
+	if (!(bcast = build_ip((ipaddr & ipmask) | ~ipmask))) {
+		goto out;
 	}
 
 	if (!(ra = rtnl_addr_alloc())) {
@@ -213,23 +224,10 @@ static bool intf_add_del_ip(const char *intf, uint32_t ipaddr, uint32_t ipmask, 
 	}
 
 	rtnl_addr_set_ifindex(ra, if_nametoindex(intf));
+	rtnl_addr_set_local(ra, laddr);
+	rtnl_addr_set_broadcast(ra, bcast);
 
-	if (!(na = build_ip(ipaddr))) {
-		goto out;
-	}
-
-	nl_addr_set_prefixlen(na, bitcount(ipmask));
-	rtnl_addr_set_local(ra, na);
-	nl_addr_put(na);
-
-	if (!(na = build_ip((ipaddr & ipmask) | ~ipmask))) {
-		goto out;
-	}
-
-	rtnl_addr_set_broadcast(ra, na);
-	nl_addr_put(na);
-
-	if ((err = add ? rtnl_addr_add(sk, ra, 0) : rtnl_addr_delete(sk, ra, 0)) < 0) {
+	if ((err = ((add ? rtnl_addr_add(sk, ra, 0) : rtnl_addr_delete(sk, ra, 0)) < 0))) {
 		if (add && err == -NLE_EXIST) {
 			err = 0;
 		} else if (add || verbosity > 1) {
@@ -239,6 +237,8 @@ static bool intf_add_del_ip(const char *intf, uint32_t ipaddr, uint32_t ipmask, 
 
 out:
 	rtnl_addr_put(ra);
+	nl_addr_put(laddr);
+	nl_addr_put(bcast);
 	nl_socket_free(sk);
 
 	return !err;
