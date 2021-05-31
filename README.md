@@ -60,10 +60,10 @@ First of all, turn *off* the router. Then start `nmrpflash` using the following 
 
 ```
 # nmrpflash -i eth2 -f EX2700-V1.0.1.8.img
-Waiting for physical connection.
+Waiting for Ethernet connection.
 ```
 
-As soon as you see the `Waiting for physical connection.` message, turn the router *on*. If all went
+As soon as you see the `Waiting for Ethernet connection.` message, turn the router *on*. If all went
 well, `nmrpflash` will continue printing messages:
 
 ```
@@ -71,8 +71,7 @@ Advertising NMRP server on eth2 ... /
 Received configuration request from fe:ed:1b:ad:f0:0d
 Sending configuration: 10.164.183.252/24
 Received upload request: filename 'firmware'.
-Uploading EX2700-V1.0.1.8.img ...
-Upload successful.
+Uploading EX2700-V1.0.1.8.img ... OK (3539077 b)
 Waiting for remote to respond.
 Received keep-alive request (11).
 Remote finished. Closing connection.
