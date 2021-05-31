@@ -111,7 +111,7 @@ static inline bool sockaddr_get_hwaddr(struct sockaddr *sa, uint8_t *hwaddr)
 {
 	void *src;
 
-	if (sa->sa_family != NMRPFLASH_AF_PACKET) {
+	if (!sa || sa->sa_family != NMRPFLASH_AF_PACKET) {
 		return false;
 	}
 
