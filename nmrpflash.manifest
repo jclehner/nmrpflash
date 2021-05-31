@@ -6,7 +6,7 @@
     <security>
       <requestedPrivileges>
         <requestedExecutionLevel level="requireAdministrator" uiAccess="false"/>
-        </requestedPrivileges>
-       </security>
+      </requestedPrivileges>
+    </security>
   </trustInfo>
 </assembly>
