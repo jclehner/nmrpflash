@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="nmrpflash" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="default">
+				<Option output="nmrpflash" prefix_auto="1" extension_auto="1" />
+				<Option object_output="Obj" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-std=c99" />
+			<Add option="-m32" />
+			<Add option='-DNMRPFLASH_VERSION=\&quot;0.9.16\&quot;' />
+			<Add option="-DWINVER=0x0600" />
+			<Add option="-D_WIN32_WINNT=0x0600" />
+			<Add option="-DWIN32_LEAN_AND_MEAN" />
+			<Add option="-D__USE_MINGW_ANSI_STDIO" />
+			<Add directory="Npcap/Include" />
+		</Compiler>
+		<Linker>
+			<Add option="-s" />
+			<Add option="-m32" />
+			<Add library="iphlpapi" />
+			<Add library="ws2_32" />
+			<Add library="advapi32" />
+			<Add library="wpcap" />
+			<Add library="packet" />
+			<Add directory="Npcap/Lib" />
+		</Linker>
+		<Unit filename="ethsock.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="nmrp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="nmrpd.h">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tftp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="util.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Extensions>
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

@@ -243,8 +243,8 @@ $ pkg install nmrpflash
 ###### Windows
 
 The repository includes a
-[DevCpp](http://sourceforge.net/projects/orwelldevcpp/)
-project file (`nmrpflash.dev`). Download the latest
+[CodeBlocks](https://www.codeblocks.org/)
+project file (`nmrpflash.cbp`). Download the latest
 [Npcap SDK](https://nmap.org/npcap/)
 and extract it into the root folder of the `nmrpflash` sources.
 
