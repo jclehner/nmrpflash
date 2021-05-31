@@ -667,7 +667,7 @@ int nmrp_do(struct nmrpd_args *args)
 				}
 
 				if (bytes > 0) {
-					printf("OK (%zi b)\n", bytes);
+					printf("OK (%zd b)\n", bytes);
 
 					if (args->blind) {
 						goto out;

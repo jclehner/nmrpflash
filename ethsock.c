@@ -89,6 +89,7 @@ static int x_pcap_findalldevs(pcap_if_t **devs)
 	return 0;
 }
 
+#ifndef NMRPFLASH_WINDOWS
 static int systemf(const char *fmt, ...)
 {
 	char cmd[1024];
@@ -106,6 +107,7 @@ static int systemf(const char *fmt, ...)
 
 	return ret;
 }
+#endif
 
 #ifndef NMRPFLASH_WINDOWS
 static inline bool sockaddr_get_hwaddr(struct sockaddr *sa, uint8_t *hwaddr)
@@ -457,7 +459,7 @@ static const char *intf_name_to_wpcap(const char *intf)
 		NET_LUID luid;
 		GUID guid;
 
-		if (sscanf(intf, "net%d", &index) != 1) {
+		if (sscanf(intf, "net%lu", &index) != 1) {
 			index = if_nametoindex(intf);
 			if (!index) {
 				break;
@@ -481,7 +483,7 @@ static const char *intf_name_to_wpcap(const char *intf)
 		}
 
 		snprintf(buf, sizeof(buf),
-			"\\Device\\NPF_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
+			"\\Device\\NPF_{%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
 			guid.Data1, guid.Data2, guid.Data3,
 			guid.Data4[0], guid.Data4[1], guid.Data4[2],
 			guid.Data4[3], guid.Data4[4], guid.Data4[5],
@@ -510,7 +512,7 @@ NET_IFINDEX intf_get_index(const char* intf)
 	}
 
 	sscanf(p + 5,
-			"%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X%n",
+			"%08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX%n",
 			&guid.Data1, &guid.Data2, &guid.Data3,
 			&guid.Data4[0], &guid.Data4[1], &guid.Data4[2],
 			&guid.Data4[3], &guid.Data4[4], &guid.Data4[5],
@@ -910,7 +912,6 @@ int ethsock_list_all(void)
 	uint8_t hwaddr[6];
 	unsigned dev_num = 0, dev_ok = 0;
 #ifdef NMRPFLASH_WINDOWS
-	char buf[IF_MAX_STRING_SIZE];
 	wchar_t *pretty = NULL;
 	NET_IFINDEX index;
 	MIB_IF_ROW2 row;
@@ -957,7 +958,7 @@ int ethsock_list_all(void)
 		}
 
 		if (!verbosity && index) {
-			printf("net%-2d", index);
+			printf("net%-2lu", index);
 		} else {
 			printf("%-15s", dev->name);
 		}
