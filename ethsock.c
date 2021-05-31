@@ -27,6 +27,7 @@
 #include "nmrpd.h"
 
 #if defined(NMRPFLASH_WINDOWS)
+#include <iphlpapi.h>
 #define WPCAP
 #include <pcap.h>
 #else

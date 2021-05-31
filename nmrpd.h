@@ -25,6 +25,7 @@
 
 #if defined(_WIN32) || defined(_WIN64)
 #	define NMRPFLASH_WINDOWS
+#	define WIN32_LEAN_AND_MEAN
 #elif defined(__APPLE__) && defined(__MACH__)
 #	define NMRPFLASH_UNIX
 #	define NMRPFLASH_OSX
@@ -53,7 +54,6 @@
 #endif
 #else
 #include <winsock2.h>
-#include <iphlpapi.h>
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <conio.h>
