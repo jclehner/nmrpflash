@@ -358,6 +358,7 @@ int nmrp_do(struct nmrpd_args *args)
 	char *filename;
 	time_t beg;
 	int i, timeout, status, ulreqs, expect, upload_ok, autoip, ka_reqs, fake;
+	ssize_t bytes;
 	struct ethsock *sock;
 	struct ethsock_ip_undo *ip_undo = NULL;
 	struct ethsock_arp_undo *arp_undo = NULL;
@@ -635,6 +636,8 @@ int nmrp_do(struct nmrpd_args *args)
 					status = system(args->tftpcmd);
 				}
 
+				bytes = 0;
+
 				if (!status && args->file_local) {
 					if (!autoip) {
 						status = is_valid_ip(sock, &ipaddr, &ipmask);
@@ -659,13 +662,13 @@ int nmrp_do(struct nmrpd_args *args)
 						printf("Uploading %s ... ", leafname(args->file_local));
 					}
 					fflush(stdout);
-					if (!(status = tftp_put(args))) {
-						printf("OK\n");
-					}
 
+					bytes = tftp_put(args);
 				}
 
-				if (!status) {
+				if (bytes > 0) {
+					printf("OK (%zi b)\n", bytes);
+
 					if (args->blind) {
 						goto out;
 					}

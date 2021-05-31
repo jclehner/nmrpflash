@@ -319,11 +319,11 @@ inline bool tftp_is_valid_filename(const char *filename)
 
 static const char *spinner = "\\|/-";
 
-int tftp_put(struct nmrpd_args *args)
+ssize_t tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
 	uint16_t block, port, op, blksize;
-	ssize_t len, last_len;
+	ssize_t len, last_len, bytes;
 	int fd, sock, ret, timeouts, errors, ackblock;
 	char rx[2048], tx[2048];
 	const char *file_remote = args->file_remote;
@@ -410,6 +410,7 @@ int tftp_put(struct nmrpd_args *args)
 	block = 0;
 	last_len = -1;
 	len = 0;
+	bytes = 0;
 	errors = 0;
 	rollover = false;
 	/* Not really, but this way the loop sends our WRQ before receiving */
@@ -468,6 +469,7 @@ int tftp_put(struct nmrpd_args *args)
 				}
 
 				last_len = len;
+				bytes += len;
 			}
 
 			ret = tftp_sendto(sock, tx, len, &addr);
@@ -537,5 +539,5 @@ cleanup:
 #endif
 	}
 
-	return ret;
+	return (ret == 0) ? bytes : ret;
 }

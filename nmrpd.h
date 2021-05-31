@@ -104,7 +104,7 @@ struct nmrpd_args {
 };
 
 const char *leafname(const char *path);
-int tftp_put(struct nmrpd_args *args);
+ssize_t tftp_put(struct nmrpd_args *args);
 bool tftp_is_valid_filename(const char *filename);
 
 int nmrp_do(struct nmrpd_args *args);
