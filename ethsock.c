@@ -546,6 +546,21 @@ inline uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
 	return sock->hwaddr;
 }
 
+bool ethsock_is_wifi(struct ethsock *sock)
+{
+#if defined(NMRPFLASH_WINDOWS)
+	MIB_IF_ROW2 row;
+
+	if (intf_get_if_row(sock->index, &row)) {
+		return row.Type == IF_TYPE_IEEE80211;
+	}
+
+	return false;
+#else
+	return false;
+#endif
+}
+
 bool ethsock_is_unplugged(struct ethsock *sock)
 {
 #if defined(NMRPFLASH_LINUX)

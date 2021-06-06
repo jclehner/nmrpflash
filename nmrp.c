@@ -448,6 +448,11 @@ int nmrp_do(struct nmrpd_args *args)
 	sigh_orig = signal(SIGINT, sigh);
 
 	if (ethsock_is_unplugged(sock)) {
+		if (ethsock_is_wifi(sock)) {
+			fprintf(stderr, "Error: WiFi not connected.\n");
+			goto out;
+		}
+
 		printf("Waiting for Ethernet connection.\n");
 
 		bool unplugged = true;
