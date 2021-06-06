@@ -89,6 +89,25 @@ static int x_pcap_findalldevs(pcap_if_t **devs)
 	return 0;
 }
 
+static bool intf_get_pcap_flags(const char *intf, bpf_u_int32 *flags)
+{
+	pcap_if_t *devs, *dev;
+
+	if (x_pcap_findalldevs(&devs) == 0) {
+		for (dev = devs; dev; dev = dev->next) {
+			if (!strcmp(intf, dev->name)) {
+				*flags = dev->flags;
+				break;
+			}
+		}
+
+		pcap_freealldevs(devs);
+		return dev != NULL;
+	}
+
+	return false;
+}
+
 #ifndef NMRPFLASH_WINDOWS
 static int systemf(const char *fmt, ...)
 {
@@ -548,59 +567,24 @@ inline uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
 
 bool ethsock_is_wifi(struct ethsock *sock)
 {
-#if defined(NMRPFLASH_WINDOWS)
-	MIB_IF_ROW2 row;
+	bpf_u_int32 flags;
 
-	if (intf_get_if_row(sock->index, &row)) {
-		return row.Type == IF_TYPE_IEEE80211;
+	if (!intf_get_pcap_flags(sock->intf, &flags)) {
+		return false;
 	}
 
-	return false;
-#else
-	return false;
-#endif
+	return flags & PCAP_IF_WIRELESS;
 }
 
 bool ethsock_is_unplugged(struct ethsock *sock)
 {
-#if defined(NMRPFLASH_LINUX)
-	return !intf_sys_read(sock->intf, "carrier", true);
-#elif defined(NMRPFLASH_WINDOWS)
-	MIB_IF_ROW2 row;
+	bpf_u_int32 flags;
 
-	if (intf_get_if_row(sock->index, &row)) {
-		return row.InterfaceAndOperStatusFlags.NotMediaConnected;
-	}
-
-	return false;
-#elif defined(NMRPFLASH_BSD)
-	struct ifmediareq ifm;
-	int fd;
-
-	fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (fd < 0) {
-		if (verbosity) {
-			perror("socket");
-		}
+	if (!intf_get_pcap_flags(sock->intf, &flags)) {
 		return false;
 	}
 
-	memset(&ifm, 0, sizeof(ifm));
-	strncpy(ifm.ifm_name, sock->intf, sizeof(ifm.ifm_name));
-
-	if (ioctl(fd, SIOCGIFMEDIA, &ifm) < 0) {
-		if (verbosity) {
-			perror("ioctl(SIOCGIFMEDIA)");
-		}
-		goto out;
-	}
-
-out:
-	close(fd);
-	return (ifm.ifm_status & IFM_AVALID) && !(ifm.ifm_status & IFM_ACTIVE);
-#else
-	return false;
-#endif
+	return flags & PCAP_IF_CONNECTION_STATUS_DISCONNECTED;
 }
 
 struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
