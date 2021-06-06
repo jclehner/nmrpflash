@@ -3,6 +3,7 @@
 	<FileVersion major="1" minor="6" />
 	<Project>
 		<Option title="nmrpflash" />
+		<Option makefile="Makefile.win" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Build>
@@ -45,6 +46,10 @@
 		</Unit>
 		<Unit filename="nmrpd.h">
 			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="nmrpflash.manifest" />
+		<Unit filename="nmrpflash.rc">
+			<Option compilerVar="WINDRES" />
 		</Unit>
 		<Unit filename="tftp.c">
 			<Option compilerVar="CC" />
