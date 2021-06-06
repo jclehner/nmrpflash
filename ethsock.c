@@ -692,7 +692,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 			err = systemf("nmcli device set ifname %s managed no", sock->intf);
 			if (err) {
 				printf("Warning: failed to temporarily disable NetworkManager\n");
-			} else {
+			} else if (verbosity > 1) {
 				printf("Temporarily disabling NetworkManager on interface.\n");
 			}
 		}
