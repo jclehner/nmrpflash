@@ -393,7 +393,9 @@ static bool intf_get_if_row(NET_IFINDEX index, MIB_IF_ROW2* row)
 
 	err = GetIfEntry2(row);
 	if (err != NO_ERROR) {
-		win_perror2("GetIfEntry2", err);
+	    if (verbosity > 1) {
+			win_perror2("GetIfEntry2", err);
+	    }
 		return false;
 	}
 
