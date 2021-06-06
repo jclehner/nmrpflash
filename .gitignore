@@ -4,5 +4,9 @@
 *.pcap
 *.dni
 Makefile.win
-WpdPack/
+nmrpflash.depend
+nmrpflash.exe
+nmrpflash.layout
+nmrpflash*.zip
+Npcap/
 Obj/
