@@ -449,7 +449,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 	if (ethsock_is_unplugged(sock)) {
 		if (ethsock_is_wifi(sock)) {
-			fprintf(stderr, "Error: WiFi not connected.\n");
+			fprintf(stderr, "Error: Wi-Fi not connected.\n");
 			goto out;
 		}
 
