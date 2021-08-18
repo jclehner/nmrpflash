@@ -8,7 +8,7 @@ and R6800, R8000, R8500, WNDR3800, WNDR4500v3 but is likely to be compatible wit
 devices.
 
 Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases)
-([Npcap](https://nmap.org/npcap/) is required on Windows). FreeBSD packages can be fetched and installed using the
+([Npcap](https://nmap.org/npcap/#download) is required on Windows). FreeBSD packages can be fetched and installed using the
 FreeBSD `pkg` command.
 
 ```
