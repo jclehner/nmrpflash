@@ -3,12 +3,13 @@ PKG_CONFIG ?= pkg-config
 PREFIX ?= /usr/local
 VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git describe --always | tail -c +2; else echo $$STANDALONE_VERSION; fi)
 CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
-LDFLAGS += -lpcap
 SUFFIX ?= 
 
 ifeq ($(shell uname -s),Linux)
 	CFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --cflags)
-	LDFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --libs)
+	LDFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --libs) -lpcap
+else
+	LDFLAGS += -lpcap
 endif
 
 ifeq ($(shell uname -s),Darwin)
@@ -63,3 +64,6 @@ release/win32:
 
 release: clean nmrpflash$(SUFFIX)
 	strip nmrpflash$(SUFFIX)
+
+nmrpflash.ico: nmrpflash.svg
+	convert -define icon:auto-resize=256,64,48,32,16 $< $@
