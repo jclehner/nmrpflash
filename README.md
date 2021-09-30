@@ -114,7 +114,7 @@ If that doesn't work, try [this](https://support.apple.com/guide/mac-help/open-a
 ###### "No suitable network interfaces found."
 
 Make sure the network interface is up (wireless interfaces are not supported).
-On Windows, try restarting the WinPcap service (commands must be run as
+On Windows, try restarting the Npcap service (commands must be run as
 administrator):
 
 ```
