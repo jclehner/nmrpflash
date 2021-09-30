@@ -2,3 +2,4 @@
 nmrpflash.cbp text eol=crlf
 nmrpflash.manifest text eol=crlf
 nmrpflash.rc text eol=crlf
+nmrpflash.ico -text
