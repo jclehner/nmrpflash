@@ -36,7 +36,8 @@
        rx="0"
        ry="0" />
     <g
-       id="g894">
+       id="g894"
+       transform="translate(0,0.0100001)">
       <rect
          style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:1"
          id="rect837-6-9"
@@ -107,7 +108,7 @@
     </g>
     <g
        id="g894-3"
-       transform="translate(-1.1920929e-7,7.4999999)">
+       transform="translate(-1.1920929e-7,7.4900001)">
       <rect
          style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:1"
          id="rect837-6-9-5"
