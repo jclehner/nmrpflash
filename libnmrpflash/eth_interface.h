@@ -21,8 +21,10 @@ class eth_interface
 	public:
 #if !BOOST_OS_WINDOWS
 	typedef unsigned index_type;
+	typedef std::string pretty_type;
 #else
-	typedef NET_IFINDEX index_type;
+	typedef DWORD index_type;
+	typedef std::wstring pretty_type;
 #endif
 
 	/**
@@ -71,8 +73,8 @@ class eth_interface
 	 */
 	std::string get_pretty_name() const;
 
-	/// Returns a list of this interface's IPv4 addresses.
-	std::vector<ip4_addr> list_ip_addrs() const;
+	/// Returns a list of this interface's IP addresses.
+	std::vector<ip_net> list_networks() const;
 
 	/**
 	 * Adds an IPv4 address to this interface.
@@ -98,9 +100,15 @@ class eth_interface
 	private:
 	void with_pcap_if(std::function<void(const pcap_if_t&)> f) const;
 
-	std::string m_pcap_name;
 	index_type m_index;
 	mac_addr m_mac_addr;
+	bool m_is_bridge = false;
+
+	std::string m_pcap_name;
+	pretty_type m_pretty_name;
+
+	std::set<ip4_addr> m_ip_undo;
+	std::map<mac_addr, ip4_addr> m_arp_undo;
 };
 }
 #endif

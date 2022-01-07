@@ -1,5 +1,6 @@
 #ifndef NMRPFLASH_ADDRESS_H
 #define NMRPFLASH_ADDRESS_H
+#include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/range/adaptors.hpp>
 #include <sys/socket.h>
@@ -7,115 +8,112 @@
 #include <arpa/inet.h>
 #include <iterator>
 #include <iostream>
+#include <variant>
 #include <iomanip>
 #include <sstream>
 #include <string>
 #include "util.h"
 
+#define HAVE_AF_PACKET
+
+#ifdef HAVE_AF_PACKET
+#include <linux/if_packet.h>
+#endif
+
 namespace nmrpflash {
-namespace detail {
-/// A dummy Ethernet address family. That way, we can reuse generic_addr
-/// for both IPv{4,6} and MAC adddresses.
-const int af_ethernet = AF_INET + AF_INET6;
+typedef boost::asio::ip::address ip_addr;
+typedef boost::asio::ip::address_v4 ip4_addr;
+typedef boost::asio::ip::address_v6 ip6_addr;
 
-template<int AF> struct addr_helper_impl;
+ip_addr ip_from_sockaddr(gsl::not_null<const sockaddr*> addr);
+ip4_addr ip4_from_sockaddr(gsl::not_null<const sockaddr_in*> addr);
+ip6_addr ip6_from_sockaddr(gsl::not_null<const sockaddr_in6*> addr);
 
-template<> struct addr_helper_impl<AF_INET>
-{
-	typedef sockaddr_in sockaddr_type;
-	typedef in_addr addr_type;
+typedef boost::asio::ip::network_v4 ip4_net;
+typedef boost::asio::ip::network_v6 ip6_net;
 
-	static constexpr size_t addrstr_len = INET_ADDRSTRLEN;
-
-	static std::string name() { return "IPv4"; }
-};
-
-template<> struct addr_helper_impl<AF_INET6>
-{
-	typedef sockaddr_in6 sockaddr_type;
-	typedef in6_addr addr_type;
-
-	static constexpr size_t addrstr_len = INET6_ADDRSTRLEN;
-
-	static std::string name() { return "IPv6"; }
-};
-
-template<> struct addr_helper_impl<af_ethernet>
-{
-	typedef void sockaddr_type;
-	typedef uint8_t addr_type[6];
-
-	static std::string name() { return "MAC"; }
-};
-
-template<int AF> class generic_addr
+class ip_net
 {
 	public:
-	typedef addr_helper_impl<AF> addr_helper;
+	ip_net(const ip_addr& addr, const ip_addr& netmask);
 
-	static constexpr int addr_family = AF;
-	static constexpr size_t addr_size = sizeof(typename addr_helper::addr_type);
+	bool is_v4() const
+	{ return m_net.index() == 0; }
 
-	generic_addr()
+	bool is_v6() const
+	{ return !is_v4(); }
+
+	ip4_net to_v4() const
+	{ return std::get<ip4_net>(m_net); }
+
+	ip6_net to_v6() const
+	{ return std::get<ip6_net>(m_net); }
+
+	friend std::ostream& operator<<(std::ostream& os, const ip_net& net)
 	{
-		memset(&m_addr, 0, sizeof(m_addr));
-	}
-
-	generic_addr(const uint8_t (&addr)[addr_size])
-	{
-		static_assert(addr_size == sizeof(m_addr));
-		memcpy(reinterpret_cast<uint8_t*>(&m_addr), addr, sizeof(m_addr));
-	}
-
-	generic_addr(const std::string& addr)
-	{
-		if (!from_string(addr)) {
-			throw std::invalid_argument("invalid " + addr_helper::name() + " address: " + addr);
+		if (net.is_v4()) {
+			os << net.to_v4();
+		} else {
+			os << net.to_v6();
 		}
-	}
-
-	template<int AF2> friend std::ostream& operator<<(std::ostream& os, const generic_addr<AF2>& addr);
-
-	friend std::ostream& operator<<(std::ostream& os, const generic_addr& addr)
-	{
-		os << addr.to_string();
 		return os;
 	}
 
 	private:
-	bool from_string(const std::string& addr)
-	{
-		return inet_pton(AF, addr.c_str(), &m_addr) == 1;
-	}
-
-	std::string to_string() const
-	{
-		char buf[addr_helper::addrstr_len];
-		const char* str = inet_ntop(AF, &m_addr, buf, sizeof(buf));
-
-		if (!str) {
-			throw std::runtime_error("failed to convert " + addr_helper::name() + " address to string");
-		}
-
-		return str;
-	}
-
-	typename addr_helper::addr_type m_addr;
+	std::variant<ip4_net, ip6_net> m_net;
 };
 
-template<> std::string generic_addr<af_ethernet>::to_string() const
+class mac_addr
 {
-	using std::ostringstream;
-	using std::hex;
-	using std::setw;
-	using boost::algorithm::join;
-	using boost::adaptors::transformed;
+	public:
+	static constexpr size_t length = 6;
 
-	return join(m_addr | transformed([](uint8_t b) { return to_hex(b); }), ":");
+	mac_addr()
+	{
+		memset(m_addr.data(), 0, length);
+	}
+
+	mac_addr(const uint8_t (&addr)[length])
+	: mac_addr(addr, nullptr)
+	{}
+
+	mac_addr(const std::string& addr);
+
+	bool operator==(const mac_addr& other)
+	{
+		return !memcmp(m_addr.data(), other.m_addr.data(), length);
+	}
+
+	bool operator<(const mac_addr& other)
+	{
+		return memcmp(m_addr.data(), other.m_addr.data(), length) < 0;
+	}
+
+	friend std::ostream& operator<<(std::ostream& os, const mac_addr& addr);
+
+	static mac_addr from_raw(const uint8_t* addr)
+	{
+		return mac_addr(addr, nullptr);	
+	}
+
+	private:
+	mac_addr(const uint8_t* addr, nullptr_t)
+	{
+		memcpy(m_addr.data(), addr, length);
+	}
+
+	std::array<uint8_t, length> m_addr;
+};
+
+#if 0
+template<> void
+generic_addr<af_ethernet>::copy_to(typename addr_helper_impl<af_ethernet>::sockaddr_type&) = delete;
+
+template<> inline std::string generic_addr<af_ethernet>::to_string() const
+{
 }
 
-
-template<> bool generic_addr<af_ethernet>::from_string(const std::string& addr)
+template<> inline bool generic_addr<af_ethernet>::from_string(const std::string& addr)
 {
 	std::vector<std::string> parts;
 	boost::split(parts, addr, boost::algorithm::is_any_of(":-"));
@@ -141,11 +139,8 @@ template<> bool generic_addr<af_ethernet>::from_string(const std::string& addr)
 
 	return true;
 }
-} // namespace detail
-
-typedef detail::generic_addr<AF_INET> ip4_addr;
-typedef detail::generic_addr<AF_INET6> ip6_addr;
-typedef detail::generic_addr<detail::af_ethernet> mac_addr;
 
 } // namespace nmrpflash
+#endif
+}
 #endif
