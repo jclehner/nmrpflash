@@ -1,7 +1,7 @@
 #ifndef NMRPFLASH_ETH_INTERFACE
 #define NMRPFLASH_ETH_INTERFACE
-#include <string>
 #include <boost/predef.h>
+#include <string>
 #include <pcap.h>
 #include <vector>
 #include <map>
@@ -44,12 +44,11 @@ class eth_interface
 	~eth_interface();
 
 	/// Returns this interface's MAC address.
-	mac_addr get_mac_addr() const;
+	const mac_addr& get_mac_addr() const { return m_mac_addr; }
 	/// Returns this interface's interface index.
-	index_type get_index() const;
+	index_type get_index() const { return m_index; }
 	/// Returns a name that can be passed to `pcap_open_live`.
-	std::string get_pcap_name() const
-	{ return m_pcap_name; }
+	const std::string& get_pcap_name() const { return m_pcap_name; }
 
 	/**
 	 * Returns a short, human readable name.
@@ -69,9 +68,9 @@ class eth_interface
 	 * On Windows, returns the name used in the Control Panel/Settings,
 	 * and by the `ipconfig` utility.
 	 *
-	 * On macOS, returns the name listed in System Preferences.
+	 * On macOS, returns the interface name used by System Preferences.
 	 */
-	std::string get_pretty_name() const;
+	const std::string& get_pretty_name() const { return m_pretty_name; }
 
 	/// Returns a list of this interface's IP addresses.
 	std::vector<ip_net> list_networks() const;

@@ -19,7 +19,7 @@ eth_interface::index_type name_to_index(string name, string& pcap_name)
 	if (!index) {
 		// it's not an ANSI interface name, but it could still
 		// be a GUID, or pcap device name.
-		
+
 		const std::string pcap_prefix = "\\Device\\NPF_";
 		if (boost::starts_with(name, pcap_prefix)) {
 			name = name.substr(pcap_prefix.size());
@@ -61,12 +61,32 @@ struct pcap_devlist
 		}
 	}
 
+	static void visit(const eth_interface& intf, function<void(const pcap_if_t&)> f)
+	{
+		pcap_devlist list;
+
+		for (auto dev = list.raw; dev; dev = dev->next) {
+			if (dev->name == intf.get_pcap_name()) {
+				f(*dev);
+				return;
+			}
+		}
+
+		throw runtime_error("no such pcap device: " + intf.get_pcap_name());
+	}
+
 	~pcap_devlist() { pcap_freealldevs(raw); }
 };
 
 #if !BOOST_OS_WINDOWS
 struct if_addrs
 {
+#if BOOST_OS_LINUX
+	typedef uint8_t mac_byte_type;
+#else
+	typedef char mac_byte_type;
+#endif
+
 	ifaddrs* raw;
 
 	if_addrs()
@@ -76,7 +96,7 @@ struct if_addrs
 		}
 	}
 
-	static uint8_t* get_mac_addr(ifaddrs* ifa)
+	static mac_byte_type* get_mac_addr(ifaddrs* ifa)
 	{
 		if (!ifa || !ifa->ifa_addr) {
 			return nullptr;
@@ -145,6 +165,86 @@ struct adapters_addrs
 	}
 };
 #endif
+
+#if BOOST_OS_MACOS
+typedef cf_ref<CFDictionaryRef> cf_dict_ref;
+
+cf_dict_ref plist_open_as_dict(const string& filename)
+{
+	auto url = make_cf_ref(CFURLCreateFromFileSystemRepresentation(
+				kCFAllocatorDefault, reinterpret_cast<const UInt8*>(filename.c_str()),
+				filename.size(), false));
+	if (!url) {
+		throw runtime_error("CFURLCreateFromFileSystemRepresentation: " + filename);
+	}
+
+	auto stream = make_cf_ref(CFReadStreamCreateWithFile(kCFAllocatorDefault, url.get()));
+	if (!stream) {
+		throw runtime_error("CFReadStreamCreateWithFile: " + filename);
+	}
+
+	if (!CFReadStreamOpen(stream.get())) {
+		throw runtime_error("CFReadStreamOpen: " + filename);
+	}
+
+	auto plist = make_cf_ref(CFPropertyListCreateWithStream(kCFAllocatorDefault, stream.get(), 0,
+			kCFPropertyListImmutable, NULL, NULL));
+	CFReadStreamClose(stream.get());
+	if (!plist) {
+		throw runtime_error("CFPropertyListCreateWithStream: " + filename);
+	}
+
+	return plist.as<CFDictionaryRef>();
+}
+
+void cf_dict_for_each(const cf_ref<CFDictionaryRef>& dict, function<void(const string&, const cf_ref<CFTypeRef>&)> f)
+{
+	typedef decltype(&f) F;
+	CFDictionaryApplyFunction(dict.get(), [](const void* key, const void* value, void* applier) {
+		reinterpret_cast<F>(applier)->operator()(
+				from_cf_string(cf_cast<CFStringRef>(key)),
+				make_cf_view(reinterpret_cast<CFTypeRef>(value)));
+	}, &f);
+}
+
+template<typename T> cf_ref<T> cf_dict_get(const cf_ref<CFDictionaryRef>& dict, const string& key)
+{
+	const void* value;
+
+	if (!CFDictionaryGetValueIfPresent(dict.get(), to_cf_string(key).get(), &value) || !value) {
+		throw out_of_range("no such key: " + key);
+	}
+
+	return make_cf_view(cf_cast<T>(value));
+}
+
+string get_macos_pretty_name(const string& device)
+{
+	try {
+		string pretty;
+		auto prefs = plist_open_as_dict("/Library/Preferences/SystemConfiguration/preferences.plist");
+		auto services = cf_dict_get<CFDictionaryRef>(prefs, "NetworkServices");
+
+		// loop through each NetworkService. The key is a UUID here, but we're only interested in the
+		// sub-dictionary "Interface" here, which contains the "DeviceName" and "UserDefinedName" keys.
+		cf_dict_for_each(services, [&device, &pretty](const string& key, const cf_ref<CFTypeRef>& value) {
+			if (!pretty.empty()) {
+				return;
+			}
+
+			auto interface = cf_dict_get<CFDictionaryRef>(value.as<CFDictionaryRef>(), "Interface");
+			auto cf_device = from_cf_string(cf_dict_get<CFStringRef>(interface, "DeviceName"));
+			if (device == cf_device) {
+				pretty = from_cf_string(cf_dict_get<CFStringRef>(interface, "UserDefinedName"));
+			}
+		});
+
+		return pretty;
+	} catch (const exception& e) {
+		return "";
+	}
+}
+#endif
 }
 
 eth_interface::eth_interface(const string& name)
@@ -166,7 +266,10 @@ eth_interface::eth_interface(const string& name)
 #if BOOST_OS_LINUX
 				m_is_bridge = (access(("/sys/class/net/" + name + "/bridge").c_str(), F_OK) == 0);
 #else
-				m_is_bridge = (reinterpret_cast<if_data*>(a->ifa_data)->ifi_type == IFT_BRIDGE);
+				m_is_bridge = (reinterpret_cast<if_data*>(ifa->ifa_data)->ifi_type == IFT_BRIDGE);
+#if BOOST_OS_MACOS
+				m_pretty_name = get_macos_pretty_name(name);
+#endif
 #endif
 				return;
 			}
@@ -192,14 +295,23 @@ eth_interface::eth_interface(const string& name)
 
 eth_interface::~eth_interface()
 {
+}
 
+string eth_interface::get_name() const
+{
+#if !BOOST_OS_WINDOWS
+	return m_pcap_name;
+#else
+	char buf[IF_NAMESIZE];
+	return if_indextoname(m_index, buf);
+#endif
 }
 
 vector<ip_net> eth_interface::list_networks() const
 {
 	vector<ip_net> ret;
 
-	with_pcap_if([&ret] (const pcap_if_t& dev) {
+	pcap_devlist::visit(*this, [&ret] (const pcap_if_t& dev) {
 		for (auto addr = dev.addresses; addr; addr = addr->next) {
 			try {
 				ret.push_back({ ip_from_sockaddr(addr->addr), ip_from_sockaddr(addr->netmask) });
@@ -226,19 +338,5 @@ vector<eth_interface> eth_interface::list()
 	}
 
 	return ret;
-}
-
-void eth_interface::with_pcap_if(const function<void(const pcap_if_t&)> f) const
-{
-	pcap_devlist devs;
-
-	for (auto dev = devs.raw; dev; dev = dev->next) {
-		if (dev->name == get_pcap_name()) {
-			f(*dev);
-			return;
-		}
-	}
-
-	throw runtime_error("no such pcap device: " + get_pcap_name());
 }
 }

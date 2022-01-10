@@ -4,6 +4,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/range/adaptors.hpp>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <iterator>
@@ -14,10 +15,18 @@
 #include <string>
 #include "util.h"
 
-#define HAVE_AF_PACKET
-
-#ifdef HAVE_AF_PACKET
-#include <linux/if_packet.h>
+#if BOOST_OS_WINDOWS
+// TODO
+#else
+#  include <ifaddrs.h>
+#  include <net/if.h>
+#  if BOOST_OS_LINUX
+#    include <linux/if_packet.h>
+#  else
+#    include <net/if_types.h>
+#    include <net/if_media.h>
+#    include <net/if_dl.h>
+#endif
 #endif
 
 namespace nmrpflash {
@@ -79,25 +88,26 @@ class mac_addr
 
 	mac_addr(const std::string& addr);
 
-	bool operator==(const mac_addr& other)
+	bool operator==(const mac_addr& other) const
 	{
 		return !memcmp(m_addr.data(), other.m_addr.data(), length);
 	}
 
-	bool operator<(const mac_addr& other)
+	bool operator<(const mac_addr& other) const
 	{
 		return memcmp(m_addr.data(), other.m_addr.data(), length) < 0;
 	}
 
 	friend std::ostream& operator<<(std::ostream& os, const mac_addr& addr);
 
-	static mac_addr from_raw(const uint8_t* addr)
+	template<class CharT> static mac_addr from_raw(const CharT* addr)
 	{
+		static_assert(sizeof(CharT) == 1);
 		return mac_addr(addr, nullptr);	
 	}
 
 	private:
-	mac_addr(const uint8_t* addr, nullptr_t)
+	mac_addr(const void* addr, nullptr_t)
 	{
 		memcpy(m_addr.data(), addr, length);
 	}
