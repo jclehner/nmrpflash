@@ -123,12 +123,20 @@ struct if_addrs
 	}
 };
 #else
-struct adapters_addrs
+struct adapter_info
 {
-	unique_ptr<IP_ADAPTER_ADDRESSES, void(*)(IP_ADAPTER_ADDRESSES*)> raw;
+	unique_ptr<IP_ADAPTER_ADDRESSES, void(*)(IP_ADAPTER_ADDRESSES*)> addrs;
+	MIB_IF_ROW2 row;
 
 	if_info(DWORD index)
 	{
+		memset(&row, 0, sizeof(row));
+		row.InterfaceIndex = index;
+
+		if (!GetIfEntry2(&row)) {
+			throw winapi_error("GetIfEntry2");
+		}
+
 		ULONG size = 0;
 		ULONG flags = GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | 
 			GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_INCLUDE_GATEWAYS;
@@ -141,11 +149,11 @@ struct adapters_addrs
 		// just to be on the safe side, in case things change in between the two calls.
 		size += 1024;
 
-		raw = { reinterpret_cast<IP_ADAPTER_ADDRESSES*>(malloc(size)), [](IP_ADAPTER_ADDRESSES* p) {
+		addrs = { reinterpret_cast<IP_ADAPTER_ADDRESSES*>(malloc(size)), [](IP_ADAPTER_ADDRESSES* p) {
 			free(p);
 		}};
 
-		err = GetAdaptersAddresses(AF_UNSPEC, flags, raw.get(), &size);
+		err = GetAdaptersAddresses(AF_UNSPEC, flags, addrs.get(), &size);
 		if (err) {
 			throw winapi_error("GetAdaptersAddresses");
 		}
@@ -154,7 +162,7 @@ struct adapters_addrs
 
 	void visit(DWORD index, std::function<void(IP_ADAPTER_ADDRESSES*>)> f)
 	{
-		for (auto addrs = raw.get(); addrs; addrs = addrs->Next) {
+		for (auto addrs = addrs.get(); addrs; addrs = addrs->Next) {
 			if (addrs->Index == index) {
 				f(addrs);
 				return;
@@ -255,6 +263,12 @@ eth_interface::eth_interface(const string& name)
 		throw invalid_argument("no such interface: " + name);
 	}
 
+	pcap_devlist::visit(*this, [&] (const pcap_if_t& dev) {
+		if (dev.flags & PCAP_IF_LOOPBACK) {
+			throw invalid_argument("loopback device: " + name);
+		}
+	});
+
 #if !BOOST_OS_WINDOWS
 	if_addrs addrs;
 
@@ -265,6 +279,7 @@ eth_interface::eth_interface(const string& name)
 				m_mac_addr = mac_addr::from_raw(raw);
 #if BOOST_OS_LINUX
 				m_is_bridge = (access(("/sys/class/net/" + name + "/bridge").c_str(), F_OK) == 0);
+				m_pretty_name = nm_get_connection(name);
 #else
 				m_is_bridge = (reinterpret_cast<if_data*>(ifa->ifa_data)->ifi_type == IFT_BRIDGE);
 #if BOOST_OS_MACOS
@@ -278,8 +293,12 @@ eth_interface::eth_interface(const string& name)
 
 	throw invalid_argument("not an Ethernet interface: " + name);
 #else
-	adapters_addrs addrs;
-	addrs.visit(m_index, [&](IP_ADAPTER_ADDRESSES* a) {
+	adapter_info info;
+	if (!info.row.InterfaceAndOperStatusFlags.HardwareInterface) {
+		throw invalid_argument("not a hardware interface: " + name);
+	}
+
+	info.visit(m_index, [&](IP_ADAPTER_ADDRESSES* a) {
 		if (a->IfType != IF_TYPE_ETHERNET_CSMACD && a->IfType != IF_TYPE_IEEE80211) {
 			throw invalid_argument("not an Ethernet interface: " + name);
 		} else if (a->PhysicalAdressLength != mac_addr::length) {
@@ -307,13 +326,17 @@ string eth_interface::get_name() const
 #endif
 }
 
-vector<ip_net> eth_interface::list_networks() const
+vector<ip_net> eth_interface::list_networks(bool ipv4_only) const
 {
 	vector<ip_net> ret;
 
-	pcap_devlist::visit(*this, [&ret] (const pcap_if_t& dev) {
+	pcap_devlist::visit(*this, [&] (const pcap_if_t& dev) {
 		for (auto addr = dev.addresses; addr; addr = addr->next) {
+			if (ipv4_only && addr->addr->sa_family != AF_INET) {
+				continue;
+			}
 			try {
+
 				ret.push_back({ ip_from_sockaddr(addr->addr), ip_from_sockaddr(addr->netmask) });
 			} catch (const invalid_argument&) {
 				// ignore

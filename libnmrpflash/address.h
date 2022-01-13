@@ -107,7 +107,7 @@ class mac_addr
 	}
 
 	private:
-	mac_addr(const void* addr, nullptr_t)
+	mac_addr(const void* addr, std::nullptr_t)
 	{
 		memcpy(m_addr.data(), addr, length);
 	}

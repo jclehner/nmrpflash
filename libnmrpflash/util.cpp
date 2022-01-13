@@ -46,6 +46,11 @@ bool nm_is_managed(const string& dev)
 	return true;
 }
 
+void nm_set_managed(const string& dev, bool managed)
+{
+	run("/usr/bin/nmcli", { "device", "set", "ifname", dev, "managed", "no" });
+}
+
 string nm_get_connection(const string& dev)
 {
 	return nm_get(dev, "GENERAL.CONNECTION");

@@ -73,7 +73,7 @@ class eth_interface
 	const std::string& get_pretty_name() const { return m_pretty_name; }
 
 	/// Returns a list of this interface's IP addresses.
-	std::vector<ip_net> list_networks() const;
+	std::vector<ip_net> list_networks(bool ipv4_only = false) const;
 
 	/**
 	 * Adds an IPv4 address to this interface.

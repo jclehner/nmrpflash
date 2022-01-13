@@ -2,9 +2,11 @@
 #define NMRPFLASH_UTIL_H
 #include <boost/algorithm/string.hpp>
 #include <boost/range/adaptors.hpp>
+#include <boost/lexical_cast.hpp>
 #include <gsl/gsl>
 #include <cerrno>
 #include <iostream>
+#include <iomanip>
 #include <cstdint>
 #include <sstream>
 #include <array>
@@ -28,6 +30,11 @@ template <class T, std::size_t N>
 constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N])
 {
     return detail::to_array_impl(a, std::make_index_sequence<N>{});
+}
+
+template<typename T> std::string stringify(const T& t)
+{
+	return boost::lexical_cast<std::string>(t);
 }
 
 template<typename T> auto as_bytes(const T& t)
@@ -58,16 +65,39 @@ class errno_error : public std::system_error
 	{}
 };
 
-#if BOOST_OS_WINDOWS
+#if BOOST_OS_LINUX
+bool nm_is_managed(const std::string& dev);
+void nm_set_managed(const std::string& dev, bool managed);
+std::string nm_get_connection(const std::string& dev);
+
+struct nm_unmanaged_scope
+{
+	const std::string dev;
+	const bool is_managed;
+
+	nm_unmanaged_scope(const std::string& dev)
+	: dev(dev), is_managed(nm_is_managed(dev))
+	{
+		if (is_managed) {
+			nm_set_managed(dev, false);
+		}
+	}
+
+	~nm_unmanaged_scope()
+	{
+		if (is_managed) {
+			nm_set_managed(dev, true);
+		}
+	}
+};
+#elif BOOST_OS_WINDOWS
 class winapi_error : public std::system_error
 {
 	winapi_error(const std::string& msg, int val = GetLastError())
 	: std::system_error(val, std::system_category(), msg)
 	{}
 };
-#endif
-
-#if BOOST_OS_MACOS
+#elif BOOST_OS_MACOS
 namespace detail {
 template<typename T> struct cf_type_id;
 
