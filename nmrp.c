@@ -357,7 +357,7 @@ int nmrp_do(struct nmrpd_args *args)
 	uint16_t region;
 	char *filename;
 	time_t beg;
-	int i, timeout, status, ulreqs, expect, upload_ok, autoip, ka_reqs, fake;
+	int i, timeout, status, ulreqs, expect, upload_ok, autoip, ka_reqs;
 	ssize_t bytes;
 	struct ethsock *sock;
 	struct ethsock_ip_undo *ip_undo = NULL;
@@ -509,7 +509,6 @@ int nmrp_do(struct nmrpd_args *args)
 
 	i = 0;
 	upload_ok = 0;
-	fake = 0;
 	timeout = args->blind ? 10 : NMRP_ADVERTISE_TIMEOUT;
 	beg = time_monotonic();
 
@@ -526,6 +525,8 @@ int nmrp_do(struct nmrpd_args *args)
 		status = pkt_recv(sock, &rx);
 		if (status == 0) {
 			if (memcmp(rx.eh.ether_dhost, src, 6) == 0) {
+				// don't continue in blind mode if we've received a response
+				args->blind = false;
 				break;
 			} else if (verbosity) {
 				printf("\nIgnoring bogus response: %s -> %s.\n",
@@ -547,7 +548,6 @@ int nmrp_do(struct nmrpd_args *args)
 					memcpy(rx.eh.ether_shost, dest, 6);
 					msg_init(&rx.msg, NMRP_C_CONF_REQ);
 					printf("Continuing blindly.");
-					fake = 1;
 					break;
 				}
 			}
@@ -590,7 +590,7 @@ int nmrp_do(struct nmrpd_args *args)
 				msg_mkconfack(&tx.msg, ipaddr.s_addr, ipmask.s_addr, region);
 				expect = NMRP_C_TFTP_UL_REQ;
 
-				if (!fake) {
+				if (!args->blind) {
 					printf("Received configuration request from %s.\n",
 							mac_to_str(rx.eh.ether_shost));
 				}
@@ -624,7 +624,7 @@ int nmrp_do(struct nmrpd_args *args)
 					printf("Received upload request: filename '%s'.\n", filename);
 				} else if (!args->file_remote) {
 					args->file_remote = leafname(args->file_local);
-					if (!fake) {
+					if (!args->blind) {
 						printf("Received upload request without filename.\n");
 					}
 				}
@@ -734,12 +734,9 @@ int nmrp_do(struct nmrpd_args *args)
 				// fake response
 				msg_init(&rx.msg, expect);
 				memcpy(rx.eh.ether_shost, tx.eh.ether_dhost, 6);
-				fake = 1;
 			} else {
 				goto out;
 			}
-		} else {
-			fake = 0;
 		}
 
 		ethsock_set_timeout(sock, args->rx_timeout);
