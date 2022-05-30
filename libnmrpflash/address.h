@@ -82,6 +82,10 @@ class mac_addr
 		memset(m_addr.data(), 0, length);
 	}
 
+	mac_addr(const mac_addr& other)
+	: mac_addr(&other.m_addr, nullptr)
+	{}
+
 	mac_addr(const uint8_t (&addr)[length])
 	: mac_addr(addr, nullptr)
 	{}

@@ -128,7 +128,7 @@ struct adapter_info
 	unique_ptr<IP_ADAPTER_ADDRESSES, void(*)(IP_ADAPTER_ADDRESSES*)> addrs;
 	MIB_IF_ROW2 row;
 
-	if_info(DWORD index)
+	adapter_info(DWORD index)
 	{
 		memset(&row, 0, sizeof(row));
 		row.InterfaceIndex = index;
@@ -233,8 +233,14 @@ string get_macos_pretty_name(const string& device)
 		auto prefs = plist_open_as_dict("/Library/Preferences/SystemConfiguration/preferences.plist");
 		auto services = cf_dict_get<CFDictionaryRef>(prefs, "NetworkServices");
 
-		// loop through each NetworkService. The key is a UUID here, but we're only interested in the
-		// sub-dictionary "Interface" here, which contains the "DeviceName" and "UserDefinedName" keys.
+		// Structure of preferences.plist:
+		//
+		// NetworkServices (CFDictionary):
+		// - <UUID> (CFDictionary)
+		//   - Interface (CFDictionary)
+		//     - DeviceName (CFString)
+		//     - UserDefinedName (CFString)
+
 		cf_dict_for_each(services, [&device, &pretty](const string& key, const cf_ref<CFTypeRef>& value) {
 			if (!pretty.empty()) {
 				return;
@@ -293,7 +299,7 @@ eth_interface::eth_interface(const string& name)
 
 	throw invalid_argument("not an Ethernet interface: " + name);
 #else
-	adapter_info info;
+	adapter_info info(m_index);
 	if (!info.row.InterfaceAndOperStatusFlags.HardwareInterface) {
 		throw invalid_argument("not a hardware interface: " + name);
 	}
@@ -336,7 +342,6 @@ vector<ip_net> eth_interface::list_networks(bool ipv4_only) const
 				continue;
 			}
 			try {
-
 				ret.push_back({ ip_from_sockaddr(addr->addr), ip_from_sockaddr(addr->netmask) });
 			} catch (const invalid_argument&) {
 				// ignore
@@ -356,7 +361,7 @@ vector<eth_interface> eth_interface::list()
 		try {
 			ret.push_back({ dev->name });
 		} catch (const exception& e) {
-			// yummy!
+			// ignore
 		}
 	}
 

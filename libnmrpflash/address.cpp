@@ -85,7 +85,7 @@ mac_addr::mac_addr(const string& addr)
 		boost::split(parts, addr, boost::algorithm::is_any_of(":-"));
 
 		if (parts.size() != length) {
-			break;			
+			break;
 		}
 
 		for (size_t i = 0; i < length; ++i) {
