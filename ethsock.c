@@ -567,6 +567,7 @@ inline uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
 
 bool ethsock_is_wifi(struct ethsock *sock)
 {
+#ifdef PCAP_IF_WIRELESS
 	bpf_u_int32 flags;
 
 	if (!intf_get_pcap_flags(sock->intf, &flags)) {
@@ -574,6 +575,10 @@ bool ethsock_is_wifi(struct ethsock *sock)
 	}
 
 	return flags & PCAP_IF_WIRELESS;
+#else
+#warning "libpcap version is < 1.9.0"
+	return false;
+#endif
 }
 
 bool ethsock_is_unplugged(struct ethsock *sock)
