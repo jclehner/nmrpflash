@@ -23,6 +23,9 @@
 #include <stdio.h>
 #include "nmrpd.h"
 
+#define NMRP_UL_TIMEOUT_S    30 * 60
+#define NMRP_RX_TIMEOUT_MS   10000
+
 void usage(FILE *fp)
 {
 	fprintf(fp,
@@ -132,8 +135,8 @@ int main(int argc, char **argv)
 	int c, val, max;
 	bool list = false, have_dest_mac = false;
 	struct nmrpd_args args = {
-		.rx_timeout = 1000,
-		.ul_timeout = 15 * 60 * 1000,
+		.rx_timeout = (NMRP_RX_TIMEOUT_MS),
+		.ul_timeout = (NMRP_UL_TIMEOUT_S) * 1000,
 		.tftpcmd = NULL,
 		.file_local = NULL,
 		.file_remote = NULL,
