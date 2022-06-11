@@ -386,18 +386,10 @@ int nmrp_do(struct nmrpd_args *args)
 
 	if (!args->ipaddr) {
 		autoip = true;
-		/* A random IP address. The MAC of the first device that was
-		 * used to test this utility starts with a4:2b:8c, so we use
-		 * 164 (0xa4) and 183 (0x2b + 0x8c).
-		 *
-		 * These addresses should not cause collisions on most networks,
-		 * and if they do, the user is probably "poweruser" enough to
-		 * be able to use the -a and -A options.
-		 */
-		args->ipaddr = "10.164.183.252";
+		args->ipaddr = NMRP_DEFAULT_IP_REMOTE;
 
 		if (!args->ipaddr_intf) {
-			args->ipaddr_intf = "10.164.183.253";
+			args->ipaddr_intf = NMRP_DEFAULT_IP_LOCAL;
 		}
 	} else if (args->ipaddr_intf) {
 		autoip = true;

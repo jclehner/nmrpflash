@@ -72,6 +72,18 @@
 
 #define NMRPFLASH_SET_REGION
 
+#define NMRP_DEFAULT_UL_TIMEOUT_S    (30 * 60)
+#define NMRP_DEFAULT_RX_TIMEOUT_MS   (10000)
+/*
+ * These addresses should not cause collisions on most networks,
+ * and if they do, the user is probably "poweruser" enough to
+ * be able to use the -a and -A options.
+ */
+#define NMRP_DEFAULT_IP_LOCAL        "10.164.183.252"
+#define NMRP_DEFAULT_IP_REMOTE       "10.164.183.253"
+#define NMRP_DEFAULT_SUBNET          "255.255.255.0"
+#define NMRP_DEFAULT_TFTP_PORT       69
+
 struct eth_hdr {
 	uint8_t ether_dhost[6];
 	uint8_t ether_shost[6];

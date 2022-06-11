@@ -23,27 +23,24 @@
 #include <stdio.h>
 #include "nmrpd.h"
 
-#define NMRP_UL_TIMEOUT_S    30 * 60
-#define NMRP_RX_TIMEOUT_MS   10000
-
 void usage(FILE *fp)
 {
 	fprintf(fp,
 			"Usage: nmrpflash [OPTIONS...]\n"
 			"\n"
 			"Options (-i, and -f or -c are mandatory):\n"
-			" -a <ipaddr>     IP address to assign to target device\n"
-			" -A <ipaddr>     IP address to assign to selected interface\n"
+			" -a <ipaddr>     IP address to assign to target device [%s]\n"
+			" -A <ipaddr>     IP address to assign to selected interface [%s]\n"
 			" -B              Blind mode (don't wait for response packets)\n"
 			" -c <command>    Command to run before (or instead of) TFTP upload\n"
 			" -f <firmware>   Firmware file\n"
 			" -F <filename>   Remote filename to use during TFTP upload\n"
 			" -i <interface>  Network interface directly connected to device\n"
 			" -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)\n"
-			" -M <netmask>    Subnet mask to assign to target device\n"
-			" -t <timeout>    Timeout (in milliseconds) for NMRP packets\n"
-			" -T <timeout>    Time (seconds) to wait after successfull TFTP upload\n"
-			" -p <port>       Port to use for TFTP upload\n"
+			" -M <netmask>    Subnet mask to assign to target device [%s]\n"
+			" -t <timeout>    Timeout (in milliseconds) for NMRP packets [%d ms]\n"
+			" -T <timeout>    Time (seconds) to wait after successfull TFTP upload [%d s]\n"
+			" -p <port>       Port to use for TFTP upload [%d]\n"
 #ifdef NMRPFLASH_SET_REGION
 			" -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP)\n"
 #endif
@@ -77,6 +74,12 @@ void usage(FILE *fp)
 			"nmrpflash is free software, licensed under the GNU GPLv3.\n"
 			"Source code at https://github.com/jclehner/nmrpflash\n"
 			"\n",
+			NMRP_DEFAULT_IP_REMOTE,
+			NMRP_DEFAULT_IP_LOCAL,
+			NMRP_DEFAULT_SUBNET,
+			NMRP_DEFAULT_RX_TIMEOUT_MS,
+			NMRP_DEFAULT_UL_TIMEOUT_S,
+			NMRP_DEFAULT_TFTP_PORT,
 			NMRPFLASH_VERSION
 	  );
 }
@@ -135,18 +138,18 @@ int main(int argc, char **argv)
 	int c, val, max;
 	bool list = false, have_dest_mac = false;
 	struct nmrpd_args args = {
-		.rx_timeout = (NMRP_RX_TIMEOUT_MS),
-		.ul_timeout = (NMRP_UL_TIMEOUT_S) * 1000,
+		.rx_timeout = NMRP_DEFAULT_RX_TIMEOUT_MS,
+		.ul_timeout = NMRP_DEFAULT_UL_TIMEOUT_S * 1000,
 		.tftpcmd = NULL,
 		.file_local = NULL,
 		.file_remote = NULL,
 		.ipaddr_intf = NULL,
 		.ipaddr = NULL,
-		.ipmask = "255.255.255.0",
+		.ipmask = NMRP_DEFAULT_SUBNET,
 		.intf = NULL,
 		.mac = "ff:ff:ff:ff:ff:ff",
 		.op = NMRP_UPLOAD_FW,
-		.port = 69,
+		.port = NMRP_DEFAULT_TFTP_PORT,
 		.region = NULL,
 		.blind = false,
 		.offset = 0,
