@@ -17,19 +17,20 @@ FreeBSD `pkg` command.
 Usage: nmrpflash [OPTIONS...]
 
 Options (-i, and -f or -c are mandatory):
- -a <ipaddr>     IP address to assign to target device
- -A <ipaddr>     IP address to assign to selected interface
+ -a <ipaddr>     IP address to assign to target device [10.164.183.253]
+ -A <ipaddr>     IP address to assign to selected interface [10.164.183.252]
  -B              Blind mode (don't wait for response packets)
  -c <command>    Command to run before (or instead of) TFTP upload
  -f <firmware>   Firmware file
  -F <filename>   Remote filename to use during TFTP upload
  -i <interface>  Network interface directly connected to device
  -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)
- -M <netmask>    Subnet mask to assign to target device
- -t <timeout>    Timeout (in milliseconds) for NMRP packets
- -T <timeout>    Time (seconds) to wait after successfull TFTP upload
- -p <port>       Port to use for TFTP upload
+ -M <netmask>    Subnet mask to assign to target device [255.255.255.0]
+ -t <timeout>    Timeout (in milliseconds) for NMRP packets [10000 ms]
+ -T <timeout>    Time (seconds) to wait after successfull TFTP upload [1800 s]
+ -p <port>       Port to use for TFTP upload [69]
  -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP)
+ -S <n>          Skip <n> bytes of the firmware file
  -v              Be verbose
  -V              Print version and exit
  -L              List network interfaces
@@ -63,7 +64,7 @@ First of all, turn *off* the router. Then start `nmrpflash` using the following 
 
 ```
 # nmrpflash -i eth2 -f EX2700-V1.0.1.8.img
-Waiting for Ethernet connection.
+Waiting for Ethernet connection (Ctrl-C to skip).
 ```
 
 As soon as you see the `Waiting for Ethernet connection.` message, turn the router *on*. If all went
@@ -124,16 +125,16 @@ C:\> net start npf
 
 ###### "No response after 60 seconds. Bailing out."
 
-The router did not respond. Always run `nmrpflash` in the sequence
-described above!
+The router did not respond. **Always run `nmrpflash` in the sequence
+described above!**
 
-If that still doesn't work, you can try "blind mode", which can be
-invoked using `-B`. Note that you also have to specify your router's
-mac address using `-m xx:xx:xx:xx:xx:xx`. Also beware that in this mode,
+You can try specifying the MAC address using `-m xx:xx:xx:xx:xx:xx`,
+or, if that still doesn't work, "blind mode" using `-B`. Note that
 careful timing between running `nmrpflash` and turning on the router may
-be required!
+be required in this mode.
 
-It's also possible that your device does not support the NMRP protocol.
+It's also possible the bootloader itself is bricked, or that the
+particular device does not support the NMRP protocol.
 
 ###### "Timeout while waiting for ACK(0)/OACK."
 
@@ -146,12 +147,12 @@ network interface.
 
 ###### "Timeout while waiting for CLOSE_REQ."
 
-After a successful file upload, `nmrpflash` waits for up to 5 minutes for an
+After a successful file upload, `nmrpflash` waits for up to 15 minutes for an
 answer from your device. You can increase this by specifying a longer timeout
 using `-T` switch (argument is in seconds).
 
 It's entirely possible that the image was flashed successfully, but the
-operation took longer than 5 minutes.
+operation took longer than 15 minutes.
 
 ###### "Address X/Y cannot be used on interface Z."
 
@@ -177,7 +178,8 @@ hundred keep-alive requests before it eventually finishes!
 
 By default, file transfers using TFTP are limited to `65535 * 512` bytes
 (almost 32 MiB). Uploading files exceeding this limit might fail, depending
-on the device.
+on the device. If it does fail, your only option is flashing an older image,
+which is smaller than 32 MiB.
 
 ###### "Ignoring extra upload request."
 
@@ -201,7 +203,7 @@ flashing via the web interface.
 ###### "Timeout while waiting for 0000." after "Waiting for remote to respond."
 
 This could indicate that the device hasn't finished flashing, after the default timeout
-(5 minutes until version `0.9.4`). Try increasing the timeout, using the `-T <seconds>` option,
+(15 minutes`). Try increasing the timeout, using the `-T <seconds>` option,
 for example use `-T 1800` to specify a timeout of 30 minutes.
 
 ###### "bind: Cannot assign requested address"
@@ -249,8 +251,8 @@ The repository includes a
 [CodeBlocks](https://www.codeblocks.org/)
 project file (`nmrpflash.cbp`). Download the latest
 [Npcap SDK](https://nmap.org/npcap/)
-and extract it into the root folder of the `nmrpflash` sources.
-
+and extract it into the a folder named `Npcap` in the source's root
+directory.
 
 ### Donate
 
