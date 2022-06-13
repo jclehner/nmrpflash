@@ -859,7 +859,7 @@ static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, s
 #elif defined(NMRPFLASH_WINDOWS)
 		return DeleteIpNetEntry(&arp) ? 0 : -1;
 #else
-		return systemf("arp -d %s", inet_ntoa(addr));
+		return systemf("arp -d %s &> /dev/null", inet_ntoa(addr));
 #endif
 	}
 
