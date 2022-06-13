@@ -445,7 +445,7 @@ int nmrp_do(struct nmrpd_args *args)
 			goto out;
 		}
 
-		printf("Waiting for Ethernet connection.\n");
+		printf("Waiting for Ethernet connection (Ctrl-C to skip).\n");
 
 		bool unplugged = true;
 		time_t beg = time_monotonic();
@@ -460,8 +460,10 @@ int nmrp_do(struct nmrpd_args *args)
 		if (unplugged) {
 			if (!g_interrupted) {
 				fprintf(stderr, "Error: Ethernet cable is unplugged.\n");
+				goto out;
+			} else {
+				g_interrupted = false;
 			}
-			goto out;
 		}
 	}
 
