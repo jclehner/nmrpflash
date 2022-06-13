@@ -1,4 +1,4 @@
 * text eol=lf
 nmrpflash.dev text eol=crlf
-nmrpflash.manifest text eol=crlf
 nmrpflash.rc text eol=crlf
+nmrpflash.manifest text eol=crlf
