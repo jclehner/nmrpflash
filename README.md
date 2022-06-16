@@ -125,8 +125,7 @@ C:\> net start npf
 
 ###### "No response after 60 seconds. Bailing out."
 
-The router did not respond. **Always run `nmrpflash` in the sequence
-described above!**
+**Always run `nmrpflash` in the sequence described above!**
 
 You can try specifying the MAC address using `-m xx:xx:xx:xx:xx:xx`,
 or, if that still doesn't work, "blind mode" using `-B`. Note that
@@ -247,12 +246,9 @@ $ pkg install nmrpflash
 
 ###### Windows
 
-The repository includes a
-[CodeBlocks](https://www.codeblocks.org/)
-project file (`nmrpflash.cbp`). Download the latest
-[Npcap SDK](https://nmap.org/npcap/)
-and extract it into the a folder named `Npcap` in the source's root
-directory.
+The repository includes a [CodeBlocks](https://www.codeblocks.org/) project
+file (`nmrpflash.cbp`). Download the latest [Npcap SDK](https://nmap.org/npcap/)
+and extract it into the a folder named `Npcap` in the source's root directory.
 
 ### Donate
 
