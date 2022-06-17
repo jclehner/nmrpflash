@@ -254,7 +254,7 @@ static uint8_t *ethsock_get_hwaddr_fake(struct ethsock* sock)
 
 static int pkt_send(struct ethsock *sock, struct nmrp_pkt *pkt)
 {
-	return ethsock_send(sock, pkt, sizeof(*pkt));
+	return ethsock_send(sock, pkt, sizeof(pkt->eh) + ntohs(pkt->msg.len));
 }
 
 static int pkt_recv(struct ethsock *sock, struct nmrp_pkt *pkt)
