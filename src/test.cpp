@@ -8,15 +8,15 @@ void print(const eth_interface& intf)
 {
 	using boost::adaptors::filtered;
 
-	cout << left << setw(15) << intf.get_name();
+	cout << left << setw(17) << intf.get_name();
 
 	auto nets = intf.list_networks(true);
 
 	if (nets.empty()) {
-		cout << string(15, ' ');
+		cout << string(18, ' ');
 	} else {
 		auto net = stringify(*nets.begin());
-		net.resize(15, ' ');
+		net.resize(18, ' ');
 		cout << net;
 	}
 
