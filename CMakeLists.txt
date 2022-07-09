@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -Wno-c++11-narrowing")
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk")
 
-find_package(Boost 1.76.0 REQUIRED)
+find_package(Boost 1.74.0 REQUIRED)
 
 FetchContent_Declare(GSL
     GIT_REPOSITORY "https://github.com/microsoft/GSL"
