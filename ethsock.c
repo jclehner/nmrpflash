@@ -599,6 +599,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	struct ethsock *sock;
 	bool is_bridge = false;
 	int err;
+	int promisc;
 
 #ifdef NMRPFLASH_WINDOWS
 	intf = intf_name_to_wpcap(intf);
@@ -616,11 +617,21 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	buf[0] = '\0';
 
 	sock->intf = intf;
-	sock->pcap = pcap_open_live(sock->intf, BUFSIZ, 1, 1, buf);
-	if (!sock->pcap) {
-		fprintf(stderr, "%s.\n", buf);
-		goto cleanup;
-	}
+	promisc = true;
+
+	do {
+		sock->pcap = pcap_open_live(sock->intf, BUFSIZ, promisc, 1, buf);
+		if (!sock->pcap) {
+			if (!promisc) {
+				fprintf(stderr, "Error: %s.\n", buf);
+				goto cleanup;
+			} else {
+				fprintf(stderr, "Warning: failed to enable promiscous mode.\n");
+				promisc = false;
+				continue;
+			}
+		}
+	} while (!sock->pcap);
 
 	if (*buf) {
 		fprintf(stderr, "Warning: %s.\n", buf);
