@@ -202,7 +202,7 @@ flashing via the web interface.
 ###### "Timeout while waiting for 0000." after "Waiting for remote to respond."
 
 This could indicate that the device hasn't finished flashing, after the default timeout
-(15 minutes`). Try increasing the timeout, using the `-T <seconds>` option,
+(15 minutes). Try increasing the timeout, using the `-T <seconds>` option,
 for example use `-T 1800` to specify a timeout of 30 minutes.
 
 ###### "bind: Cannot assign requested address"
