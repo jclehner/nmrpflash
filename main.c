@@ -21,6 +21,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <pcap.h>
 #include "nmrpd.h"
 
 void usage(FILE *fp)
@@ -70,17 +71,19 @@ void usage(FILE *fp)
 			"and MAC are set to the device IP address, TFTP port, subnet\n"
 			"mask and MAC address, respectively.\n"
 			"\n"
-			"nmrpflash %s, Copyright (C) 2016-2021 Joseph C. Lehner\n"
+			"nmrpflash %s, Copyright (C) 2016-2022 Joseph C. Lehner\n"
 			"nmrpflash is free software, licensed under the GNU GPLv3.\n"
 			"Source code at https://github.com/jclehner/nmrpflash\n"
-			"\n",
+			"\n"
+			"%s\n",
 			NMRP_DEFAULT_IP_REMOTE,
 			NMRP_DEFAULT_IP_LOCAL,
 			NMRP_DEFAULT_SUBNET,
 			NMRP_DEFAULT_RX_TIMEOUT_MS,
 			NMRP_DEFAULT_UL_TIMEOUT_S,
 			NMRP_DEFAULT_TFTP_PORT,
-			NMRPFLASH_VERSION
+			NMRPFLASH_VERSION,
+			pcap_lib_version()
 	  );
 }
 

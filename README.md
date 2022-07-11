@@ -4,10 +4,10 @@ nmrpflash - Netgear Unbrick Utility
 ====================================
 
 `nmrpflash` uses Netgear's [NMRP protocol](http://www.chubb.wattle.id.au/PeterChubb/nmrp.html)
-to flash a new firmware image to a compatible device. It has been successfully used on a Netgear
-EX2700, EX6100v2, EX6120, EX6150v2, DNG3700v2, R6100, R6220, R7000, D7000, WNR3500, R6080, R6400
-and R6800, R8000, R8500, WNDR3800, WNDR4500v3 but is likely to be compatible with many other Netgear
-devices.
+to flash a new firmware image to a compatible device. It has been successfully used with the
+Netgear D7000, DNG3700v2, EX2700, EX6100v2, EX6120, EX6150v2, R6080, R6100, R6220, R6400, R7000, R7000P
+R6800, R8000, R8000P, R8500, WNDR3800, WNDR4300, WNDR4500v3 WNR3500, but is likely to be compatible with
+many other Netgear devices as well.
 
 Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases)
 ([Npcap](https://nmap.org/npcap/#download) is required on Windows). FreeBSD packages can be fetched and installed using the
@@ -125,8 +125,7 @@ C:\> net start npf
 
 ###### "No response after 60 seconds. Bailing out."
 
-The router did not respond. **Always run `nmrpflash` in the sequence
-described above!**
+**Always run `nmrpflash` in the sequence described above!**
 
 You can try specifying the MAC address using `-m xx:xx:xx:xx:xx:xx`,
 or, if that still doesn't work, "blind mode" using `-B`. Note that
@@ -203,7 +202,7 @@ flashing via the web interface.
 ###### "Timeout while waiting for 0000." after "Waiting for remote to respond."
 
 This could indicate that the device hasn't finished flashing, after the default timeout
-(15 minutes`). Try increasing the timeout, using the `-T <seconds>` option,
+(15 minutes). Try increasing the timeout, using the `-T <seconds>` option,
 for example use `-T 1800` to specify a timeout of 30 minutes.
 
 ###### "bind: Cannot assign requested address"
@@ -247,12 +246,9 @@ $ pkg install nmrpflash
 
 ###### Windows
 
-The repository includes a
-[CodeBlocks](https://www.codeblocks.org/)
-project file (`nmrpflash.cbp`). Download the latest
-[Npcap SDK](https://nmap.org/npcap/)
-and extract it into the a folder named `Npcap` in the source's root
-directory.
+The repository includes a [CodeBlocks](https://www.codeblocks.org/) project
+file (`nmrpflash.cbp`). Download the latest [Npcap SDK](https://nmap.org/npcap/)
+and extract it into the a folder named `Npcap` in the source's root directory.
 
 ### Donate
 

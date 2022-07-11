@@ -3,7 +3,8 @@ PKG_CONFIG ?= pkg-config
 PREFIX ?= /usr/local
 VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git describe --always | tail -c +2; else echo $$STANDALONE_VERSION; fi)
 CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
-SUFFIX ?= 
+SUFFIX ?=
+MACOS_SDK = macosx11.1
 
 ifeq ($(shell uname -s),Linux)
 	CFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --cflags)
@@ -14,6 +15,7 @@ endif
 
 ifeq ($(shell uname -s),Darwin)
 	AFL=afl-clang
+	CFLAGS+= -isysroot $(shell xcrun --sdk $(MACOS_SDK) --show-sdk-path)
 else
 	AFL=afl-gcc
 endif
