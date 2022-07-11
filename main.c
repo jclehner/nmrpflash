@@ -165,6 +165,10 @@ int main(int argc, char **argv)
 
 	atexit(&show_exit_prompt);
 
+	if (strstr(pcap_lib_version(), "WinPcap")) {
+		fprintf(stderr, "Warning: WinPcap is no longer supported! Install Npcap instead.\n");
+	}
+
 	val = WSAStartup(MAKEWORD(2, 2), &wsa);
 	if (val != 0) {
 		win_perror2("WSAStartup", val);
