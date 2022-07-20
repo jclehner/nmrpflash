@@ -10,8 +10,8 @@ R6800, R8000, R8000P, R8500, WNDR3800, WNDR4300, WNDR4500v3 WNR3500, but is like
 many other Netgear devices as well.
 
 Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases)
-([Npcap](https://nmap.org/npcap/#download) is required on Windows). FreeBSD packages can be fetched and installed using the
-FreeBSD `pkg` command.
+([Npcap](https://nmap.org/npcap/#download) is required on Windows). On Linux and macOS, you can also use
+[Homebrew](https://formulae.brew.sh/formula/nmrpflash). FreeBSD packages can be fetched and installed using the FreeBSD `pkg` command.
 
 ```
 Usage: nmrpflash [OPTIONS...]
@@ -109,8 +109,10 @@ Version 0.9.13 was the last version to support Windows XP.
 Go to ` -> System Preferences -> Security & Privacy`. Under the `General` tab, there should
 be a message like "nmrpflash was blocked from use because it is not from an identified
 developer". Click the `Allow anyway` button next to it, and run `nmrpflash` again.
-
 If that doesn't work, try [this](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac).
+
+Please note that [Homebrew](https://formulae.brew.sh/formula/nmrpflash) is the preferred method of
+installing `nmrpflash` on macOS.
 
 ###### "No suitable network interfaces found."
 
@@ -229,6 +231,12 @@ Then, it's as easy as
 
 ```
 $ make && sudo make install
+```
+
+On Linux and macOS, you can use [Homebrew](https://brew.sh) to install `nmrpflash`:
+
+```
+$ brew install nmrpflash
 ```
 
 On FreeBSD (assuming the ports infrastructure is installed and you have root permissions):
