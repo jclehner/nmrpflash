@@ -49,7 +49,8 @@ clean:
 	rm -f $(nmrpflash_OBJ) nmrpflash nmrpflash.exe fuzz_nmrp fuzz_tftp
 
 install: nmrpflash
-	install -m 755 nmrpflash $(PREFIX)/bin/nmrpflash
+	install -d $(PREFIX)/bin
+	install -m 755 nmrpflash $(PREFIX)/bin/
 
 release/macos:
 	CFLAGS="-isysroot $(SYSROOT) -target arm64-apple-macos11" SUFFIX=".arm64" make release
