@@ -109,7 +109,6 @@ Version 0.9.13 was the last version to support Windows XP.
 Go to ` -> System Preferences -> Security & Privacy`. Under the `General` tab, there should
 be a message like "nmrpflash was blocked from use because it is not from an identified
 developer". Click the `Allow anyway` button next to it, and run `nmrpflash` again.
-
 If that doesn't work, try [this](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac).
 
 Please note that [Homebrew](https://formulae.brew.sh/formula/nmrpflash) is the preferred method of
