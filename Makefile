@@ -8,7 +8,9 @@ MACOS_SDK ?= macosx11.1
 
 ifeq ($(shell uname -s),Linux)
 	CFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --cflags)
-	LDFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --libs) -lpcap
+	CFLAGS += $(shell $(PKG_CONFIG) libpcap --cflags)
+	LDFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --libs)
+	LDFLAGS += $(shell $(PKG_CONFIG) libpcap --libs)
 else
 	LDFLAGS += -lpcap
 endif
