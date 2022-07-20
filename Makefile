@@ -4,7 +4,7 @@ PREFIX ?= /usr/local
 VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git describe --always | tail -c +2; else echo $$STANDALONE_VERSION; fi)
 CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 SUFFIX ?=
-MACOS_SDK = macosx11.1
+MACOS_SDK ?= macosx11.1
 
 ifeq ($(shell uname -s),Linux)
 	CFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --cflags)
@@ -15,7 +15,7 @@ endif
 
 ifeq ($(shell uname -s),Darwin)
 	AFL=afl-clang
-	CFLAGS+= -isysroot $(shell xcrun --sdk $(MACOS_SDK) --show-sdk-path)
+	SYSROOT ?= $(shell xcrun --sdk $(MACOS_SDK) --show-sdk-path)
 else
 	AFL=afl-gcc
 endif
@@ -49,11 +49,11 @@ clean:
 	rm -f $(nmrpflash_OBJ) nmrpflash nmrpflash.exe fuzz_nmrp fuzz_tftp
 
 install: nmrpflash
-	install -m 755 nmrpflash $(PREFIX)/bin
+	install -m 755 nmrpflash $(PREFIX)/bin/nmrpflash
 
 release/macos:
-	CFLAGS="-target arm64-apple-macos11" SUFFIX=".arm64" make release
-	CFLAGS="-target x86_64-apple-macos10.8" SUFFIX=".x86_64" make release
+	CFLAGS="-isysroot $(SYSROOT) -target arm64-apple-macos11" SUFFIX=".arm64" make release
+	CFLAGS="-isysroot $(SYSROOT) -target x86_64-apple-macos10.8" SUFFIX=".x86_64" make release
 	lipo -create -output nmrpflash nmrpflash.x86_64 nmrpflash.arm64
 	zip nmrpflash-$(VERSION)-macos.zip nmrpflash
 	rm -f nmrpflash.x86_64 nmrpflash.arm64
