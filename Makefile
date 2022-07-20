@@ -50,7 +50,10 @@ clean:
 
 install: nmrpflash
 	install -d $(PREFIX)/bin
-	install -m 755 nmrpflash $(PREFIX)/bin/
+	install -s -m 755 nmrpflash $(PREFIX)/bin/
+
+uninstall:
+	rm -f $(PREFIX)/bin/nmrpflash
 
 release/macos:
 	CFLAGS="-isysroot $(SYSROOT) -target arm64-apple-macos11" SUFFIX=".arm64" make release
