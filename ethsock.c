@@ -776,12 +776,10 @@ ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len)
 int ethsock_send(struct ethsock *sock, void *buf, size_t len)
 {
 #ifdef NMRPFLASH_WINDOWS
-	if (pcap_sendpacket(sock->pcap, buf, len) == 0) {
-		return 0;
-	} else {
+	if (pcap_sendpacket(sock->pcap, buf, len) != 0 && verbosity > 1) {
 		pcap_perror(sock->pcap, "pcap_sendpacket");
-		return -1;
 	}
+	return 0;
 #else
 	if (pcap_inject(sock->pcap, buf, len) == len) {
 		return 0;
