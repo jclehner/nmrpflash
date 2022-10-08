@@ -486,7 +486,7 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 	}
 
-	if (ethsock_set_timeout(sock, 200)) {
+	if (ethsock_set_timeout(sock, 20)) {
 		goto out;
 	}
 
