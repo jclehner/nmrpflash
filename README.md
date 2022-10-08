@@ -127,7 +127,7 @@ C:\> net start npf
 
 ###### "No response after 60 seconds. Bailing out."
 
-**Always run `nmrpflash` in the sequence described above!**
+Always run `nmrpflash` in the sequence described above!
 
 You can try specifying the MAC address using `-m xx:xx:xx:xx:xx:xx`,
 or, if that still doesn't work, "blind mode" using `-B`. Note that
@@ -136,6 +136,20 @@ be required in this mode.
 
 It's also possible the bootloader itself is bricked, or that the
 particular device does not support the NMRP protocol.
+
+###### Stuck at "Waiting for remote to respond."
+
+The file transfer was successful, but the router still needs to actually
+write the data to the flash chip. Depending on the image size, this can
+take quite some time: times of 15 minutes and more have been reported.
+
+Some devices will send keep-alive packets (see [below](#received-keep-alive-request))
+during this time, which are esentially telling `nmrpflash` that it's still busy flashing.
+
+Do not reboot your device at this time, because flashing is probably
+still in progress (sometimes indicated by flashing LEDs). Only when
+nmrpflash says `Reboot your device now.` you can assume that the
+process has finished.
 
 ###### "Timeout while waiting for ACK(0)/OACK."
 
@@ -148,7 +162,7 @@ network interface.
 
 ###### "Timeout while waiting for CLOSE_REQ."
 
-After a successful file upload, `nmrpflash` waits for up to 15 minutes for an
+After a successful file upload, `nmrpflash` waits for up to 30 minutes for an
 answer from your device. You can increase this by specifying a longer timeout
 using `-T` switch (argument is in seconds).
 
@@ -173,7 +187,8 @@ disabled.
 ###### "Received keep-alive request."
 
 This usually means that flashing is in progress. On some devices, you may get a few
-hundred keep-alive requests before it eventually finishes!
+hundred keep-alive requests before it eventually finishes! On others, you'll only
+receive a few, with many minutes between each message.
 
 ###### "TFTP block rollover. Upload might fail!"
 
