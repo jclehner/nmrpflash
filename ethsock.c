@@ -780,13 +780,16 @@ int ethsock_send(struct ethsock *sock, void *buf, size_t len)
 {
 	if (pcap_inject(sock->pcap, buf, len) != len) {
 #ifdef NMRPFLASH_WINDOWS
-		// In recent Npcap versions, pcap_inject fails if the
-		// interface is unplugged. This doesn't happen on either
-		// Linux or macOS.
+		// Npcap's pcap_inject fails in many cases where neither
+		// Linux or macOS report an error. For now, we simply
+		// ignore errors if unplugged (and let all other through
+		// as well, just printing a debug line).
 
-		if (ethsock_is_unplugged(sock)) {
-			return 0;
+		if (!ethsock_is_unplugged(sock) && verbosity > 1) {
+			pcap_perror(sock->pcap, "pcap_inject");
 		}
+
+		return 0;
 #endif
 		pcap_perror(sock->pcap, "pcap_inject");
 		return -1;
