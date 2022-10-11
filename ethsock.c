@@ -28,6 +28,9 @@
 
 #if defined(NMRPFLASH_WINDOWS)
 #include <iphlpapi.h>
+#ifndef ERROR_NDIS_MEDIA_DISCONNECTED
+#define ERROR_NDIS_MEDIA_DISCONNECTED 0x8034001f
+#endif
 #define WPCAP
 #include <pcap.h>
 #else
@@ -775,19 +778,21 @@ ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len)
 
 int ethsock_send(struct ethsock *sock, void *buf, size_t len)
 {
+	if (pcap_inject(sock->pcap, buf, len) != len) {
 #ifdef NMRPFLASH_WINDOWS
-	if (pcap_sendpacket(sock->pcap, buf, len) != 0 && verbosity > 1) {
-		pcap_perror(sock->pcap, "pcap_sendpacket");
-	}
-	return 0;
-#else
-	if (pcap_inject(sock->pcap, buf, len) == len) {
-		return 0;
-	} else {
+		// In recent Npcap versions, pcap_inject fails if the
+		// interface is unplugged. This doesn't happen on either
+		// Linux or macOS.
+
+		if (ethsock_is_unplugged(sock)) {
+			return 0;
+		}
+#endif
 		pcap_perror(sock->pcap, "pcap_inject");
 		return -1;
 	}
-#endif
+
+	return 0;
 }
 
 int ethsock_close(struct ethsock *sock)
