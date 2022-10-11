@@ -1190,6 +1190,8 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 
 			if (row.DadState == IpDadStateDeprecated) {
 				fprintf(stderr, "Warning: IP address marked as deprecated.\n");
+			} else if (row.DadState == IpDadStateTentative) {
+				fprintf(stderr, "Warning: IP address marked as tentative.\n");
 			} else if (row.DadState != IpDadStatePreferred) {
 				fprintf(stderr, "Failed to add IP address (state=%d).\n", row.DadState);
 				goto out;
