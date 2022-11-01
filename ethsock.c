@@ -586,6 +586,7 @@ bool ethsock_is_wifi(struct ethsock *sock)
 
 bool ethsock_is_unplugged(struct ethsock *sock)
 {
+#ifdef PCAP_IF_WIRELESS
 	bpf_u_int32 flags;
 
 	if (!intf_get_pcap_flags(sock->intf, &flags)) {
@@ -593,6 +594,10 @@ bool ethsock_is_unplugged(struct ethsock *sock)
 	}
 
 	return flags & PCAP_IF_CONNECTION_STATUS_DISCONNECTED;
+#else
+#warning "libpcap version is < 1.9.0"
+	return false;
+#endif
 }
 
 struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
