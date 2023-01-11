@@ -700,14 +700,6 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 		goto cleanup;
 	}
 
-#ifdef NMRPFLASH_WINDOWS
-	err = pcap_setmintocopy(sock->pcap, 0);
-	if (err) {
-		pcap_perror(sock->pcap, "pcap_setmintocopy");
-		goto cleanup;
-	}
-#endif
-
 	err = pcap_activate(sock->pcap);
 	if (err < 0) {
 		pcap_perror(sock->pcap, "pcap_activate");
@@ -733,6 +725,12 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	}
 
 #ifdef NMRPFLASH_WINDOWS
+	err = pcap_setmintocopy(sock->pcap, 0);
+	if (err) {
+		pcap_perror(sock->pcap, "pcap_setmintocopy");
+		goto cleanup;
+	}
+
 	sock->handle = pcap_getevent(sock->pcap);
 	if (!sock->handle) {
 		pcap_perror(sock->pcap, "pcap_getevent");
