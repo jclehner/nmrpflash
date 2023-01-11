@@ -105,13 +105,12 @@ static int x_pcap_set_immediate_mode(pcap_t *p, int immediate_mode)
 		f_pcap_set_immediate_mode = dlsym(NULL, "pcap_set_immediate_mode");
 	}
 
-	if (verbosity > 2) {
-		fprintf(stderr, "pcap_set_immediate_mode = %p\n", f_pcap_set_immediate_mode);
-	}
-
 	if (f_pcap_set_immediate_mode) {
 		return f_pcap_set_immediate_mode(p, immediate_mode);
 	} else {
+		if (verbosity > 2) {
+			fprintf(stderr, "Warning: pcap_set_immediate_mode is not available.\n");
+		}
 		// silently ignore
 		return 0;
 	}
