@@ -44,7 +44,6 @@
 #include <linux/if_packet.h>
 #include <netlink/route/addr.h>
 #include <netlink/route/neighbour.h>
-#include <dlfcn.h>
 #else
 #define NMRPFLASH_AF_PACKET AF_LINK
 #include <net/if_types.h>
@@ -92,48 +91,6 @@ static int x_pcap_findalldevs(pcap_if_t **devs)
 
 	return 0;
 }
-
-// pcap_set_immediate_mode was introduced in libpcap-1.5.0,
-// but we also want to support earlier versions
-
-static int (*f_pcap_set_immediate_mode)(pcap_t*, int) = NULL;
-
-static int x_pcap_set_immediate_mode(pcap_t *p, int immediate_mode)
-{
-#ifndef NMRPFLASH_WINDOWS
-	if (!f_pcap_set_immediate_mode) {
-		f_pcap_set_immediate_mode = dlsym(NULL, "pcap_set_immediate_mode");
-	}
-
-	if (f_pcap_set_immediate_mode) {
-		return f_pcap_set_immediate_mode(p, immediate_mode);
-	} else {
-		if (verbosity > 2) {
-			fprintf(stderr, "Warning: pcap_set_immediate_mode is not available.\n");
-		}
-		// silently ignore
-		return 0;
-	}
-#else
-	// No workaround for Npcap
-	return pcap_set_immediate_mode(p, immediate_mode);
-#endif
-}
-
-#ifdef NMRPFLASH_BSD
-static int bsd_set_immediate_mode(pcap_t *p, int immediate_mode)
-{
-	// if we have "pcap_set_immediate_mode", then there's no need to call this function. the
-	// reason for having both, is that this function must be called *after* activation, whereas
-	// pcap_set_immediate_mode must be called *before* activation!
-
-	if (f_pcap_set_immediate_mode) {
-		return 0;
-	}
-
-	return ioctl(pcap_fileno(p), BIOCIMMEDIATE, 1);
-}
-#endif
 
 static bool intf_get_pcap_flags(const char *intf, bpf_u_int32 *flags)
 {
@@ -694,7 +651,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 		goto cleanup;
 	}
 
-	err = x_pcap_set_immediate_mode(sock->pcap, 1);
+	err = pcap_set_immediate_mode(sock->pcap, 1);
 	if (err) {
 		pcap_perror(sock->pcap, "pcap_set_immediate_mode");
 		goto cleanup;
@@ -743,14 +700,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 		goto cleanup;
 	}
 
-#ifdef NMRPFLASH_BSD
-	err = bsd_set_immediate_mode(sock->pcap, 1);
-	if (err) {
-		fprintf(stderr, "Warning: setting immediate mode failed: %s.\n", strerror(errno));
-		goto cleanup;
-	}
-#endif // NMRPFLASH_BSD
-#endif // NMRPFLASH_WINDOWS
+#endif
 
 	snprintf(buf, sizeof(buf), "ether proto 0x%04x and not ether src %s",
 			protocol, mac_to_str(sock->hwaddr));
