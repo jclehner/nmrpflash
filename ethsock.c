@@ -44,6 +44,7 @@
 #include <linux/if_packet.h>
 #include <netlink/route/addr.h>
 #include <netlink/route/neighbour.h>
+#include <dlfcn.h>
 #else
 #define NMRPFLASH_AF_PACKET AF_LINK
 #include <net/if_types.h>
@@ -91,6 +92,41 @@ static int x_pcap_findalldevs(pcap_if_t **devs)
 
 	return 0;
 }
+
+static int (*f_pcap_set_immediate_mode)(pcap_t*, int) = NULL;
+
+static int x_pcap_set_immediate_mode(pcap_t *p, int immediate_mode)
+{
+	if (!f_pcap_set_immediate_mode) {
+		f_pcap_set_immediate_mode = dlsym(NULL, "pcap_set_immediate_mode");
+	}
+
+	if (verbosity > 2) {
+		fprintf(stderr, "pcap_set_immediate_mode = %p\n", f_pcap_set_immediate_mode);
+	}
+
+	if (f_pcap_set_immediate_mode) {
+		return f_pcap_set_immediate_mode(p, immediate_mode);
+	} else {
+		// silently ignore
+		return 0;
+	}
+}
+
+#ifdef NMRPFLASH_BSD
+static int bsd_set_immediate_mode(pcap_t *p, int immediate_mode)
+{
+	// if we have "pcap_set_immediate_mode", then there's no need to call this function. the
+	// reason for having both, is that this function must be called *after* activation, whereas
+	// pcap_set_immediate_mode must be called *before* activation!
+
+	if (f_pcap_set_immediate_mode) {
+		return 0;
+	}
+
+	return ioctl(pcap_fileno(p), BIOCIMMEDIATE, 1);
+}
+#endif
 
 static bool intf_get_pcap_flags(const char *intf, bpf_u_int32 *flags)
 {
@@ -608,7 +644,6 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	struct ethsock *sock;
 	bool is_bridge = false;
 	int err;
-	int promisc;
 
 #ifdef NMRPFLASH_WINDOWS
 	intf = intf_name_to_wpcap(intf);
@@ -624,26 +659,54 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	}
 
 	buf[0] = '\0';
-
 	sock->intf = intf;
-	promisc = true;
-
-	do {
-		sock->pcap = pcap_open_live(sock->intf, BUFSIZ, promisc, 1, buf);
-		if (!sock->pcap) {
-			if (!promisc) {
-				fprintf(stderr, "Error: %s.\n", buf);
-				goto cleanup;
-			} else {
-				fprintf(stderr, "Warning: failed to enable promiscous mode.\n");
-				promisc = false;
-				continue;
-			}
-		}
-	} while (!sock->pcap);
+	sock->pcap = pcap_create(sock->intf, buf);
+	if (!sock->pcap) {
+		fprintf(stderr, "pcap_create: %s\n", buf);
+	}
 
 	if (*buf) {
 		fprintf(stderr, "Warning: %s.\n", buf);
+	}
+
+	err = pcap_set_snaplen(sock->pcap, BUFSIZ);
+	if (err) {
+		pcap_perror(sock->pcap, "pcap_set_snaplen");
+		goto cleanup;
+	}
+
+	err = pcap_set_promisc(sock->pcap, 1);
+	if (err) {
+		pcap_perror(sock->pcap, "pcap_set_promisc");
+		goto cleanup;
+	}
+
+	err = pcap_set_timeout(sock->pcap, 200);
+	if (err) {
+		pcap_perror(sock->pcap, "pcap_set_timeout");
+		goto cleanup;
+	}
+
+	err = x_pcap_set_immediate_mode(sock->pcap, 1);
+	if (err) {
+		pcap_perror(sock->pcap, "pcap_set_immediate_mode");
+		goto cleanup;
+	}
+
+#ifdef NMRPFLASH_WINDOWS
+	err = pcap_setmintocopy(sock->pcap, 0);
+	if (err) {
+		pcap_perror(sock->pcap, "pcap_setmintocopy");
+		goto cleanup;
+	}
+#endif
+
+	err = pcap_activate(sock->pcap);
+	if (err < 0) {
+		pcap_perror(sock->pcap, "pcap_activate");
+		goto cleanup;
+	} else if (err > 0) {
+		fprintf(stderr, "Warning: %s.\n", pcap_geterr(sock->pcap));
 	}
 
 	if (pcap_datalink(sock->pcap) != DLT_EN10MB) {
@@ -662,25 +725,27 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 		goto cleanup;
 	}
 
-#ifndef NMRPFLASH_WINDOWS
-	sock->fd = pcap_get_selectable_fd(sock->pcap);
-	if (sock->fd == -1) {
-		pcap_perror(sock->pcap, "pcap_get_selectable_fd");
-		goto cleanup;
-	}
-#else
+#ifdef NMRPFLASH_WINDOWS
 	sock->handle = pcap_getevent(sock->pcap);
 	if (!sock->handle) {
 		pcap_perror(sock->pcap, "pcap_getevent");
 		goto cleanup;
 	}
-
-	err = pcap_setmintocopy(sock->pcap, 1);
-	if (err) {
-		pcap_perror(sock->pcap, "pcap_setmintocopy");
+#else
+	sock->fd = pcap_get_selectable_fd(sock->pcap);
+	if (sock->fd == -1) {
+		pcap_perror(sock->pcap, "pcap_get_selectable_fd");
 		goto cleanup;
 	}
-#endif
+
+#ifdef NMRPFLASH_BSD
+	err = bsd_set_immediate_mode(sock->pcap, 1);
+	if (err) {
+		fprintf(stderr, "Warning: setting immediate mode failed: %s.\n", strerror(errno));
+		goto cleanup;
+	}
+#endif // NMRPFLASH_BSD
+#endif // NMRPFLASH_WINDOWS
 
 	snprintf(buf, sizeof(buf), "ether proto 0x%04x and not ether src %s",
 			protocol, mac_to_str(sock->hwaddr));

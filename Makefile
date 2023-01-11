@@ -3,6 +3,7 @@ PKG_CONFIG ?= pkg-config
 PREFIX ?= /usr/local
 VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git describe --always | tail -c +2; else echo $$STANDALONE_VERSION; fi)
 CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
+LDFLAGS += -ldl
 SUFFIX ?=
 MACOS_SDK ?= macosx11.1
 
