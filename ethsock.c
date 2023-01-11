@@ -93,10 +93,14 @@ static int x_pcap_findalldevs(pcap_if_t **devs)
 	return 0;
 }
 
+// pcap_set_immediate_mode was introduced in libpcap-1.5.0,
+// but we also want to support earlier versions
+
 static int (*f_pcap_set_immediate_mode)(pcap_t*, int) = NULL;
 
 static int x_pcap_set_immediate_mode(pcap_t *p, int immediate_mode)
 {
+#ifndef NMRPFLASH_WINDOWS
 	if (!f_pcap_set_immediate_mode) {
 		f_pcap_set_immediate_mode = dlsym(NULL, "pcap_set_immediate_mode");
 	}
@@ -111,6 +115,10 @@ static int x_pcap_set_immediate_mode(pcap_t *p, int immediate_mode)
 		// silently ignore
 		return 0;
 	}
+#else
+	// No workaround for Npcap
+	return pcap_set_immediate_mode(p, immediate_mode);
+#endif
 }
 
 #ifdef NMRPFLASH_BSD
