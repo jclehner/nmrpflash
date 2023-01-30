@@ -99,7 +99,7 @@ On Debian based distros (such as Ubuntu) you can install these dependencies with
 
 ###### "The program can't start because wpcap.dll is missing" (Windows)
 
-Install [Npcap](https://nmap.org/npcap/) with "WinPcap Compatibility" enabled.
+Install [Npcap](https://nmap.org/npcap/#download) with "WinPcap Compatibility" enabled.
 
 Version 0.9.13 was the last version to support Windows XP.
 
