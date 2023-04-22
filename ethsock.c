@@ -353,7 +353,7 @@ out:
 
 #endif
 
-static bool intf_get_info(const char *intf, uint8_t *hwaddr, bool *bridge)
+static bool intf_get_hwaddr_and_bridge(const char *intf, uint8_t *hwaddr, bool *bridge)
 {
 	struct ifaddrs *ifas, *ifa;
 	bool found;
@@ -424,17 +424,21 @@ static bool intf_get_if_row(NET_IFINDEX index, MIB_IF_ROW2* row)
 	return true;
 }
 
-static bool intf_get_info(const char *intf, uint8_t *hwaddr, DWORD *index)
+static bool intf_get_hwaddr_and_index(const char *intf, uint8_t *hwaddr, DWORD *index)
 {
-	PIP_ADAPTER_INFO adapters, adapter;
-	DWORD ret;
-	ULONG bufLen = 0;
+	PIP_ADAPTER_ADDRESSES adapters, adapter;
+	ULONG ret, flags, bufLen;
 	bool found = false;
 
-	if ((ret = GetAdaptersInfo(NULL, &bufLen)) != ERROR_BUFFER_OVERFLOW) {
-		win_perror2("GetAdaptersInfo", ret);
+	flags = GAA_FLAG_INCLUDE_ALL_INTERFACES;
+	bufLen = 0;
+	ret = GetAdaptersAddresses(AF_UNSPEC, flags, NULL, NULL, &bufLen);
+	if (ret != ERROR_BUFFER_OVERFLOW) {
+		win_perror2("GetAdaptersAddresses", ret);
 		return false;
 	}
+
+	bufLen *= 2;
 
 	adapters = malloc(bufLen);
 	if (!adapters) {
@@ -442,19 +446,23 @@ static bool intf_get_info(const char *intf, uint8_t *hwaddr, DWORD *index)
 		return false;
 	}
 
-	if ((ret = GetAdaptersInfo(adapters, &bufLen) == NO_ERROR)) {
+	ret = GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapters, &bufLen);
+	if (ret == NO_ERROR) {
 		for (adapter = adapters; adapter; adapter = adapter->Next) {
-			if (adapter->Type != MIB_IF_TYPE_ETHERNET && adapter->Type != IF_TYPE_IEEE80211) {
+			if (verbosity > 2) {
+				printf("  %s: Type=%lu, Name=%ls\n", adapter->AdapterName, adapter->IfType, adapter->FriendlyName);
+			}
+			if (adapter->IfType != IF_TYPE_ETHERNET_CSMACD && adapter->IfType != IF_TYPE_IEEE80211) {
 				continue;
 			}
 
 			/* Interface names from WinPcap are "\Device\NPF_{GUID}", while
-			 * AdapterName from GetAdaptersInfo is just "{GUID}".*/
+			 * AdapterName from GetAdaptersAddresses is just "{GUID}".*/
 			if (strstr(intf, adapter->AdapterName)) {
-				if (adapter->AddressLength == 6) {
-					memcpy(hwaddr, adapter->Address, 6);
+				if (adapter->PhysicalAddressLength == 6) {
+					memcpy(hwaddr, adapter->PhysicalAddress, 6);
 					if (index) {
-						*index = adapter->Index;
+						*index = adapter->IfIndex;
 					}
 					found = true;
 					break;
@@ -462,7 +470,7 @@ static bool intf_get_info(const char *intf, uint8_t *hwaddr, DWORD *index)
 			}
 		}
 	} else {
-		win_perror2("GetAdaptersInfo", ret);
+		win_perror2("GetAdaptersAddresses", ret);
 	}
 
 	free(adapters);
@@ -672,9 +680,9 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	}
 
 #ifndef NMRPFLASH_WINDOWS
-	err = !intf_get_info(intf, sock->hwaddr, &is_bridge);
+	err = !intf_get_hwaddr_and_bridge(intf, sock->hwaddr, &is_bridge);
 #else
-	err = !intf_get_info(intf, sock->hwaddr, &sock->index);
+	err = !intf_get_hwaddr_and_index(intf, sock->hwaddr, &sock->index);
 #endif
 	if (err) {
 		fprintf(stderr, "Failed to get interface info.\n");
@@ -949,9 +957,11 @@ static bool get_hwaddr_from_pcap(const pcap_if_t *dev, uint8_t *hwaddr)
 			return true;
 		}
 	}
-#endif
 
-	return intf_get_info(dev->name, hwaddr, NULL);
+	return intf_get_hwaddr_and_bridge(dev->name, hwaddr, NULL);
+#else
+	return intf_get_hwaddr_and_index(dev->name, hwaddr, NULL);
+#endif
 }
 
 int ethsock_list_all(void)
