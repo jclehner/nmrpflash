@@ -159,6 +159,9 @@ address assigned to the target (e.g. if your network is `192.168.1.0/24`, specif
 IP address, such as `-a 192.168.1.252`), and `-A` to change the IP address used for the
 network interface.
 
+If you have a firewall installed on the computer that is running `nmrpflash` (such as 
+`iptables` or `nftables`), try disabling the firewall before running `nmrpflash` again.
+
 ###### "Timeout while waiting for CLOSE_REQ."
 
 After a successful file upload, `nmrpflash` waits for up to 30 minutes for an
