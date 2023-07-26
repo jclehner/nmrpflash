@@ -7,10 +7,13 @@ CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\" -O2
 SUFFIX ?=
 MACOS_SDK ?= macosx11.1
 
+nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
+
 ifdef MINGW
 	SUFFIX = .exe
 	CC = $(MINGW)gcc
 	STRIP = $(MINGW)strip
+	WINDRES = $(MINGW)windres
 	CFLAGS += -DWIN32_LEAN_AND_MEAN
 	CFLAGS += -D_WIN32_WINNT=0x0600
 	CFLAGS += -D__USE_MINGW_ANSI_STDIO
@@ -21,6 +24,7 @@ ifdef MINGW
 	LDFLAGS += -lws2_32
 	LDFLAGS += -ladvapi32
 	LDFLAGS += "-L./Npcap/Lib"
+	nmrpflash_OBJ += windres.o
 else ifeq ($(shell uname -s),Linux)
 	CFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --cflags)
 	CFLAGS += $(shell $(PKG_CONFIG) libpcap --cflags)
@@ -38,7 +42,6 @@ else
 	AFL=afl-gcc
 endif
 
-nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
 
 .PHONY: clean install release release/macos release/linux release/win32
 
@@ -50,6 +53,9 @@ tftptest:
 
 %.o: %.c nmrpd.h
 	$(CC) -c $(CFLAGS) $< -o $@
+
+windres.o: nmrpflash.rc nmrpflash.manifest nmrpflash.ico
+	$(WINDRES) $< -o $@
 
 fuzz_nmrp: tftp.c util.c nmrp.c fuzz.c
 	$(AFL) $(CFLAGS) -DNMRPFLASH_FUZZ $^ -o $@
