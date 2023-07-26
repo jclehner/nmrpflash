@@ -348,6 +348,32 @@ static void sigh(int sig)
 	g_interrupted = 1;
 }
 
+static void nmrp_drain(void* arg)
+{
+	// between nmrpflash sending the TFTP WRQ packet, and the router
+	// responding with ACK(0)/OACK, some devices send extraneous
+	// CONF_REQ and/or TFTP_UL_REQ packets.
+	//
+	// we drain the NMRP receive buffer here, otherwise it might seem
+	// as if these packets arrived *after* the TFTP upload.
+
+	struct nmrp_pkt rx;
+	int i = 0;
+
+	while (pkt_recv((struct ethsock*)arg, &rx) == 0) {
+		if (rx.msg.code != NMRP_C_CONF_REQ && rx.msg.code != NMRP_C_TFTP_UL_REQ) {
+			if (verbosity > 1) {
+				printf("Drained unexpected packet type %s\n", msg_code_str(rx.msg.code));
+			}
+		}
+		++i;
+	}
+
+	if (verbosity > 1) {
+		printf("Drained %d packet(s) from rx buffer\n", i);
+	}
+}
+
 static const char *spinner = "\\|/-";
 
 int nmrp_do(struct nmrpd_args *args)
@@ -563,6 +589,9 @@ int nmrp_do(struct nmrpd_args *args)
 	expect = NMRP_C_CONF_REQ;
 	ulreqs = 0;
 	ka_reqs = 0;
+
+	args->on_tftp_ack0_callback = &nmrp_drain;
+	args->on_tftp_ack0_arg = sock;
 
 	while (!g_interrupted) {
 		if (expect != NMRP_C_NONE && rx.msg.code != expect) {

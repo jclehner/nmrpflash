@@ -328,8 +328,8 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	char rx[2048], tx[2048];
 	const char *file_remote = args->file_remote;
 	char *val, *end;
-	bool rollover;
-	const unsigned rx_timeout = MAX(args->rx_timeout / (args->blind ? 50 : 5), 2000);
+	bool rollover, tftp_ack0_callback_called;
+	const unsigned rx_timeout = MIN(args->rx_timeout / (args->blind ? 50 : 5), 2000);
 	const unsigned max_timeouts = args->blind ? 3 : 5;
 #ifndef NMRPFLASH_WINDOWS
 	int enabled = 1;
@@ -393,7 +393,6 @@ ssize_t tftp_put(struct nmrpd_args *args)
 		}
 
 		if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-			printf("errno=%d\n", errno);
 			sock_perror("bind");
 			goto cleanup;
 		}
@@ -415,6 +414,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	rollover = false;
 	/* Not really, but this way the loop sends our WRQ before receiving */
 	timeouts = 1;
+	tftp_ack0_callback_called = false;
 
 	pkt_mkwrq(tx, file_remote, TFTP_BLKSIZE);
 
@@ -439,6 +439,11 @@ ssize_t tftp_put(struct nmrpd_args *args)
 						printf("Remote accepted blksize option: %d b\n", blksize);
 					}
 				}
+			}
+
+			if (!ackblock && args->on_tftp_ack0_callback && !tftp_ack0_callback_called) {
+				args->on_tftp_ack0_callback(args->on_tftp_ack0_arg);
+				tftp_ack0_callback_called = true;
 			}
 		}
 

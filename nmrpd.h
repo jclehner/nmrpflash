@@ -112,6 +112,9 @@ struct nmrpd_args {
 	uint16_t port;
 	const char *region;
 	off_t offset;
+
+	void (*on_tftp_ack0_callback)(void*);
+	void* on_tftp_ack0_arg;
 };
 
 const char *leafname(const char *path);
