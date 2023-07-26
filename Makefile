@@ -1,19 +1,34 @@
 CC ?= gcc
+STRIP ?= strip
 PKG_CONFIG ?= pkg-config
 PREFIX ?= /usr/local
 VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git describe --always | tail -c +2; else echo $$STANDALONE_VERSION; fi)
-CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
-LDFLAGS += -ldl
+CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\" -O2
 SUFFIX ?=
 MACOS_SDK ?= macosx11.1
 
-ifeq ($(shell uname -s),Linux)
+ifdef MINGW
+	SUFFIX = .exe
+	CC = $(MINGW)gcc
+	STRIP = $(MINGW)strip
+	CFLAGS += -DWIN32_LEAN_AND_MEAN
+	CFLAGS += -D_WIN32_WINNT=0x0600
+	CFLAGS += -D__USE_MINGW_ANSI_STDIO
+	CFLAGS += "-I./Npcap/Include"
+	LDFLAGS += -lwpcap
+	LDFLAGS += -lpacket
+	LDFLAGS += -liphlpapi
+	LDFLAGS += -lws2_32
+	LDFLAGS += -ladvapi32
+	LDFLAGS += "-L./Npcap/Lib"
+else ifeq ($(shell uname -s),Linux)
 	CFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --cflags)
 	CFLAGS += $(shell $(PKG_CONFIG) libpcap --cflags)
 	LDFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --libs)
 	LDFLAGS += $(shell $(PKG_CONFIG) libpcap --libs)
+	LDFLAGS += -ldl
 else
-	LDFLAGS += -lpcap
+	LDFLAGS += -ldl -lpcap
 endif
 
 ifeq ($(shell uname -s),Darwin)
@@ -72,7 +87,7 @@ release/win32:
 	zip nmrpflash-$(VERSION)-win32.zip nmrpflash.exe
 
 release: clean nmrpflash$(SUFFIX)
-	strip nmrpflash$(SUFFIX)
+	$(STRIP) nmrpflash$(SUFFIX)
 
 nmrpflash.ico: nmrpflash.svg
 	convert -background transparent -define icon:auto-resize=256,64,48,32,16 $< $@
