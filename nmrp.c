@@ -635,7 +635,6 @@ int nmrp_do(struct nmrpd_args *args)
 						printf("Ignoring extra upload request.\n");
 					}
 					ethsock_set_timeout(sock, args->ul_timeout);
-					tx.msg.code = NMRP_C_KEEP_ALIVE_REQ;
 					break;
 				}
 
