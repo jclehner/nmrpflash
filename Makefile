@@ -30,9 +30,8 @@ else ifeq ($(shell uname -s),Linux)
 	CFLAGS += $(shell $(PKG_CONFIG) libpcap --cflags)
 	LDFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --libs)
 	LDFLAGS += $(shell $(PKG_CONFIG) libpcap --libs)
-	LDFLAGS += -ldl
 else
-	LDFLAGS += -ldl -lpcap
+	LDFLAGS += -lpcap
 endif
 
 ifeq ($(shell uname -s),Darwin)
