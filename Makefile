@@ -19,7 +19,7 @@ ifdef MINGW
 	CFLAGS += -D__USE_MINGW_ANSI_STDIO
 	CFLAGS += "-I./Npcap/Include"
 	LDFLAGS += -lwpcap
-	LDFLAGS += -lpacket
+	LDFLAGS += -lPacket
 	LDFLAGS += -liphlpapi
 	LDFLAGS += -lws2_32
 	LDFLAGS += -ladvapi32
