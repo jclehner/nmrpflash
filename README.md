@@ -10,8 +10,9 @@ R7000P, R6800, R8000, R8000P, R8500, WAX202, WNDR3800, WNDR4300, WNDR4500v3, WND
 most other Netgear devices as well.
 
 Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases)
-([Npcap](https://nmap.org/npcap/#download) is required on Windows). On Linux and macOS, you can also use
-[Homebrew](https://formulae.brew.sh/formula/nmrpflash). FreeBSD packages can be fetched and installed using the FreeBSD `pkg` command.
+([Npcap](https://nmap.org/npcap/#download) is required on Windows). Note that on Linux and macOS, using
+[Homebrew](https://formulae.brew.sh/formula/nmrpflash) is the preferred method. FreeBSD packages can be fetched and
+installed using the FreeBSD `pkg` command.
 
 ```
 Usage: nmrpflash [OPTIONS...]
