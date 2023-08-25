@@ -3,7 +3,7 @@
 nmrpflash - Netgear Unbrick Utility
 ====================================
 
-`nmrpflash` uses Netgear's [NMRP protocol](http://www.chubb.wattle.id.au/PeterChubb/nmrp.html)
+`nmrpflash` uses Netgear's [NMRP protocol](https://web.archive.org/web/www.chubb.wattle.id.au/PeterChubb/nmrp.html)
 to flash a new firmware image to a compatible device. It has been successfully tested with
 various models (D7000, DNG3700v2, EX2700, EX6100v2, EX6120, EX6150v2, EX8000, R6020, R6080, R6100, R6220, R6400, R7000,
 R7000P, R6800, R8000, R8000P, R8500, WAX202, WNDR3800, WNDR4300, WNDR4500v3, WNDR4700, WNR3500), but is likely to be compatible with
