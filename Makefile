@@ -6,6 +6,8 @@ VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git descri
 CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 SUFFIX ?=
 MACOS_SDK ?= macosx11.1
+ARCH = $(shell uname -m)
+LINUXDEPLOY = linuxdeploy-$(ARCH).AppImage
 
 nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
 
@@ -84,6 +86,19 @@ release/macos:
 	lipo -create -output nmrpflash nmrpflash.x86_64 nmrpflash.arm64
 	zip nmrpflash-$(VERSION)-macos.zip nmrpflash
 	rm -f nmrpflash.x86_64 nmrpflash.arm64
+
+linuxdeploy: build/$(LINUXDEPLOY)
+
+build/$(LINUXDEPLOY):
+	wget -O $@ https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/$(shell basename $@)
+	chmod +x $@
+
+release/linux-appimage: linuxdeploy release
+	rm -fr build/AppDir
+	mkdir -p build/AppDir
+	build/$(LINUXDEPLOY) --appdir build/AppDir -e nmrpflash -i nmrpflash.svg -o appimage --create-desktop-file
+#	nmrpflash-$(VERSION)-x86_64.AppImage
+	tar cvfz nmrpflash-$(VERSION)-linux-$(ARCH).tar.gz nmrpflash-$(ARCH).AppImage
 
 release/linux: release
 	zip nmrpflash-$(VERSION)-linux.zip nmrpflash
