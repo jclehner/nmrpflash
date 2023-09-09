@@ -90,6 +90,7 @@ release/macos:
 linuxdeploy: build/$(LINUXDEPLOY)
 
 build/$(LINUXDEPLOY):
+	mkdir -p build
 	wget -O $@ https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/$(shell basename $@)
 	chmod +x $@
 

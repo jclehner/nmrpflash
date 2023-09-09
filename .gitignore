@@ -10,3 +10,4 @@ nmrpflash.layout
 nmrpflash*.zip
 Npcap/
 Obj/
+build/
