@@ -3,11 +3,13 @@
 *.img
 *.pcap
 *.dni
+*.AppImage
 Makefile.win
 nmrpflash.depend
 nmrpflash.exe
 nmrpflash.layout
 nmrpflash*.zip
+nmrpflash
 Npcap/
 Obj/
 build/
