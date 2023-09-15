@@ -73,7 +73,7 @@ dofuzz_tftp: fuzz_tftp
 	echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 
 clean:
-	rm -f $(nmrpflash_OBJ) nmrpflash nmrpflash.exe fuzz_nmrp fuzz_tftp
+	rm -f $(nmrpflash_OBJ) nmrpflash*.AppImage nmrpflash nmrpflash.exe fuzz_nmrp fuzz_tftp
 
 install: nmrpflash
 	install -d $(PREFIX)/bin
