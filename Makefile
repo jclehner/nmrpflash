@@ -6,9 +6,9 @@ VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git descri
 CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 SUFFIX ?=
 MACOS_SDK ?= macosx11.1
-ARCH = $(shell uname -m)
+ARCH := $(shell uname -m)
 LINUXDEPLOY = ./linuxdeploy-$(ARCH).AppImage
-TMP = $(shell mktemp -d)
+TMP := $(shell mktemp -d)
 APPDIR = $(TMP)/AppDir
 
 nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
@@ -102,7 +102,9 @@ release/linux: release
 	zip nmrpflash-$(VERSION)-linux.zip nmrpflash
 
 release/linux-appimage: nmrpflash-$(ARCH).AppImage
-	zip nmrpflash-$(VERSION)-linux-$(ARCH).zip $<
+	mv $< $(TMP)/nmrpflash
+	cd $(TMP); zip release.zip nmrpflash
+	mv $(TMP)/release.zip nmrpflash-$(VERSION)-linux-$(ARCH).zip
 
 release/win32:
 	zip nmrpflash-$(VERSION)-win32.zip nmrpflash.exe
