@@ -114,3 +114,10 @@ release: clean nmrpflash$(SUFFIX)
 
 nmrpflash.ico: nmrpflash.svg
 	convert -background transparent -define icon:auto-resize=256,64,48,32,16 $< $@
+
+build-release-with-docker:
+	docker build -t nmrpflash .
+	docker create --name dummy nmrpflash
+	docker cp dummy:/usr/src/nmrpflash/nmrpflash-$(VERSION)-linux-$(ARCH).zip .
+	docker cp dummy:/usr/src/nmrpflash/nmrpflash-$(VERSION)-win32.zip .
+	docker rm -f dummy
