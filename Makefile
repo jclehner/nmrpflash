@@ -1,5 +1,5 @@
-CC ?= gcc
-STRIP ?= strip
+CC = $(CROSS)gcc
+STRIP = $(CROSS)strip
 PKG_CONFIG ?= pkg-config
 PREFIX ?= /usr/local
 VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git describe --always | tail -c +2; else echo $$STANDALONE_VERSION; fi)
@@ -7,7 +7,9 @@ CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 SUFFIX ?=
 MACOS_SDK ?= macosx11.1
 ARCH = $(shell uname -m)
-LINUXDEPLOY = linuxdeploy-$(ARCH).AppImage
+LINUXDEPLOY = ./linuxdeploy-$(ARCH).AppImage
+TMP = $(shell mktemp -d)
+APPDIR = $(TMP)/AppDir
 
 nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
 
@@ -80,6 +82,15 @@ install: nmrpflash
 uninstall:
 	rm -f $(PREFIX)/bin/nmrpflash
 
+$(LINUXDEPLOY):
+	wget -O $@ https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/$(shell basename $@)
+	chmod +x $@
+
+nmrpflash-$(ARCH).AppImage: $(LINUXDEPLOY) release
+	rm -rf $(APPDIR)
+	mkdir -p $(APPDIR)
+	$(LINUXDEPLOY) --appdir $(APPDIR) -e nmrpflash -i nmrpflash.svg -o appimage --create-desktop-file
+
 release/macos:
 	CFLAGS="-isysroot $(SYSROOT) -target arm64-apple-macos11" SUFFIX=".arm64" make release
 	CFLAGS="-isysroot $(SYSROOT) -target x86_64-apple-macos10.8" SUFFIX=".x86_64" make release
@@ -87,22 +98,11 @@ release/macos:
 	zip nmrpflash-$(VERSION)-macos.zip nmrpflash
 	rm -f nmrpflash.x86_64 nmrpflash.arm64
 
-linuxdeploy: build/$(LINUXDEPLOY)
-
-build/$(LINUXDEPLOY):
-	mkdir -p build
-	wget -O $@ https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/$(shell basename $@)
-	chmod +x $@
-
-release/linux-appimage: linuxdeploy release
-	rm -fr build/AppDir
-	mkdir -p build/AppDir
-	build/$(LINUXDEPLOY) --appdir build/AppDir -e nmrpflash -i nmrpflash.svg -o appimage --create-desktop-file
-#	nmrpflash-$(VERSION)-x86_64.AppImage
-	tar cvfz nmrpflash-$(VERSION)-linux-$(ARCH).tar.gz nmrpflash-$(ARCH).AppImage
-
 release/linux: release
 	zip nmrpflash-$(VERSION)-linux.zip nmrpflash
+
+release/linux-appimage: nmrpflash-$(ARCH).AppImage
+	zip nmrpflash-$(VERSION)-linux-$(ARCH).zip $<
 
 release/win32:
 	zip nmrpflash-$(VERSION)-win32.zip nmrpflash.exe
