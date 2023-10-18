@@ -35,21 +35,21 @@
 #  define WPCAP
 #  include <pcap.h>
 #else
-#include <sys/ioctl.h>
-#include <ifaddrs.h>
-#include <unistd.h>
-#include <net/if.h>
-#include <pcap.h>
-#if defined(NMRPFLASH_LINUX)
-#define NMRPFLASH_AF_PACKET AF_PACKET
-#include <linux/if_packet.h>
-#include <netlink/route/addr.h>
-#include <netlink/route/neighbour.h>
-#else
-#define NMRPFLASH_AF_PACKET AF_LINK
-#include <net/if_types.h>
-#include <net/if_media.h>
-#endif
+#  include <sys/ioctl.h>
+#  include <ifaddrs.h>
+#  include <unistd.h>
+#  include <net/if.h>
+#  include <pcap.h>
+#  if defined(NMRPFLASH_LINUX)
+#    define NMRPFLASH_AF_PACKET AF_PACKET
+#    include <linux/if_packet.h>
+#    include <netlink/route/addr.h>
+#    include <netlink/route/neighbour.h>
+#  else
+#    define NMRPFLASH_AF_PACKET AF_LINK
+#    include <net/if_types.h>
+#    include <net/if_media.h>
+#  endif
 #endif
 
 #ifdef NMRPFLASH_OSX
