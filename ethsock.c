@@ -27,12 +27,13 @@
 #include "nmrpd.h"
 
 #if defined(NMRPFLASH_WINDOWS)
-#include <iphlpapi.h>
-#ifndef ERROR_NDIS_MEDIA_DISCONNECTED
-#define ERROR_NDIS_MEDIA_DISCONNECTED 0x8034001f
-#endif
-#define WPCAP
-#include <pcap.h>
+#  include <iphlpapi.h>
+#  define NMRPFLASH_PRETTY_FMT "%ls"
+#  ifndef ERROR_NDIS_MEDIA_DISCONNECTED
+#    define ERROR_NDIS_MEDIA_DISCONNECTED 0x8034001f
+#  endif
+#  define WPCAP
+#  include <pcap.h>
 #else
 #include <sys/ioctl.h>
 #include <ifaddrs.h>
@@ -49,6 +50,11 @@
 #include <net/if_types.h>
 #include <net/if_media.h>
 #endif
+#endif
+
+#ifdef NMRPFLASH_OSX
+#include <CoreFoundation/CoreFoundation.h>
+#define NMRPFLASH_PRETTY_FMT "%s"
 #endif
 
 struct ethsock
@@ -571,6 +577,165 @@ NET_IFINDEX intf_get_index(const char* intf)
 
 #endif
 
+#ifdef NMRPFLASH_OSX
+void cf_perror(const char* function)
+{
+	if (verbosity > 1) {
+		fprintf(stderr, "Warning: %s failed\n", function);
+	}
+}
+
+CFStringRef to_cfstring(const char* str)
+{
+	CFStringRef ret = CFStringCreateWithFileSystemRepresentation(
+			kCFAllocatorDefault, str);
+	if (!ret) {
+		cf_perror("CFStringCreateWithFileSystemRepresentation");
+	}
+	return ret;
+}
+
+CFPropertyListRef plist_open(const char* filename)
+{
+	CFURLRef url = NULL;
+	CFReadStreamRef stream = NULL;
+	CFPropertyListRef plist = NULL;
+
+	do {
+		url = CFURLCreateFromFileSystemRepresentation(
+				kCFAllocatorDefault, (const UInt8*)filename,
+				strlen(filename), false);
+		if (!url) {
+			cf_perror("CFURLCreateFromFileSystemRepresentation");
+			break;
+		}
+
+		stream = CFReadStreamCreateWithFile(kCFAllocatorDefault, url);
+		if (!stream) {
+			cf_perror("CFReadStreamCreateWithFile");
+			break;
+		}
+
+		if (!CFReadStreamOpen(stream)) {
+			cf_perror("CFReadStreamOpen");
+			break;
+		}
+
+		plist = CFPropertyListCreateWithStream(
+				kCFAllocatorDefault, stream, 0,
+				kCFPropertyListImmutable, NULL, NULL);
+		if (!plist) {
+			cf_perror("CFPropertyListCreateWithStream");
+			break;
+		}
+	} while (false);
+
+	if (url) {
+		CFRelease(url);
+	}
+
+	if (stream) {
+		CFReadStreamClose(stream);
+		CFRelease(stream);
+	}
+
+	return plist;
+}
+
+bool dict_get_value(CFDictionaryRef dict, const char* key, const void** value)
+{
+	CFStringRef cfkey = to_cfstring(key);
+	if (!cfkey) {
+		return false;
+	}
+
+	Boolean status = CFDictionaryGetValueIfPresent(dict, cfkey, value);
+	CFRelease(cfkey);
+
+	return status;
+}
+
+char* dict_get_string(CFDictionaryRef dict, const char* key)
+{
+	CFStringRef str;
+	if (!dict_get_value(dict, key, (const void**)&str)) {
+		return NULL;
+	}
+
+	CFIndex len = CFStringGetLength(str) + 1;
+	char* buf = (char*)malloc(len);
+	if (!buf) {
+		perror("malloc");
+		return NULL;
+	}
+
+	Boolean status = CFStringGetFileSystemRepresentation(
+			str, buf, len);
+	if (!status) {
+		cf_perror("CFStringGetFileSystemRepresentation");
+		free(buf);
+		return NULL;
+	}
+
+	return buf;
+}
+
+typedef struct {
+	const char* device;
+	char* pretty;
+} find_pretty_name_ctx;
+
+void find_pretty_name(const void* key, const void* value, void* context)
+{
+	find_pretty_name_ctx* ctx = (find_pretty_name_ctx*)context;
+	if (ctx->pretty) {
+		return;
+	}
+
+	CFDictionaryRef dict;
+
+	if (!dict_get_value((CFDictionaryRef)value, "Interface", (const void**)&dict)) {
+		return;
+	}
+
+	char* device = dict_get_string(dict, "DeviceName");
+	if (!device) {
+		return;
+	}
+
+	if (!strcmp(ctx->device, device)) {
+		ctx->pretty = dict_get_string(dict, "UserDefinedName");
+	}
+
+	free(device);
+}
+
+char* get_pretty_name(const char* interface)
+{
+	CFPropertyListRef plist = plist_open("/Library/Preferences/SystemConfiguration/preferences.plist");
+	if (!plist) {
+		return NULL;
+	}
+
+	// what we're after is a CFDictionary element with the path
+	// /NetworkServices/<UUID>/Interface. The keys we're interested
+	// in are DeviceName (the network interface name), and UserDefinedName
+	// (the pretty name). Since we don't know the interface's UUID,
+	// we have to loop through all of them.
+
+	CFDictionaryRef dict;
+	find_pretty_name_ctx ctx = { interface, NULL };
+
+	if (dict_get_value((CFDictionaryRef)plist, "NetworkServices", (const void**)&dict)) {
+		CFDictionaryApplyFunction(dict, find_pretty_name, &ctx);
+	}
+
+	CFRelease(plist);
+
+	return ctx.pretty;
+}
+#endif
+
 inline uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
 {
 	return sock->hwaddr;
@@ -970,10 +1135,12 @@ int ethsock_list_all(void)
 	pcap_addr_t *addr;
 	uint8_t hwaddr[6];
 	unsigned dev_num = 0, dev_ok = 0;
-#ifdef NMRPFLASH_WINDOWS
+#if defined(NMRPFLASH_WINDOWS)
 	wchar_t *pretty = NULL;
 	NET_IFINDEX index;
 	MIB_IF_ROW2 row;
+#elif defined(NMRPFLASH_OSX)
+	char *pretty = NULL;
 #endif
 
 	if (x_pcap_findalldevs(&devs) != 0) {
@@ -1000,6 +1167,9 @@ int ethsock_list_all(void)
 
 #ifndef NMRPFLASH_WINDOWS
 		printf("%-15s", dev->name);
+#  ifdef NMRPFLASH_OSX
+		pretty = get_pretty_name(dev->name);
+#  endif
 #else
 		index = intf_get_index(dev->name);
 
@@ -1037,13 +1207,12 @@ int ethsock_list_all(void)
 
 		printf("  %s", mac_to_str(hwaddr));
 
-#ifdef NMRPFLASH_WINDOWS
+#if defined(NMRPFLASH_WINDOWS) || defined(NMRPFLASH_OSX)
 		if (pretty) {
-			printf("  (%ls)", pretty);
+			printf("  (" NMRPFLASH_PRETTY_FMT ")", pretty);
 		} else if (dev->description) {
 			printf("  (%s)", dev->description);
 		}
-
 #endif
 		printf("\n");
 		++dev_ok;

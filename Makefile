@@ -41,6 +41,7 @@ endif
 ifeq ($(shell uname -s),Darwin)
 	AFL=afl-clang
 	SYSROOT ?= $(shell xcrun --sdk $(MACOS_SDK) --show-sdk-path)
+	LDFLAGS += -framework CoreFoundation
 else
 	AFL=afl-gcc
 endif
