@@ -357,6 +357,8 @@ static void nmrp_drain(void* arg)
 	// we drain the NMRP receive buffer here, otherwise it might seem
 	// as if these packets arrived *after* the TFTP upload.
 
+	long long beg = millis();
+
 	struct nmrp_pkt rx;
 	int i = 0;
 
@@ -370,7 +372,7 @@ static void nmrp_drain(void* arg)
 	}
 
 	if (verbosity > 1) {
-		printf("Drained %d packet(s) from rx buffer\n", i);
+		printf("Drained %d packet(s) from rx buffer in %lld ms\n", i, millis() - beg);
 	}
 }
 
