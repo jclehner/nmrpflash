@@ -166,6 +166,7 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 int ethsock_ip_del(struct ethsock *sock, struct ethsock_ip_undo **undo);
 
 time_t time_monotonic();
+long long millis();
 char *lltostr(long long ll, int base);
 uint32_t bitcount(uint32_t n);
 uint32_t netmask(uint32_t count);

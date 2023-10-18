@@ -30,15 +30,21 @@
 volatile sig_atomic_t g_interrupted = 0;
 int verbosity = 0;
 
-time_t time_monotonic()
+long long millis()
 {
 #ifndef NMRPFLASH_WINDOWS
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return ts.tv_sec;
+	return ts.tv_sec * 1000 + ((ts.tv_nsec + 500000) / 1000000);
 #else
-	return round(GetTickCount() / 1000.0);
+	return GetTickCount();
 #endif
+
+}
+
+time_t time_monotonic()
+{
+	return millis() / 1000;
 }
 
 char *lltostr(long long ll, int base)
