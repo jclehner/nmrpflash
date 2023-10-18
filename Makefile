@@ -10,6 +10,7 @@ ARCH := $(shell uname -m)
 LINUXDEPLOY = ./linuxdeploy-$(ARCH).AppImage
 TMP := $(shell mktemp -d)
 APPDIR = $(TMP)/AppDir
+AFL = afl-gcc
 
 nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
 
@@ -34,18 +35,15 @@ else ifeq ($(shell uname -s),Linux)
 	CFLAGS += $(shell $(PKG_CONFIG) libpcap --cflags)
 	LDFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --libs)
 	LDFLAGS += $(shell $(PKG_CONFIG) libpcap --libs)
+	AFL = afl-gcc
 else
 	LDFLAGS += -lpcap
-endif
-
 ifeq ($(shell uname -s),Darwin)
 	AFL=afl-clang
 	SYSROOT ?= $(shell xcrun --sdk $(MACOS_SDK) --show-sdk-path)
 	LDFLAGS += -framework CoreFoundation
-else
-	AFL=afl-gcc
 endif
-
+endif
 
 .PHONY: clean install release release/macos release/linux release/win32
 
