@@ -1214,6 +1214,10 @@ int ethsock_list_all(void)
 			printf("  (%s)", dev->description);
 		}
 #endif
+
+#ifdef NMRPFLASH_OSX
+		free(pretty);
+#endif
 		printf("\n");
 		++dev_ok;
 	}
