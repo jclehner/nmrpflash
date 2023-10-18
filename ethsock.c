@@ -1026,6 +1026,11 @@ inline int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
 	return 0;
 }
 
+unsigned ethsock_get_timeout(struct ethsock *sock)
+{
+	return sock->timeout;
+}
+
 static int ethsock_arp(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, struct ethsock_arp_undo **undo)
 {
 #if defined(NMRPFLASH_UNIX) && !defined(NMRPFLASH_LINUX)

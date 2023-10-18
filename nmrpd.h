@@ -146,6 +146,7 @@ int ethsock_close(struct ethsock *sock);
 int ethsock_send(struct ethsock *sock, void *buf, size_t len);
 ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len);
 int ethsock_set_timeout(struct ethsock *sock, unsigned msec);
+unsigned ethsock_get_timeout(struct ethsock *sock);
 uint8_t *ethsock_get_hwaddr(struct ethsock *sock);
 int ethsock_arp_add(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, struct ethsock_arp_undo **undo);
 int ethsock_arp_del(struct ethsock *sock, struct ethsock_arp_undo **undo);

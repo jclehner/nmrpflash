@@ -357,12 +357,15 @@ static void nmrp_drain(void* arg)
 	// we drain the NMRP receive buffer here, otherwise it might seem
 	// as if these packets arrived *after* the TFTP upload.
 
+	struct ethsock* sock = (struct ethsock*)arg;
+	unsigned timeout = ethsock_get_timeout(sock);
+	ethsock_set_timeout(sock, 0);
 	long long beg = millis();
 
 	struct nmrp_pkt rx;
 	int i = 0;
 
-	while (pkt_recv((struct ethsock*)arg, &rx) == 0) {
+	while (pkt_recv(sock, &rx) == 0) {
 		if (rx.msg.code != NMRP_C_CONF_REQ && rx.msg.code != NMRP_C_TFTP_UL_REQ) {
 			if (verbosity > 1) {
 				printf("Drained unexpected packet type %s\n", msg_code_str(rx.msg.code));
@@ -374,6 +377,8 @@ static void nmrp_drain(void* arg)
 	if (verbosity > 1) {
 		printf("Drained %d packet(s) from rx buffer in %lld ms\n", i, millis() - beg);
 	}
+
+	ethsock_set_timeout(sock, timeout);
 }
 
 static const char *spinner = "\\|/-";
