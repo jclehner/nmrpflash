@@ -96,6 +96,8 @@ enum nmrp_op {
 	NMRP_SET_REGION = 2,
 };
 
+struct ethsock;
+
 struct nmrpd_args {
 	unsigned rx_timeout;
 	unsigned ul_timeout;
@@ -113,8 +115,7 @@ struct nmrpd_args {
 	const char *region;
 	off_t offset;
 
-	void (*on_tftp_ack0_callback)(void*);
-	void* on_tftp_ack0_arg;
+	struct ethsock *sock;
 };
 
 const char *leafname(const char *path);
@@ -122,6 +123,7 @@ ssize_t tftp_put(struct nmrpd_args *args);
 bool tftp_is_valid_filename(const char *filename);
 
 int nmrp_do(struct nmrpd_args *args);
+void nmrp_discard(struct ethsock *sock);
 
 int select_fd(int fd, unsigned timeout);
 const char *mac_to_str(uint8_t *mac);
@@ -135,7 +137,6 @@ void sock_perror(const char *msg);
 
 extern int verbosity;
 
-struct ethsock;
 struct ethsock_arp_undo;
 struct ethsock_ip_undo;
 

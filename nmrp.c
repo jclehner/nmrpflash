@@ -348,34 +348,30 @@ static void sigh(int sig)
 	g_interrupted = 1;
 }
 
-static void nmrp_drain(void* arg)
+void nmrp_discard(struct ethsock *sock)
 {
 	// between nmrpflash sending the TFTP WRQ packet, and the router
 	// responding with ACK(0)/OACK, some devices send extraneous
 	// CONF_REQ and/or TFTP_UL_REQ packets.
 	//
-	// we drain the NMRP receive buffer here, otherwise it might seem
-	// as if these packets arrived *after* the TFTP upload.
+	// the TFTP code thus calls this function in each loop iteration,
+	// to discard any late NMRP packets.
+	//
+	// without this it might seem  as if these packets arrived after
+	// the TFTP upload completed successfuly, confusing the NMRP code.
 
-	struct ethsock* sock = (struct ethsock*)arg;
 	unsigned timeout = ethsock_get_timeout(sock);
-	ethsock_set_timeout(sock, 0);
-	long long beg = millis();
+	// don't set this to 0, as this would cause pkt_recv to block!
+	ethsock_set_timeout(sock, 1);
 
 	struct nmrp_pkt rx;
-	int i = 0;
 
-	while (pkt_recv(sock, &rx) == 0) {
+	if (pkt_recv(sock, &rx) == 0) {
 		if (rx.msg.code != NMRP_C_CONF_REQ && rx.msg.code != NMRP_C_TFTP_UL_REQ) {
-			if (verbosity > 1) {
-				printf("Drained unexpected packet type %s\n", msg_code_str(rx.msg.code));
-			}
+			printf("Discarding unexpected %s packet\n", msg_code_str(rx.msg.code));
+		} else if (verbosity > 1) {
+			printf("Discarding %s packet\n", msg_code_str(rx.msg.code));
 		}
-		++i;
-	}
-
-	if (verbosity > 1) {
-		printf("Drained %d packet(s) from rx buffer in %lld ms\n", i, millis() - beg);
 	}
 
 	ethsock_set_timeout(sock, timeout);
@@ -469,6 +465,8 @@ int nmrp_do(struct nmrpd_args *args)
 	if (!sock) {
 		return 1;
 	}
+
+	args->sock = sock;
 
 	sigh_orig = signal(SIGINT, sigh);
 
@@ -596,9 +594,6 @@ int nmrp_do(struct nmrpd_args *args)
 	expect = NMRP_C_CONF_REQ;
 	ulreqs = 0;
 	ka_reqs = 0;
-
-	args->on_tftp_ack0_callback = &nmrp_drain;
-	args->on_tftp_ack0_arg = sock;
 
 	while (!g_interrupted) {
 		if (expect != NMRP_C_NONE && rx.msg.code != expect) {
