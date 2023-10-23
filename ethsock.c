@@ -258,7 +258,7 @@ static bool intf_add_del_ip(const char *intf, uint32_t ipaddr, uint32_t ipmask, 
 	rtnl_addr_set_local(ra, laddr);
 	rtnl_addr_set_broadcast(ra, bcast);
 
-	if ((err = ((add ? rtnl_addr_add(sk, ra, 0) : rtnl_addr_delete(sk, ra, 0)) < 0))) {
+	if ((err = (add ? rtnl_addr_add(sk, ra, 0) : rtnl_addr_delete(sk, ra, 0))) < 0) {
 		if (add && err == -NLE_EXIST) {
 			err = 0;
 		} else if (add || verbosity > 1) {
