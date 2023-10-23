@@ -24,38 +24,38 @@
 #include <stdbool.h>
 
 #if defined(_WIN32) || defined(_WIN64)
-#	define NMRPFLASH_WINDOWS
+#  define NMRPFLASH_WINDOWS
 #elif defined(__APPLE__) && defined(__MACH__)
-#	define NMRPFLASH_UNIX
-#	define NMRPFLASH_OSX
-#	define NMRPFLASH_BSD
+#  define NMRPFLASH_UNIX
+#  define NMRPFLASH_OSX
+#  define NMRPFLASH_BSD
 #elif defined (__unix__)
-#	define NMRPFLASH_UNIX
-#	if defined(__linux__)
-#		define NMRPFLASH_LINUX
-#	elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
-#		define NMRPFLASH_BSD
-#	else
-#		warning "nmrpflash is not fully supported on this platform"
-#	endif
+#  define NMRPFLASH_UNIX
+#  if defined(__linux__)
+#    define NMRPFLASH_LINUX
+#  elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
+#    define NMRPFLASH_BSD
+#  else
+#    warning "nmrpflash is not fully supported on this platform"
+#  endif
 #else
 #	warning "nmrpflash is not supported on this platform"
 #endif
 
 #ifndef NMRPFLASH_WINDOWS
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/if.h>
-#ifndef NMRPFLASH_LINUX
-#include <net/if_dl.h>
-#endif
+#  include <arpa/inet.h>
+#  include <sys/types.h>
+#  include <sys/socket.h>
+#  include <netinet/in.h>
+#  include <net/if.h>
+#  ifndef NMRPFLASH_LINUX
+#    include <net/if_dl.h>
+#  endif
 #else
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <windows.h>
-#include <conio.h>
+#  include <winsock2.h>
+#  include <ws2tcpip.h>
+#  include <windows.h>
+#  include <conio.h>
 #endif
 
 #ifndef MIN
