@@ -36,6 +36,10 @@ Options (-i, and -f or -c are mandatory):
  -V              Print version and exit
  -L              List network interfaces
  -h              Show this screen
+
+When using -c, the environment variables IP, PORT, NETMASK
+and MAC are set to the device IP address, TFTP port, subnet
+mask and MAC address, respectively.
 ```
 
 ### Using nmrpflash
@@ -155,6 +159,14 @@ nmrpflash says `Reboot your device now.` you can assume that the
 process has finished.
 
 ###### "Timeout while waiting for ACK(0)/OACK."
+
+`nmrpflash` didn't receive a response to the initial TFTP upload request. This
+either indicates an IP configuration issue, or a firewall is blocking the TFTP
+packets from reaching the device running `nmrpflash`.
+
+If you do have an active firewall, either disable it before running `nmrpflash`,
+or make sure that incoming packets for port 69 aren't being blocked.
+
 
 The device did not respond to `nmrpflash`'s TFTP upload request. By default,
 `nmrpflash` will assign `10.164.183.252` to the target device, while adding `10.164.183.253`
