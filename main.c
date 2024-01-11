@@ -29,7 +29,7 @@ void usage(FILE *fp)
 	fprintf(fp,
 			"Usage: nmrpflash [OPTIONS...]\n"
 			"\n"
-			"Options (-i, and -f or -c are mandatory):\n"
+			"Options (-i, and either -f, -c, or -R are mandatory):\n"
 			" -a <ipaddr>     IP address to assign to target device [%s]\n"
 			" -A <ipaddr>     IP address to assign to selected interface [%s]\n"
 			" -B              Blind mode (don't wait for response packets)\n"
@@ -42,9 +42,7 @@ void usage(FILE *fp)
 			" -t <timeout>    Timeout (in milliseconds) for NMRP packets [%d ms]\n"
 			" -T <timeout>    Time (seconds) to wait after successfull TFTP upload [%d s]\n"
 			" -p <port>       Port to use for TFTP upload [%d]\n"
-#ifdef NMRPFLASH_SET_REGION
-			" -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP)\n"
-#endif
+			" -R <region>     Set device region (BZ, GR, IN, JP, KO, NA, PR, RU, WW)\n"
 			" -S <n>          Skip <n> bytes of the firmware file\n"
 #ifdef NMRPFLASH_TFTP_TEST
 			" -U              Test TFTP upload\n"
@@ -63,15 +61,19 @@ void usage(FILE *fp)
 			")\n\n"
 #ifndef NMRPFLASH_WINDOWS
 			"# nmrpflash -i eth0 -f firmware.bin\n"
+			"\nor\n\n"
+			"# nmrpflash -i eth0 -R WW\n"
 #else
 			"C:\\> nmrpflash.exe -i net0 -f firmware.bin\n"
+			"\nor\n\n"
+			"C:\\> nmrpflash.exe -i net0 -R WW\n"
 #endif
 			"\n"
 			"When using -c, the environment variables IP, PORT, NETMASK\n"
 			"and MAC are set to the device IP address, TFTP port, subnet\n"
 			"mask and MAC address, respectively.\n"
 			"\n"
-			"nmrpflash %s, Copyright (C) 2016-2023 Joseph C. Lehner\n"
+			"nmrpflash %s, Copyright (C) 2016-2024 Joseph C. Lehner\n"
 			"nmrpflash is free software, licensed under the GNU GPLv3.\n"
 			"Source code at https://github.com/jclehner/nmrpflash\n"
 			"\n"
@@ -151,7 +153,7 @@ int main(int argc, char **argv)
 		.ipmask = NMRP_DEFAULT_SUBNET,
 		.intf = NULL,
 		.mac = "ff:ff:ff:ff:ff:ff",
-		.op = NMRP_UPLOAD_FW,
+		.op = -1,
 		.port = NMRP_DEFAULT_TFTP_PORT,
 		.region = NULL,
 		.blind = false,
@@ -227,11 +229,9 @@ int main(int argc, char **argv)
 			case 'M':
 				args.ipmask = optarg;
 				break;
-#ifdef NMRPFLASH_SET_REGION
 			case 'R':
 				args.region = optarg;
 				break;
-#endif
 			case 'p':
 			case 'S':
 			case 'T':
@@ -297,9 +297,17 @@ int main(int argc, char **argv)
 	}
 
 #ifndef NMRPFLASH_FUZZ
-	if (!list && ((!args.file_local && !args.tftpcmd) || !args.intf)) {
-		usage(stderr);
-		return 1;
+	if (!list) {
+		if (args.file_local || args.tftpcmd) {
+			args.op = NMRP_UPLOAD_FW;
+		} else if (args.region) {
+			args.op = NMRP_SET_REGION;
+		}
+
+		if (args.op == -1 || !args.intf) {
+			usage(stderr);
+			return 1;
+		}
 	}
 
 	if (!list) {
