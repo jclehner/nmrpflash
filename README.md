@@ -129,6 +129,9 @@ C:\> net start npf
 
 Always run `nmrpflash` in the sequence described above!
 
+If it still doesn't work, try different Ethernet ports if your device
+has more than one.
+
 You can try specifying the MAC address using `-m xx:xx:xx:xx:xx:xx`,
 or, if that still doesn't work, "blind mode" using `-B`. Note that
 careful timing between running `nmrpflash` and turning on the router may
