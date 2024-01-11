@@ -1325,6 +1325,8 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 
 		(*undo)->ip[0] = ipaddr;
 		(*undo)->ip[1] = ipmask;
+	} else if (!add && (!undo || !*undo)) {
+		return 0;
 	}
 
 	ret = -1;
@@ -1445,7 +1447,7 @@ int ethsock_ip_add(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struc
 
 int ethsock_ip_del(struct ethsock *sock, struct ethsock_ip_undo **undo)
 {
-	if (!*undo) {
+	if (!undo || !*undo) {
 		return 0;
 	}
 
