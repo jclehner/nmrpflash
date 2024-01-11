@@ -40,7 +40,7 @@ Options (-i, and -f or -c are mandatory):
 
 ### Using nmrpflash
 
-Download the correct firmware image for your device. When downloading from the Netgear site,
+First, download the correct firmware image for your device. When downloading from the Netgear site,
 the firmware is usually contained in a `.zip` file - extract this first. The actual firmware
 file will have an extension such as `.chk`, `.bin`, `.trx` or `.img`.
 
