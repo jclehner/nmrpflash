@@ -212,21 +212,20 @@ static void msg_mkadvertise(struct nmrp_msg *msg, const char *magic)
 	msg_mkopt(msg, msg->opts, NMRP_O_MAGIC_NO, magic, strlen(magic));
 }
 
-static void msg_mkconfack(struct nmrp_msg *msg, uint32_t ipaddr, uint32_t ipmask, uint16_t region, enum nmrp_op op)
+static void msg_mkconfack(struct nmrp_msg *msg, uint32_t ipaddr, uint32_t ipmask, uint16_t region)
 {
-	char *p = msg->opts;
+	char *p;
 	uint32_t ip[2] = { ipaddr, ipmask };
 
 	msg_init(msg, NMRP_C_CONF_ACK);
+	p = msg_mkopt(msg, msg->opts, NMRP_O_DEV_IP, &ip, 8);
+	p = msg_mkopt(msg, p, NMRP_O_FW_UP, NULL, 0);
 
-	if (op != NMRP_SET_REGION) {
-		p = msg_mkopt(msg, p, NMRP_O_DEV_IP, &ip, 8);
-		p = msg_mkopt(msg, p, NMRP_O_FW_UP, NULL, 0);
-	}
-
+#ifdef NMRPFLASH_SET_REGION
 	if (region) {
 		p = msg_mkopt(msg, p, NMRP_O_DEV_REGION, &region, 2);
 	}
+#endif
 }
 
 #ifdef NMRPFLASH_FUZZ
@@ -397,53 +396,56 @@ int nmrp_do(struct nmrpd_args *args)
 	struct in_addr ipaddr;
 	struct in_addr ipmask;
 
-	if (args->op == NMRP_UPLOAD_FW) {
-		if (!mac_parse(args->mac, dest)) {
-			fprintf(stderr, "Invalid MAC address '%s'.\n", args->mac);
+	if (args->op != NMRP_UPLOAD_FW) {
+		fprintf(stderr, "Operation not implemented.\n");
+		return 1;
+	}
+
+	if (!mac_parse(args->mac, dest)) {
+		fprintf(stderr, "Invalid MAC address '%s'.\n", args->mac);
+		return 1;
+	}
+
+	ipmask.s_addr = inet_addr(args->ipmask);
+	if (ipmask.s_addr == INADDR_NONE
+			|| netmask(bitcount(ipmask.s_addr)) != ipmask.s_addr) {
+		fprintf(stderr, "Invalid subnet mask '%s'.\n", args->ipmask);
+		return 1;
+	}
+
+	if (!args->ipaddr) {
+		autoip = true;
+		args->ipaddr = NMRP_DEFAULT_IP_REMOTE;
+
+		if (!args->ipaddr_intf) {
+			args->ipaddr_intf = NMRP_DEFAULT_IP_LOCAL;
+		}
+	} else if (args->ipaddr_intf) {
+		autoip = true;
+	} else {
+		autoip = false;
+	}
+
+	if ((ipaddr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
+		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
+		return 1;
+	}
+
+	if (args->ipaddr_intf && (intf_addr = inet_addr(args->ipaddr_intf)) == INADDR_NONE) {
+		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr_intf);
+		return 1;
+	}
+
+	if (args->file_local && strcmp(args->file_local, "-") && access(args->file_local, R_OK) == -1) {
+		fprintf(stderr, "Error accessing file '%s'.\n", args->file_local);
+		return 1;
+	}
+
+	if (args->file_remote) {
+		if (!tftp_is_valid_filename(args->file_remote)) {
+			fprintf(stderr, "Invalid remote filename '%s'.\n",
+					args->file_remote);
 			return 1;
-		}
-
-		ipmask.s_addr = inet_addr(args->ipmask);
-		if (ipmask.s_addr == INADDR_NONE
-				|| netmask(bitcount(ipmask.s_addr)) != ipmask.s_addr) {
-			fprintf(stderr, "Invalid subnet mask '%s'.\n", args->ipmask);
-			return 1;
-		}
-
-		if (!args->ipaddr) {
-			autoip = true;
-			args->ipaddr = NMRP_DEFAULT_IP_REMOTE;
-
-			if (!args->ipaddr_intf) {
-				args->ipaddr_intf = NMRP_DEFAULT_IP_LOCAL;
-			}
-		} else if (args->ipaddr_intf) {
-			autoip = true;
-		} else {
-			autoip = false;
-		}
-
-		if ((ipaddr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
-			fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
-			return 1;
-		}
-
-		if (args->ipaddr_intf && (intf_addr = inet_addr(args->ipaddr_intf)) == INADDR_NONE) {
-			fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr_intf);
-			return 1;
-		}
-
-		if (args->file_local && strcmp(args->file_local, "-") && access(args->file_local, R_OK) == -1) {
-			fprintf(stderr, "Error accessing file '%s'.\n", args->file_local);
-			return 1;
-		}
-
-		if (args->file_remote) {
-			if (!tftp_is_valid_filename(args->file_remote)) {
-				fprintf(stderr, "Invalid remote filename '%s'.\n",
-						args->file_remote);
-				return 1;
-			}
 		}
 	}
 
@@ -455,10 +457,6 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 	} else {
 		region = 0;
-	}
-
-	if (args->op == NMRP_SET_REGION && !region) {
-		fprintf(stderr, "No region code specified.\n");
 	}
 
 	status = 1;
@@ -500,24 +498,22 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 	}
 
-	if (args->op != NMRP_SET_REGION) {
-		if (!autoip) {
-			status = is_valid_ip(sock, &ipaddr, &ipmask);
-			if (status <= 0) {
-				if (!status) {
-					fprintf(stderr, "Address %s/%s cannot be used on interface %s.\n",
-							args->ipaddr, args->ipmask, args->intf);
-				}
-				goto out;
+	if (!autoip) {
+		status = is_valid_ip(sock, &ipaddr, &ipmask);
+		if (status <= 0) {
+			if (!status) {
+				fprintf(stderr, "Address %s/%s cannot be used on interface %s.\n",
+						args->ipaddr, args->ipmask, args->intf);
 			}
-		} else {
-			if (verbosity) {
-				printf("Adding %s to interface %s.\n", args->ipaddr_intf, args->intf);
-			}
+			goto out;
+		}
+	} else {
+		if (verbosity) {
+			printf("Adding %s to interface %s.\n", args->ipaddr_intf, args->intf);
+		}
 
-			if (ethsock_ip_add(sock, intf_addr, ipmask.s_addr, &ip_undo) != 0) {
-				goto out;
-			}
+		if (ethsock_ip_add(sock, intf_addr, ipmask.s_addr, &ip_undo) != 0) {
+			goto out;
 		}
 	}
 
@@ -616,28 +612,17 @@ int nmrp_do(struct nmrpd_args *args)
 				status = 1;
 				goto out;
 			case NMRP_C_CONF_REQ:
-				msg_mkconfack(&tx.msg, ipaddr.s_addr, ipmask.s_addr, region, args->op);
+				msg_mkconfack(&tx.msg, ipaddr.s_addr, ipmask.s_addr, region);
+				expect = NMRP_C_TFTP_UL_REQ;
 
 				if (!args->blind) {
 					printf("Received configuration request from %s.\n",
 							mac_to_str(rx.eh.ether_shost));
 				}
 
-				printf("Sending configuration:");
+				printf("Sending configuration: %s/%d.\n",
+						args->ipaddr, bitcount(ipmask.s_addr));
 
-				if (args->op == NMRP_SET_REGION) {
-					expect = NMRP_C_CLOSE_REQ;
-				} else {
-					printf(" %s/%d", args->ipaddr, bitcount(ipmask.s_addr));
-					// no support for NMRP_UPLOAD_ST
-					expect = NMRP_C_TFTP_UL_REQ;
-				}
-
-				if (region) {
-					printf(" region %s", args->region);
-				}
-
-				printf(".\n");
 				break;
 			case NMRP_C_TFTP_UL_REQ:
 				if (!upload_ok) {

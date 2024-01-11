@@ -70,6 +70,8 @@
 #define PACKED __attribute__((packed))
 #endif
 
+#define NMRPFLASH_SET_REGION
+
 #define NMRP_DEFAULT_UL_TIMEOUT_S    (30 * 60)
 #define NMRP_DEFAULT_RX_TIMEOUT_MS   (10000)
 /*
