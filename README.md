@@ -127,7 +127,7 @@ C:\> net start npf
 
 ###### "No response after 60 seconds. Bailing out."
 
-Always run `nmrpflash` in the sequence described above!
+Always run `nmrpflash` in the sequence described [above](#using-nmrpflash)!
 
 If it still doesn't work, try different Ethernet ports if your device
 has more than one.
