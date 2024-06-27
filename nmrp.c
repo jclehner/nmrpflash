@@ -649,7 +649,7 @@ int nmrp_do(struct nmrpd_args *args)
 				} else if (!args->file_remote) {
 					args->file_remote = leafname(args->file_local);
 					if (!args->blind) {
-						printf("Received upload request without filename.\n");
+						printf("Received upload request.\n");
 					}
 				}
 
