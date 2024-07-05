@@ -167,16 +167,11 @@ packets from reaching the device running `nmrpflash`.
 If you do have an active firewall, either disable it before running `nmrpflash`,
 or make sure that incoming packets for port 69 aren't being blocked.
 
-
-The device did not respond to `nmrpflash`'s TFTP upload request. By default,
-`nmrpflash` will assign `10.164.183.252` to the target device, while adding `10.164.183.253`
-to the network interface specified by the `-i` flag. You can use `-a` to change the IP
-address assigned to the target (e.g. if your network is `192.168.1.0/24`, specify a *free*
-IP address, such as `-a 192.168.1.252`), and `-A` to change the IP address used for the
-network interface.
-
-If you have a firewall installed on the computer that is running `nmrpflash` (such as 
-`iptables` or `nftables`), try disabling the firewall before running `nmrpflash` again.
+By default, `nmrpflash` will assign `10.164.183.252` to the target device, while adding
+`10.164.183.253` to the network interface specified by the `-i` flag. You can use `-a`
+to change the IP address assigned to the target (e.g. if your network is `192.168.1.0/24`,
+specify a *free* IP address, such as `-a 192.168.1.252`), and `-A` to change the IP address
+used for the network interface.
 
 ###### "Timeout while waiting for CLOSE_REQ."
 
