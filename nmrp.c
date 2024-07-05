@@ -309,6 +309,17 @@ static int mac_parse(const char *str, uint8_t *hwaddr)
 	return 0;
 }
 
+static bool mac_is_broadcast(uint8_t* hwaddr)
+{
+	for (int i = 0; i != 6; ++i) {
+		if (hwaddr[i] != 0xff) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 struct is_valid_ip_arg
 {
 	struct in_addr *ipaddr;
@@ -583,7 +594,10 @@ int nmrp_do(struct nmrpd_args *args)
 
 	memcpy(tx.eh.ether_dhost, rx.eh.ether_shost, 6);
 
-	if (ethsock_arp_add(sock, rx.eh.ether_shost, ipaddr.s_addr, &arp_undo) != 0) {
+	// a manually specified MAC address (using `-m`) takes precedence over
+	// the NMRP response packets' MAC.
+	uint8_t* arp_mac = !mac_is_broadcast(dest) ? dest : rx.eh.ether_shost;
+	if (ethsock_arp_add(sock, arp_mac, ipaddr.s_addr, &arp_undo) != 0) {
 		goto out;
 	}
 
