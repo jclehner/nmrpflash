@@ -667,8 +667,6 @@ int nmrp_do(struct nmrpd_args *args)
 					}
 				}
 
-				status = 0;
-
 				if (args->tftpcmd) {
 					printf("Executing '%s' ... \n", args->tftpcmd);
 					setenv("IP", inet_ntoa(ipaddr), 1);
@@ -676,12 +674,16 @@ int nmrp_do(struct nmrpd_args *args)
 					setenv("MAC", mac_to_str(rx.eh.ether_shost), 1);
 					setenv("NETMASK", inet_ntoa(ipmask), 1);
 					//setenv("FILENAME", args->file_remote ? args->file_remote : "", 1);
+					setenv("INTERFACE", args->intf, 1);
 					status = system(args->tftpcmd);
+
+					if (status != 0) {
+						fprintf(stderr, "Command failed: status %d.\n", status);
+						goto out;
+					}
 				}
 
-				bytes = 0;
-
-				if (!status && args->file_local) {
+				if (args->file_local) {
 					if (!autoip) {
 						status = is_valid_ip(sock, &ipaddr, &ipmask);
 						if (status < 0) {
@@ -707,24 +709,35 @@ int nmrp_do(struct nmrpd_args *args)
 					fflush(stdout);
 
 					bytes = tftp_put(args);
-				}
 
-				if (bytes > 0) {
-					printf("OK (%zd b)\n", bytes);
+					if (bytes > 0) {
+						printf("OK (%zd b)\n", bytes);
+						upload_ok = 1;
 
-					if (args->blind) {
+						if (args->blind) {
+							printf("Not waiting for further responses in blind mode.\n");
+							goto out;
+						}
+					} else if (bytes == -2) {
+						// return -2 means the TFTP code signalled that the remote
+						// file has been rejected. this feature is only implemented
+						// by some bootloaders.
+						expect = NMRP_C_TFTP_UL_REQ;
+					} else {
 						goto out;
 					}
-
-					printf("Waiting for remote to respond.\n");
+				} else {
+					// if no `-f <filename>` flag has been supplied, assume
+					// that the command specified by `-c <command>` handles
+					// the file upload.
 					upload_ok = 1;
+				}
+
+				if (upload_ok) {
+					printf("Waiting for remote to respond.\n");
 					ethsock_set_timeout(sock, args->ul_timeout);
 					tx.msg.code = NMRP_C_NONE;
 					expect = NMRP_C_NONE;
-				} else if (status == -2) {
-					expect = NMRP_C_TFTP_UL_REQ;
-				} else {
-					goto out;
 				}
 
 				break;
