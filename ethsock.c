@@ -704,7 +704,14 @@ void find_pretty_name(const void* key, const void* value, void* context)
 	}
 
 	if (!strcmp(ctx->device, device)) {
-		ctx->pretty = dict_get_string(dict, "UserDefinedName");
+		// there are two instances of UserDefinedName. The one in the "Interface" dict
+		// defines a base name, such as "Wi-Fi", whereas the one in the root dict
+		// might contain a trailing number (e.g. "Wi-Fi 2") to identify multiple
+		// interfaces with the same base name.
+		ctx->pretty = dict_get_string((CFDictionaryRef)value, "UserDefinedName");
+		if (!ctx->pretty) {
+			ctx->pretty = dict_get_string(dict, "UserDefinedName");
+		}
 	}
 
 	free(device);
