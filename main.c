@@ -286,6 +286,10 @@ int main(int argc, char **argv)
 		}
 	}
 
+	if (verbosity > 1) {
+		printf("nmrpflash %s.\n", NMRPFLASH_VERSION);
+	}
+
 	if (args.ipaddr_intf && !args.ipaddr) {
 		fprintf(stderr, "Error: cannot use -A <ipaddr> without using -a <ipaddr>.\n");
 		return 1;
