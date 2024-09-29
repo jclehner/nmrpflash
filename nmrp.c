@@ -504,6 +504,7 @@ int nmrp_do(struct nmrpd_args *args)
 				fprintf(stderr, "Error: Ethernet cable is unplugged.\n");
 				goto out;
 			} else {
+				printf("\rSkipped.\n");
 				g_interrupted = false;
 			}
 		}
