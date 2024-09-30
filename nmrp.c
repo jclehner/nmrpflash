@@ -515,6 +515,10 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 	}
 
+	if (ethsock_is_wifi(sock)) {
+		printf("Warning: using a Wi-Fi interface. Make sure you know what you're doing!\n");
+	}
+
 	if (!autoip) {
 		status = is_valid_ip(sock, &ipaddr, &ipmask);
 		if (status <= 0) {
