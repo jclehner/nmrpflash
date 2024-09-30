@@ -18,7 +18,7 @@
 			<Add option="-Wall" />
 			<Add option="-std=c99" />
 			<Add option="-m32" />
-			<Add option='-DNMRPFLASH_VERSION=\&quot;0.9.22\&quot;' />
+			<Add option='-DNMRPFLASH_VERSION=\&quot;0.9.24\&quot;' />
 			<Add option="-DWINVER=0x0600" />
 			<Add option="-D_WIN32_WINNT=0x0600" />
 			<Add option="-DWIN32_LEAN_AND_MEAN" />
