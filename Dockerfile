@@ -21,7 +21,9 @@ WORKDIR /usr/src/nmrpflash
 RUN wget -O npcap-sdk.zip https://npcap.com/dist/npcap-sdk-${NPCAP_VERSION}.zip
 RUN unzip npcap-sdk.zip -d Npcap
 
-RUN make release/linux-appimage
+ARG CACHEBUST=1
+
 RUN make clean
+RUN make release/linux-appimage
 RUN make MINGW=i686-w64-mingw32- release release/win32
 
