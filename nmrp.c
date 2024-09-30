@@ -398,6 +398,7 @@ int nmrp_do(struct nmrpd_args *args)
 	char *filename;
 	time_t beg;
 	int i, timeout, status, ulreqs, expect, upload_ok, autoip, ka_reqs;
+	bool was_plugged_in;
 	ssize_t bytes;
 	struct ethsock *sock;
 	struct ethsock_ip_undo *ip_undo = NULL;
@@ -481,7 +482,9 @@ int nmrp_do(struct nmrpd_args *args)
 
 	sigh_orig = signal(SIGINT, sigh);
 
-	if (ethsock_is_unplugged(sock)) {
+	was_plugged_in = !ethsock_is_unplugged(sock);
+
+	if (!was_plugged_in) {
 		if (ethsock_is_wifi(sock)) {
 			fprintf(stderr, "Error: Wi-Fi not connected.\n");
 			goto out;
@@ -498,6 +501,8 @@ int nmrp_do(struct nmrpd_args *args)
 				break;
 			}
 		}
+
+		was_plugged_in = !unplugged;
 
 		if (unplugged) {
 			if (!g_interrupted) {
@@ -555,6 +560,8 @@ int nmrp_do(struct nmrpd_args *args)
 		fflush(stdout);
 		i = (i + 1) & 3;
 
+		was_plugged_in |= !ethsock_is_unplugged(sock);
+
 		if (pkt_send(sock, &tx) < 0) {
 			goto out;
 		}
@@ -576,9 +583,13 @@ int nmrp_do(struct nmrpd_args *args)
 			/* because we don't want nmrpflash's exit status to be zero */
 			status = 1;
 			if ((time_monotonic() - beg) >= timeout) {
-				printf("\nNo response after %d seconds. ", timeout);
-				if (!args->blind) {
-					printf("Bailing out.\n");
+				printf("\nNo response after %d seconds.\n", timeout);
+				if (!args->blind || !was_plugged_in) {
+					printf("Bailing out");
+					if (!was_plugged_in) {
+						printf(" (Ethernet cable still unplugged)");
+					}
+					printf(".\n");
 					goto out;
 				} else {
 					// we're blind, so fake a response from the MAC specified by -m
