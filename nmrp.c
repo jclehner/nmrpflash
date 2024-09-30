@@ -359,7 +359,7 @@ static void sigh(int sig)
 	g_interrupted = 1;
 }
 
-void nmrp_discard(struct ethsock *sock)
+bool nmrp_discard(struct ethsock *sock)
 {
 	// between nmrpflash sending the TFTP WRQ packet, and the router
 	// responding with ACK(0)/OACK, some devices send extraneous
@@ -377,7 +377,8 @@ void nmrp_discard(struct ethsock *sock)
 
 	struct nmrp_pkt rx;
 
-	if (pkt_recv(sock, &rx) == 0) {
+	int ret = pkt_recv(sock, &rx);
+	if (ret == 0) {
 		if (rx.msg.code != NMRP_C_CONF_REQ && rx.msg.code != NMRP_C_TFTP_UL_REQ) {
 			printf("Discarding unexpected %s packet\n", msg_code_str(rx.msg.code));
 		} else if (verbosity > 1) {
@@ -386,6 +387,7 @@ void nmrp_discard(struct ethsock *sock)
 	}
 
 	ethsock_set_timeout(sock, timeout);
+	return ret == 0;
 }
 
 static const char *spinner = "\\|/-";

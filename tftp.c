@@ -328,7 +328,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	char rx[2048], tx[2048];
 	const char *file_remote = args->file_remote;
 	char *val, *end;
-	bool rollover;
+	bool rollover, discard;
 	const unsigned rx_timeout = MAX(args->rx_timeout / 50, 200);
 	const unsigned max_timeouts = args->blind ? 3 : 5;
 #ifndef NMRPFLASH_WINDOWS
@@ -414,6 +414,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	rollover = false;
 	/* Not really, but this way the loop sends our WRQ before receiving */
 	timeouts = 1;
+	discard = true;
 
 	pkt_mkwrq(tx, file_remote, TFTP_BLKSIZE);
 
@@ -490,7 +491,9 @@ ssize_t tftp_put(struct nmrpd_args *args)
 		}
 
 		ret = tftp_recvfrom(sock, rx, &port, rx_timeout, blksize + 4);
-		nmrp_discard(args->sock);
+		if (discard) {
+			discard &= nmrp_discard(args->sock);
+		}
 
 		if (ret < 0) {
 			goto cleanup;
