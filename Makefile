@@ -82,7 +82,7 @@ uninstall:
 	rm -f $(PREFIX)/bin/nmrpflash
 
 $(LINUXDEPLOY):
-	wget -O $@ https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/$(shell basename $@)
+	wget -q -O $@ https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/$(shell basename $@)
 	chmod +x $@
 
 nmrpflash-$(ARCH).AppImage: $(LINUXDEPLOY) release

@@ -18,7 +18,7 @@ ADD "https://api.github.com/repos/jclehner/nmrpflash/commits?per_page=1" latest_
 RUN git clone https://github.com/jclehner/nmrpflash
 
 WORKDIR /usr/src/nmrpflash
-RUN wget -O npcap-sdk.zip https://npcap.com/dist/npcap-sdk-${NPCAP_VERSION}.zip
+RUN wget -q -O npcap-sdk.zip https://npcap.com/dist/npcap-sdk-${NPCAP_VERSION}.zip
 RUN unzip npcap-sdk.zip -d Npcap
 
 ARG CACHEBUST=1
