@@ -287,7 +287,7 @@ int main(int argc, char **argv)
 	}
 
 	if (verbosity > 1) {
-		printf("nmrpflash %s.\n", NMRPFLASH_VERSION);
+		printf("nmrpflash %s\n", NMRPFLASH_VERSION);
 	}
 
 	if (args.ipaddr_intf && !args.ipaddr) {
