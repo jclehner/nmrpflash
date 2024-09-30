@@ -558,11 +558,14 @@ int nmrp_do(struct nmrpd_args *args)
 	timeout = args->blind ? 10 : NMRP_ADVERTISE_TIMEOUT;
 	beg = time_monotonic();
 
+	printf("Advertising NMRP server on %s ... ", args->intf);
+
 	while (!g_interrupted) {
-		printf("\rAdvertising NMRP server on %s ... %c",
-				args->intf, spinner[i]);
-		fflush(stdout);
 		i = (i + 1) & 3;
+
+		printf("%c ", spinner[i]);
+		fflush(stdout);
+		printf("\b\b");
 
 		was_plugged_in |= !ethsock_is_unplugged(sock);
 
