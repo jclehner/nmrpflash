@@ -12,6 +12,8 @@ LINUXDEPLOY = ./linuxdeploy-$(ARCH).AppImage
 TMP := $(shell mktemp -d)
 APPDIR = $(TMP)/AppDir
 AFL = afl-gcc
+DOCKER_BUILD_NAME=nmrpflash
+DOCKER_CONTAINER_NAME=$(DOCKER_BUILD_NAME)-container
 
 nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
 
@@ -116,8 +118,9 @@ nmrpflash.ico: nmrpflash.svg
 	convert -background transparent -define icon:auto-resize=256,64,48,32,16 $< $@
 
 build-release-with-docker:
-	docker build --build-arg CACHEBUST=$(shell date +%s) --build-arg NPCAP_SDK=$(NPCAP_SDK) --progress=plain -t nmrpflash .
-	docker create --name dummy nmrpflash
-	docker cp dummy:/usr/src/nmrpflash/nmrpflash-$(VERSION)-linux-$(ARCH).zip .
-	docker cp dummy:/usr/src/nmrpflash/nmrpflash-$(VERSION)-win32.zip .
-	docker rm -f dummy
+	docker build --build-arg CACHEBUST=$(shell date +%s) --build-arg NPCAP_SDK=$(NPCAP_SDK) --progress=plain -t $(DOCKER_BUILD_NAME) .
+	-docker rm $(DOCKER_CONTAINER_NAME) &> /dev/null
+	docker create --name $(DOCKER_CONTAINER_NAME) nmrpflash
+	docker cp $(DOCKER_CONTAINER_NAME):/usr/src/nmrpflash/nmrpflash-$(VERSION)-linux-$(ARCH).zip .
+	docker cp $(DOCKER_CONTAINER_NAME):/usr/src/nmrpflash/nmrpflash-$(VERSION)-win32.zip .
+	docker rm $(DOCKER_CONTAINER_NAME)

@@ -8,6 +8,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
 RUN apt-get install -y build-essential pkg-config git zip wget file
 RUN apt-get install -y g++-mingw-w64-i686
+RUN apt-get install -y imagemagick
 RUN apt-get install -y libpcap-dev libnl-3-dev libnl-route-3-dev
 
 RUN mkdir -p /usr/src
