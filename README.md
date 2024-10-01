@@ -9,7 +9,7 @@ various models (D7000, DNG3700v2, EX2700, EX6100v2, EX6120, EX6150v2, EX8000, R6
 R7000P, R6800, R8000, R8000P, R8500, RAX40, RBR40, RBS40, RBR50, RBS50, SRR60, SRS60, WAX202, WNDR3800, WNDR4300, WNDR4500v3,
 WNDR4700, WNR3500), but is likely to be compatible with most other Netgear devices as well.
 
-Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases)
+Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases/latest)
 ([Npcap](https://nmap.org/npcap/#download) is required on Windows). 
 
 On Linux and macOS, using [Homebrew](https://formulae.brew.sh/formula/nmrpflash) is the preferred method. Packages maintained
