@@ -12,8 +12,8 @@ WNDR4700, WNR3500), but is likely to be compatible with most other Netgear devic
 Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases/latest)
 ([Npcap](https://nmap.org/npcap/#download) is required on Windows). 
 
-On Linux and macOS, using [Homebrew](https://formulae.brew.sh/formula/nmrpflash) is the preferred method. Packages maintained
-by your Linux distribution may be hopelessly outdated (as of 2024-10-01, the current version in Debian based distros such
+On Linux and macOS, using [Homebrew](https://formulae.brew.sh/formula/nmrpflash) is the preferred method. **Packages maintained
+by your Linux distribution may be hopelessly outdated** (as of 2024-10-01, the current version in Debian based distros such
 as Ubuntu is 0.9.14, released more than 4 years earlier!). A [FreeBSD package](https://ports.freebsd.org/cgi/ports.cgi?query=nmrpflash)
 can be fetched and installed using the `pkg` command.
 
