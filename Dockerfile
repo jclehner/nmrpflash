@@ -1,10 +1,9 @@
-FROM ubuntu:focal
+FROM ubuntu:jammy
 
 ENV TZ=Etc/UTC
 ENV TERM=xterm
 ENV APPIMAGE_EXTRACT_AND_RUN=1
 ARG DEBIAN_FRONTEND=noninteractive
-ARG NPCAP_VERSION=1.13
 
 RUN apt-get update
 RUN apt-get install -y build-essential pkg-config git zip wget file
@@ -18,7 +17,10 @@ ADD "https://api.github.com/repos/jclehner/nmrpflash/commits?per_page=1" latest_
 RUN git clone https://github.com/jclehner/nmrpflash
 
 WORKDIR /usr/src/nmrpflash
-RUN wget -q -O npcap-sdk.zip https://npcap.com/dist/npcap-sdk-${NPCAP_VERSION}.zip
+
+ARG NPCAP_SDK
+
+RUN wget -q -O npcap-sdk.zip https://npcap.com/dist/npcap-sdk-${NPCAP_SDK}.zip
 RUN unzip npcap-sdk.zip -d Npcap
 
 ARG CACHEBUST=1
