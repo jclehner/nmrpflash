@@ -359,7 +359,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 			file_remote = args->file_local;
 		}
 
-		if (lseek(fd, args->offset, SEEK_SET) == (off_t)-1) {
+		if (args->offset && (lseek(fd, args->offset, SEEK_SET) == (off_t)-1)) {
 			xperror("lseek");
 			goto cleanup;
 		}
