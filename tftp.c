@@ -17,6 +17,7 @@
  *
  */
 
+#include <sys/stat.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -323,7 +324,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
 	uint16_t block, port, op, blksize;
-	ssize_t len, last_len, bytes;
+	ssize_t len, last_len, bytes, fsize;
 	int fd, sock, ret, timeouts, errors, ackblock;
 	char rx[2048], tx[2048];
 	const char *file_remote = args->file_remote;
@@ -350,6 +351,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 		if (!file_remote) {
 			file_remote = "firmware";
 		}
+		fsize = -1;
 	} else {
 		fd = open(args->file_local, O_RDONLY | O_BINARY);
 		if (fd < 0) {
@@ -363,6 +365,15 @@ ssize_t tftp_put(struct nmrpd_args *args)
 			xperror("lseek");
 			goto cleanup;
 		}
+
+		struct stat st;
+		if (fstat(fd, &st) < 0) {
+			xperror("fstat");
+			goto cleanup;
+		}
+
+		// don't care if it's <= 0, we'll display the spinner in that case
+		fsize = st.st_size - args->offset;
 	}
 
 #ifndef NMRPFLASH_FUZZ_TFTP
@@ -451,9 +462,15 @@ ssize_t tftp_put(struct nmrpd_args *args)
 					}
 				}
 
-				printf("%c ", spinner[block & 3]);
-				fflush(stdout);
-				printf("\b\b");
+				if (fsize > 0) {
+					printf("% 3zi %% ", (bytes * 100) / fsize);
+					fflush(stdout);
+					printf("\b\b\b\b\b\b");
+				} else {
+					printf("%c ", spinner[block & 3]);
+					fflush(stdout);
+					printf("\b\b");
+				}
 
 				pkt_mknum(tx, DATA);
 				pkt_mknum(tx + 2, block);
