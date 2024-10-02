@@ -9,10 +9,13 @@ various models (D7000, DNG3700v2, EX2700, EX6100v2, EX6120, EX6150v2, EX8000, R6
 R7000P, R6800, R8000, R8000P, R8500, RAX40, RBR40, RBS40, RBR50, RBS50, SRR60, SRS60, WAX202, WNDR3800, WNDR4300, WNDR4500v3,
 WNDR4700, WNR3500), but is likely to be compatible with most other Netgear devices as well.
 
-Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases)
-([Npcap](https://nmap.org/npcap/#download) is required on Windows). Note that on Linux and macOS, using
-[Homebrew](https://formulae.brew.sh/formula/nmrpflash) is the preferred method. FreeBSD packages can be fetched and
-installed using the FreeBSD `pkg` command.
+Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases/latest)
+([Npcap](https://nmap.org/npcap/#download) is required on Windows). 
+
+On Linux and macOS, [Homebrew](https://formulae.brew.sh/formula/nmrpflash) is the preferred method of installation. **Packages maintained
+by your Linux distribution may be hopelessly outdated** (as of 2024-10-01, the current version in Debian based distros such
+as Ubuntu is 0.9.14, released more than 4 years earlier!). A [FreeBSD package](https://ports.freebsd.org/cgi/ports.cgi?query=nmrpflash)
+can be fetched and installed using the `pkg` command.
 
 ```
 Usage: nmrpflash [OPTIONS...]
@@ -246,7 +249,7 @@ or
 
 `-A 192.168.1.2 -a 192.168.1.1`
 
-### Building and installing
+### Building
 ###### Linux, Mac OS X, BSDs
 
 On Linux, developer packages for `libpcap`, `libnl` and `libnl-route` must be installed:
@@ -258,26 +261,7 @@ $ sudo apt install libpcap-dev libnl-3-dev libnl-route-3-dev
 Then, it's as easy as 
 
 ```
-$ make && sudo make install
-```
-
-On Linux and macOS, you can use [Homebrew](https://brew.sh) to install `nmrpflash`:
-
-```
-$ brew install nmrpflash
-```
-
-On FreeBSD (assuming the ports infrastructure is installed and you have root permissions):
-
-```
-$ cd /usr/ports/sysutils/nmrpflash
-$ make install
-```
-
-Or install the FreeBSD binary package with:
-
-```
-$ pkg install nmrpflash
+$ make
 ```
 
 ###### Windows
