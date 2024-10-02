@@ -592,13 +592,13 @@ int nmrp_do(struct nmrpd_args *args)
 			/* because we don't want nmrpflash's exit status to be zero */
 			status = 1;
 			if ((time_monotonic() - beg) >= timeout) {
-				printf("\nNo response after %d seconds.\n", timeout);
+				printf("\nNo response after %d seconds. ", timeout);
 				if (!args->blind || !was_plugged_in) {
-					printf("Bailing out");
 					if (!was_plugged_in) {
-						printf(" (Ethernet cable still unplugged)");
+						printf("Ethernet cable unplugged. ");
 					}
-					printf(".\n");
+
+					printf("Bailing out.\n");
 					goto out;
 				} else {
 					// we're blind, so fake a response from the MAC specified by -m
