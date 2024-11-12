@@ -1,23 +1,36 @@
+# Still WIP! Use the regular Makefile for now!
+
 cmake_minimum_required(VERSION 3.6)
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
 
-project(nmrpflash VERSION 0.0.0 LANGUAGES C)
+project(nmrpflash)
 
-find_package(Git)
+if (NOT DEFINED NMRPFLASH_VERSION)
+	find_package(Git)
 
-if(GIT_FOUND)
-		execute_process(
-			COMMAND ${GIT_EXECUTABLE} describe --always
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-			OUTPUT_VARIABLE GIT_VERSION_STRING
-			OUTPUT_STRIP_TRAILING_WHITESPACE
-		)
-		string(SUBSTRING ${GIT_VERSION_STRING} 1 -1 nmrpflash_VERSION)
+	if(GIT_FOUND)
+			execute_process(
+				COMMAND ${GIT_EXECUTABLE} describe --always
+				WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+				OUTPUT_VARIABLE GIT_VERSION
+				OUTPUT_STRIP_TRAILING_WHITESPACE
+			)
+			string(SUBSTRING ${GIT_VERSION} 1 -1 GIT_VERSION)
+			string(REGEX REPLACE "-g.*$" "" GIT_VERSION_CMAKE ${GIT_VERSION})
+			string(REPLACE "-" "." GIT_VERSION_CMAKE ${GIT_VERSION_CMAKE})
+			project(${CMAKE_PROJECT_NAME} VERSION ${GIT_VERSION_CMAKE})
+			set(NMRPFLASH_VERSION ${GIT_VERSION})
+
+	else()
+		message(FATAL_ERROR "Git not found, and no NMRPFLASH_VERSION defined")
+	endif()
+else()
+	project(${CMAKE_PROJECT_NAME} VERSION ${NMRPFLASH_VERSION})
 endif()
 
 set(PROJECT_SOURCE_DIR ${CMAKE_SOURCE_DIR})
 add_executable(nmrpflash main.c nmrp.c tftp.c util.c ethsock.c)
-target_compile_definitions(nmrpflash PUBLIC -DNMRPFLASH_VERSION=\"${nmrpflash_VERSION}\")
+target_compile_definitions(nmrpflash PUBLIC -DNMRPFLASH_VERSION=\"${NMRPFLASH_VERSION}\")
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	target_link_libraries(nmrpflash -lpcap "-framework CoreFoundation")
