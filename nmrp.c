@@ -400,6 +400,7 @@ int nmrp_do(struct nmrpd_args *args)
 	char *filename;
 	time_t beg;
 	int i, timeout, status, ulreqs, expect, upload_ok, autoip, ka_reqs;
+	unsigned unexpected;
 	bool was_plugged_in;
 	ssize_t bytes;
 	struct ethsock *sock;
@@ -631,6 +632,7 @@ int nmrp_do(struct nmrpd_args *args)
 	expect = NMRP_C_CONF_REQ;
 	ulreqs = 0;
 	ka_reqs = 0;
+	unexpected = 0;
 
 	while (!g_interrupted) {
 		if (expect != NMRP_C_NONE && rx.msg.code != expect) {
@@ -640,6 +642,13 @@ int nmrp_do(struct nmrpd_args *args)
 			if (ulreqs && expect == NMRP_C_TFTP_UL_REQ && rx.msg.code == NMRP_C_CONF_REQ) {
 				args->maybe_invalid_firmware_file = true;
 			}
+
+			if (++unexpected > 5) {
+				fprintf(stderr, "Bailing out.\n");
+				goto out;
+			}
+		} else {
+			unexpected = 0;
 		}
 
 		msg_init(&tx.msg, NMRP_C_NONE);
