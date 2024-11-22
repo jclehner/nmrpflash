@@ -310,7 +310,19 @@ int main(int argc, char **argv)
 		require_admin();
 	}
 #endif
-	val = !list ? nmrp_do(&args) : ethsock_list_all();
+	if (list) {
+		val = ethsock_list_all();
+	} else {
+		val = nmrp_do(&args);
+		if (val != 0 && args.maybe_invalid_firmware_file) {
+			fprintf(stderr,
+					"\n"
+					"Firmware file rejected by remote device. Possible causes:\n"
+					"- Wrong firmware file (model number correct?)\n"
+					"- Wrong file format (e.g. .chk vs .trx file)\n"
+					"- Downgrading to a lower version number\n");
+		}
+	}
 
 out:
 #ifdef NMRPFLASH_WINDOWS

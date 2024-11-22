@@ -116,7 +116,7 @@ struct nmrpd_args {
 	uint16_t port;
 	const char *region;
 	off_t offset;
-
+	bool maybe_invalid_firmware_file;
 	struct ethsock *sock;
 };
 

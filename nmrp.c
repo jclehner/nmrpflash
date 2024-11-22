@@ -410,6 +410,8 @@ int nmrp_do(struct nmrpd_args *args)
 	struct in_addr ipaddr;
 	struct in_addr ipmask;
 
+	args->maybe_invalid_firmware_file = false;
+
 	if (args->op != NMRP_UPLOAD_FW) {
 		fprintf(stderr, "Operation not implemented.\n");
 		return 1;
@@ -634,6 +636,10 @@ int nmrp_do(struct nmrpd_args *args)
 		if (expect != NMRP_C_NONE && rx.msg.code != expect) {
 			fprintf(stderr, "Received %s while waiting for %s!\n",
 					msg_code_str(rx.msg.code), msg_code_str(expect));
+
+			if (ulreqs && expect == NMRP_C_TFTP_UL_REQ && rx.msg.code == NMRP_C_CONF_REQ) {
+				args->maybe_invalid_firmware_file = true;
+			}
 		}
 
 		msg_init(&tx.msg, NMRP_C_NONE);
@@ -668,6 +674,7 @@ int nmrp_do(struct nmrpd_args *args)
 						break;
 					}
 				} else {
+					args->maybe_invalid_firmware_file = true;
 					if (verbosity) {
 						printf("Ignoring extra upload request.\n");
 					}
@@ -744,6 +751,7 @@ int nmrp_do(struct nmrpd_args *args)
 						// file has been rejected. this feature is only implemented
 						// by some bootloaders.
 						expect = NMRP_C_TFTP_UL_REQ;
+						args->maybe_invalid_firmware_file = true;
 					} else {
 						goto out;
 					}
