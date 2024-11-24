@@ -497,7 +497,7 @@ int nmrp_do(struct nmrpd_args *args)
 		bool unplugged = true;
 		time_t beg = time_monotonic();
 
-		while (!g_interrupted && (time_monotonic() - beg) < 60) {
+		while (!g_interrupted && (time_monotonic() - beg) < NMRP_ETH_TIMEOUT_S) {
 			if (!ethsock_is_unplugged(sock)) {
 				unplugged = false;
 				break;
