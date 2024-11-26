@@ -158,9 +158,6 @@ int main(int argc, char **argv)
 		.offset = 0,
 	};
 #ifdef NMRPFLASH_WINDOWS
-	char *newpath = NULL;
-	char *oldpath = NULL;
-	char *windir = NULL;
 	WSADATA wsa;
 
 	atexit(&show_exit_prompt);
@@ -183,10 +180,10 @@ int main(int argc, char **argv)
 	//
 	// [1] https://msdn.microsoft.com/en-us/library/windows/desktop/aa384187(v=vs.85).aspx
 
-	oldpath = getenv("PATH");
-	windir = getenv("WINDIR");
+	char *oldpath = getenv("PATH");
+	char *windir = getenv("WINDIR");
 	if (oldpath && windir) {
-		newpath = malloc(strlen(oldpath) + strlen(windir) + 32);
+		char *newpath = malloc(strlen(oldpath) + strlen(windir) + 32);
 		sprintf(newpath, "%s;%s\\Sysnative", oldpath, windir);
 		SetEnvironmentVariable("PATH", newpath);
 		free(newpath);
