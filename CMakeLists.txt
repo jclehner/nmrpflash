@@ -31,6 +31,7 @@ endif()
 set(PROJECT_SOURCE_DIR ${CMAKE_SOURCE_DIR})
 add_executable(nmrpflash main.c nmrp.c tftp.c util.c ethsock.c)
 target_compile_definitions(nmrpflash PUBLIC -DNMRPFLASH_VERSION=\"${NMRPFLASH_VERSION}\")
+target_compile_options(nmrpflash PUBLIC -Wall)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	target_link_libraries(nmrpflash -lpcap "-framework CoreFoundation")
