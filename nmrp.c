@@ -675,19 +675,13 @@ int nmrp_do(struct nmrpd_args *args)
 
 				break;
 			case NMRP_C_TFTP_UL_REQ:
-				if (!upload_ok) {
-					if (++ulreqs > 5) {
-						printf("Bailing out after %d upload requests.\n",
-								ulreqs);
-						tx.msg.code = NMRP_C_CLOSE_REQ;
-						break;
-					}
-				} else {
+				if (++ulreqs > 1) {
 					args->maybe_invalid_firmware_file = true;
-					if (verbosity) {
-						printf("Ignoring extra upload request.\n");
-					}
-					ethsock_set_timeout(sock, args->ul_timeout);
+				}
+
+				if (ulreqs > NMRP_MAX_UL_REQS) {
+					printf("Bailing out after %d upload requests.\n", ulreqs);
+					tx.msg.code = NMRP_C_CLOSE_REQ;
 					break;
 				}
 
