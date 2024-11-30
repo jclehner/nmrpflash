@@ -10,7 +10,6 @@ R7000P, R6800, R8000, R8000P, R8500, RAX40, RAX75, RBR40, RBS40, RBR50, RBS50, S
 WNDR4700, WNR3500), but is likely to be compatible with most other Netgear devices as well.
 
 `mmrpflash` is cross-platform, working on Linux, macOS, Windows, the BSDs, and possibly other POSIX compatible systems.
-
 Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases/latest)
 ([Npcap](https://nmap.org/npcap/#download) is required on Windows). 
 
