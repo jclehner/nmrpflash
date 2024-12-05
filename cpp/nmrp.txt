@@ -1,0 +1,24 @@
+
+pkt = nmrp_pkt::advertise();
+
+pkt = nmrp_pkt::conf_ack(ip, mask);
+
+
+pkt = nmrp_pkt(nmrp_pkt::c_conf_ack)
+	.with(nmrp_pkt::o_ipaddr, ip_and_mask)
+
+
+sock.send(pkt);
+sock.recv(pkt);
+
+pkt.send(sock);
+
+pkt = nmrp_pkt::recv(sock);
+
+if (pkt[nmrp_pkt::o_magic] != "NTGR") {
+
+}
+
+if (!pkt[nmrp_pkt::o_filename]) {
+	// no filename specified
+}
