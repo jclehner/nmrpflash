@@ -4,7 +4,6 @@
 #include <cctype>
 
 namespace nmrpflash {
-typedef std::basic_string<uint8_t> buffer;
 
 template<class T> buffer to_buffer(const T& t, size_t size)
 {
