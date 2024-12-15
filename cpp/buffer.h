@@ -1,34 +1,46 @@
+#ifndef NMRPFLASH_BUFFER_H
+#define NMRPFLASH_BUFFER_H
 #include <iomanip>
 #include <sstream>
 #include <string>
 #include <cctype>
+#include <boost/endian.hpp>
 
 namespace nmrpflash {
+typedef std::string buffer;
 
-template<class T> buffer to_buffer(const T& t, size_t size)
+template<class T> buffer to_buffer(const T& data, size_t size = sizeof(data))
 {
-	return buffer(reinterpret_cast<const uint8_t*>(&t), size);
+	return buffer(reinterpret_cast<const char*>(&data), size);
 }
 
-template<class T> buffer to_buffer(const T& t)
+namespace detail {
+template<boost::endian::order O, class T> T conditional_reverse(T value)
 {
-	return to_buffer(t, sizeof(t));
+	return boost::endian::conditional_reverse<boost::endian::order::native, O>(value);
+}
 }
 
-template<> buffer to_buffer(const std::string& str)
+template<boost::endian::order O, class T> T unpack(const buffer& b, size_t off = 0)
 {
-	return buffer(reinterpret_cast<const uint8_t*>(str.data()), str.size());
-}
-
-std::string to_string(const buffer& b)
-{
-	std::stringstream ss;
-	ss << std::setfill('0') << std::hex;
-
-	for (size_t i = 0; i < b.size(); ++i) {
-		ss << "\\x" << std::setw(2) << int(b[i]);
+	static_assert(std::is_pod<T>::value);
+	if ((off + sizeof(T)) >= b.size()) {
+		throw std::out_of_range("offset: " + std::to_string(off));
 	}
 
-	return ss.str();
+	return detail::conditional_reverse<O>(*reinterpret_cast<const T*>(&b[off]));
+}
+
+template<boost::endian::order O, class T> buffer& pack(buffer& b, size_t off, T val)
+{
+	val = detail::conditional_reverse<O>(val);
+	return b.replace(off, sizeof(T), reinterpret_cast<const char*>(&val));
+}
+
+template<boost::endian::order O, class T> buffer& pack(buffer& b, T val)
+{
+	val = detail::conditional_reverse<O>(val);
+	return b.append(reinterpret_cast<const char*>(&val), sizeof(T));
 }
 }
+#endif

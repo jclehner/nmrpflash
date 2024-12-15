@@ -5,37 +5,30 @@
 #include <utility>
 #include <memory>
 #include <string>
+#include "buffer.h"
 
 namespace nmrpflash {
-typedef std::string buffer;
-
 class fwimage
 {
 	public:
-	class impl;
+	static std::unique_ptr<fwimage> open(const std::string& filename);
 
-	fwimage(const std::string& filename);
-	~fwimage();
+	virtual ~fwimage();
 
-	size_t size() const;
-
-	bool eof() const;
-	void rewind() const;
-	std::string read(size_t n) const;
+	virtual size_t size() const = 0;
+	virtual buffer read(ssize_t offset, size_t size) const = 0;
 
 	// returns type of firmware image (such as "dni", "chk", etc.), or empty string
-	std::string type() const;
+	virtual std::string type() const = 0;
 	// only valid if type() is non-empty
-	std::string version() const;
-	// only valid if type() is non-empty
-	buffer checksum() const;
+	virtual std::string version() const = 0;
 
-	void patch_version(const std::string& version);
+	virtual void version(const std::string& v) = 0;
 
-	private:
-	mutable std::stringstream m_ss;
+	virtual void patch(size_t offset, const buffer& data) = 0;
 
-	std::unique_ptr<impl> m_impl;
+	protected:
+	fwimage();
 };
 }
 #endif

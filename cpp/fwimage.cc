@@ -1,4 +1,6 @@
-#include <arpa/inet.h>
+#include <boost/polymorphic_pointer_cast.hpp>
+#include <boost/endian/buffers.hpp>
+#include <gsl/pointers>
 #include <stdexcept>
 #include <iostream>
 #include <cstring>
@@ -6,17 +8,13 @@
 #include <map>
 #include "fwimage.h"
 using namespace std;
+using boost::endian::big_uint32_buf_t;
+using boost::polymorphic_pointer_cast;
+using gsl::not_null;
 
 namespace nmrpflash {
 namespace {
-
-typedef istreambuf_iterator<char> isb_it;
-
-const map<string, buffer> signatures {
-	{ "chk", "\x2a\x23\x24\x53" },
-	{ "dni", "device:" },
-	{ "rax", "\x00\x01\x00\x20" },
-};
+const auto chunk_size = 1024 * 64;
 
 buffer read_is(istream& in, size_t n, bool partial = false)
 {
@@ -34,7 +32,7 @@ buffer read_is(istream& in, size_t n, bool partial = false)
 	return ret;
 }
 
-vector<uint8_t> parse_version(const string& str)
+vector<uint8_t> split_version(const string& str)
 {
 	istringstream istr(str);
 
@@ -62,7 +60,7 @@ vector<uint8_t> parse_version(const string& str)
 	return ret;
 }
 
-string version_to_string(const vector<uint8_t>& version)
+string join_version(const vector<uint8_t>& version)
 {
 	if (version.empty()) {
 		return "";
@@ -84,115 +82,276 @@ string version_to_string(const vector<uint8_t>& version)
 	return ostr.str();
 }
 
-uint32_t read_u32(istream& is)
-{
-	uint32_t ret;
-	is.read(reinterpret_cast<char*>(&ret), sizeof(ret));
-	return ntohl(ret);
-}
-
-void write_u32(ostream& os, uint32_t val)
-{
-	val = htonl(val);
-	os.write(reinterpret_cast<char*>(&val), sizeof(val));
-}
-}
-
-class fwimage::impl
+class fwimage_base : public fwimage
 {
 	public:
-	impl() {}
-	virtual ~impl() {}
+	virtual ~fwimage_base() {}
 
-	virtual std::string type() const { return ""; }
-	virtual void read_metadata(istream& is) {}
-	virtual bool is_checksum_valid(istream& is) const { return false; }
+	virtual unique_ptr<fwimage_base> create() const = 0;
 
-	virtual vector<uint8_t> version() const { return {}; }
-
-	virtual void patch_version(iostream& is, const vector<uint8_t>& v)
+	void open(const string& filename)
 	{
-		throw runtime_error("image format doesn't support version patching");
+		m_fs.exceptions(ios::failbit | ios::badbit);
+		m_fs.open(filename.c_str(), ios::binary | ios::ate);
+		m_size = m_fs.tellg();
+		m_fs.seekg(0);
+		read_metadata();
 	}
+
+	size_t size() const override
+	{
+		return m_size;
+	}
+
+	buffer read(ssize_t offset, size_t size) const override
+	{
+		if (offset < 0) {
+			offset += this->size();
+		}
+
+		m_fs.seekg(offset);
+
+		buffer buf = read_is(m_fs, size);
+
+		// example:
+		//   read(1024, 64)
+		//
+		//   m_patch[1024] = (4) "\xaa\xbb\xcc\xdd";
+		//   m_patch[1086] = (3) "foo";
+
+		for (auto [patch_off, patch_buf] : m_patches) {
+			if (patch_off < offset || patch_off > (offset + size)) {
+				continue;
+			}
+
+			size_t buf_off = patch_off - offset;
+			size_t patch_size = size - buf_off;
+
+			buf.replace(buf_off, patch_size, patch_buf.substr(0, patch_size));
+		}
+
+		return buf;
+	}
+
+	template<class T> T read(ssize_t offset) const
+	{
+		return unpack<boost::endian::order::native, T>(read(offset, sizeof(T)));
+	}
+
+	virtual void version(const string& v) override
+	{
+		auto v_old = split_version(fwimage::version());
+		auto v_new = split_version(v);
+
+		if (v_old.size() != v_new.size()) {
+			throw invalid_argument("invalid version format");
+		}
+
+		version(v_new);
+		update_metadata();
+	}
+
+	virtual void patch(size_t offset, const buffer& data) override
+	{
+		m_patches[offset] = data;
+	}
+
+	protected:
+	fwimage_base() {}
+
+	virtual void read_metadata() = 0;
+	virtual void update_metadata() = 0;
+	virtual void version(const vector<uint8_t>& v) = 0;
+
+	private:
+	mutable ifstream m_fs;
+	// key = offset
+	map<size_t, buffer> m_patches;
+	size_t m_size;
 };
 
-namespace {
-class chk_impl : public fwimage::impl
+class fwimage_dni : public fwimage_base
 {
 	public:
-	static constexpr auto magic = "\x2a\x23\x24\x5e";
-
-	virtual string type() const override { return "chk"; }
-	virtual vector<uint8_t> version() const override { return m_version; }
-
-	virtual void read_metadata(istream& is) override
+	virtual unique_ptr<fwimage_base> create() const override
 	{
-		is.seekg(hdr_len_offset);
-		m_hdr_len = read_u32(is);
+		return make_unique<fwimage_dni>();
+	}
 
-		m_region = is.get() & 0xff;
+	virtual string type() const override { return "dni"; }
 
-		for (size_t i = 0; i < m_version.size(); ++i) {
-			m_version[i] = is.get() & 0xff;
+	virtual string version() const override
+	{
+		return m_hdr.at("version");
+	}
+
+	protected:
+	static constexpr auto header_size = 128;
+
+	virtual void read_metadata() override
+	{
+		istringstream hdr(read(0, header_size));
+		string line;
+
+		while (getline(hdr, line) && isalpha(line[0])) {
+			auto i = line.find(':');
+			if (i == string::npos) {
+				break;
+			}
+
+			auto key = line.substr(0, i);
+			if (key.empty()) {
+				break;
+			}
+
+			m_hdr[key] = line.substr(i + 1);
+			m_hdr_keys.push_back(key);
 		}
 
-		is.seekg(hdr_chksum_offset);
-		m_hdr_chksum = read_u32(is);
+		if (m_hdr_keys.at(0) != "device") {
+			throw runtime_error("unexpected first header field: " + m_hdr_keys[0]);
+		}
 
-		if (!is) {
-			throw runtime_error("error reading header fields");
+		(void) split_version(m_hdr.at("version"));
+		// throw if one of these fields doesn't exist
+		(void) m_hdr.at("hd_id");
+		(void) m_hdr.at("region");
+
+		m_checksum = read(-1, 1).at(0);
+
+		if (m_checksum != calc_checksum()) {
+			throw runtime_error("checksum error");
 		}
 	}
 
-	virtual bool is_checksum_valid(istream& is) const override
+	virtual void version(const vector<uint8_t>& v) override
 	{
-		return m_hdr_chksum == calc_hdr_checksum(is);
+		m_hdr["version"] = join_version(v);
 	}
 
-	virtual void patch_version(iostream& is, const vector<uint8_t>& v) override
+	virtual void update_metadata() override
 	{
-		m_version = v;
-		is.seekp(version_offset);
+		string hdr;
 
-		for (uint8_t n : m_version) {
-			is.put(n);
+		for (auto key : m_hdr_keys) {
+			auto value = m_hdr[key];
+			if (key == "version") {
+				value = "V" + value;
+			}
+
+			hdr.append(key + ":" + value + "\n");
 		}
 
-		is.seekp(hdr_chksum_offset);
-		write_u32(is, calc_hdr_checksum(is));
+		if (hdr.size() > header_size) {
+			throw runtime_error("header size out of range");
+		}
+
+		hdr.resize(header_size);
+
+		patch(0, hdr);
+		patch(size() - 1, string(1, calc_checksum()));
 	}
 
 	private:
-	static constexpr auto hdr_len_offset = 1 * 4;
-	static constexpr auto version_offset = 2 * 4 + 1;
-	static constexpr auto hdr_chksum_offset = 9 * 4;
-
-	uint32_t m_hdr_len;
-	uint8_t m_region;
-	vector<uint8_t> m_version { 0, 0, 0, 0, 0, 0, 0 };
-	uint32_t m_hdr_chksum;
-
-	uint32_t calc_hdr_checksum(istream& is) const
+	uint8_t calc_checksum() const
 	{
-		is.seekg(0);
+		uint8_t ret = 0;
+		size_t off = 0;
+		uint8_t last_c = 0;
+
+		buffer data;
+
+		while (!(data = read(off, chunk_size)).empty()) {
+			for (uint8_t c : data) {
+				ret += c;
+				last_c = c;
+			}
+			off += data.size();
+		}
+
+		// last byte was the checksum itself
+		return 0xff - (ret - last_c);
+	}
+
+	bool has(const string& key) const
+	{
+		return m_hdr.find(key) != m_hdr.end();
+	}
+
+	map<string, string> m_hdr;
+	vector<string> m_hdr_keys;
+	uint8_t m_checksum;
+};
+
+class fwimage_chk : public fwimage_base
+{
+	public:
+	virtual unique_ptr<fwimage_base> create() const override
+	{
+		return make_unique<fwimage_chk>();
+	}
+
+	virtual string type() const override { return "chk"; }
+	virtual string version() const override
+	{
+		return join_version(m_version);
+	}
+
+	protected:
+	static constexpr auto hdr_len_offset = 1 * 4;
+	static constexpr auto region_offset = 2 * 4;
+	static constexpr auto version_offset = region_offset + 1;
+	static constexpr auto version_len = 7;
+	static constexpr auto hdr_checksum_offset = 9 * 4;
+
+	virtual void read_metadata() override
+	{
+		m_hdr_len = read<big_uint32_buf_t>(hdr_len_offset);
+		m_region = read(region_offset, 1).at(0);
+
+		auto v = read(version_offset, version_len);
+		m_version = { v.begin(), v.end() };
+
+		m_hdr_checksum = read<big_uint32_buf_t>(hdr_checksum_offset);
+
+		if (m_hdr_checksum.value() != calc_hdr_checksum()) {
+			throw runtime_error("checksum error");
+		}
+	}
+
+	virtual void update_metadata() override
+	{
+		patch(version_offset, to_buffer(m_version.data(), m_version.size()));
+		m_hdr_checksum = calc_hdr_checksum();
+		patch(hdr_checksum_offset, to_buffer(m_hdr_checksum));
+	}
+
+	virtual void version(const vector<uint8_t>& v) override
+	{
+		m_version = v;
+	}
+
+	private:
+	uint32_t calc_hdr_checksum() const
+	{
+		buffer hdr = read(0, m_hdr_len.value());
 
 		uint32_t c0 = 0;
 		uint32_t c1 = 0;
 		size_t i;
 
-		for (i = 0; i < hdr_chksum_offset; ++i) {
-			c0 += is.get() & 0xff;
+		for (i = 0; i < hdr_checksum_offset; ++i) {
+			c0 += hdr.at(i);
 			c1 += c0;
 		}
 
-		for (; i < hdr_chksum_offset + 4; ++i) {
-			// discard
-			is.get();
+		for (; i < hdr_checksum_offset + 4; ++i) {
+			// ignore header checksum (same effect as all-zero checksum)
 			c1 += c0;
 		}
 
-		for (; i < m_hdr_len; ++i) {
-			c0 += is.get() & 0xff;
+		for (; i < m_hdr_len.value(); ++i) {
+			c0 += hdr.at(i);
 			c1 += c0;
 		}
 
@@ -204,220 +363,67 @@ class chk_impl : public fwimage::impl
 
 		return ((c1 << 16) | c0);
 	}
+
+	big_uint32_buf_t m_hdr_len;
+	uint8_t m_region;
+	vector<uint8_t> m_version { 0, 0, 0, 0, 0, 0, 0 };
+	big_uint32_buf_t m_hdr_checksum;
 };
 
-class dni_impl : public fwimage::impl
+class fwimage_generic : public fwimage_base
 {
 	public:
-	static constexpr auto header_size = 128;
-	static constexpr auto magic = "device:";
-
-	virtual string type() const override { return "dni"; }
-
-	virtual void read_metadata(istream& is) override
+	virtual unique_ptr<fwimage_base> create() const override
 	{
-		is.seekg(0);
-
-		istringstream header(read_is(is, header_size));
-		string line;
-
-		while (getline(header, line) && isalpha(line[0])) {
-			auto i = line.find(':');
-			if (i == string::npos) {
-				break;
-			}
-
-			auto key = line.substr(0, i);
-			auto value = line.substr(i + 1);
-
-			m_hdr[key] = value;
-		}
-
-		if (!has("device") || !has("version") || !has("hd_id")) {
-			throw invalid_argument("incomplete header");
-		}
-
-		parse_version(m_hdr.at("version"));
-
-		is.seekg(-1, ios::end);
-		m_checksum = string(1, is.peek() & 0xff);
+		return make_unique<fwimage_chk>();
 	}
 
-	virtual bool is_checksum_valid(istream& is) const override
+	virtual string type() const override { return ""; }
+	virtual string version() const override { return ""; }
+
+	virtual void version(const vector<uint8_t>& v) override
 	{
-		return m_checksum.at(0) == calc_checksum(is);
+		throw invalid_argument("image type doesn't support version patching");
 	}
 
-	virtual vector<uint8_t> version() const override
-	{
-		return parse_version(m_hdr.at("version"));
-	}
-
-	virtual void patch_version(iostream& is, const vector<uint8_t>& v) override
-	{
-		m_hdr["version"] = "V" + version_to_string(v);
-
-		is.seekp(0);
-		write_hdr(is, "device");
-		write_hdr(is, "version");
-		write_hdr(is, "region");
-		write_hdr(is, "hd_id");
-
-		ssize_t diff = header_size - is.tellp();
-		if (diff < 0) {
-			throw invalid_argument("patched header size exceeds maximum of " + to_string(header_size));
-		}
-
-		is << string(diff, '\x00');
-
-		is.seekp(-1, ios::end);
-		is.put(calc_checksum(is));
-	}
-
-	private:
-	bool has(const string& key) const
-	{
-		return m_hdr.find(key) != m_hdr.end();
-	}
-
-	void write_hdr(iostream& is, const string& key)
-	{
-		is << key << ':' << m_hdr.at(key) << "\n";
-	}
-
-	uint8_t calc_checksum(istream& is) const
-	{
-		uint8_t ret = 0;
-		int c;
-
-		is.seekg(0);
-		while (is.peek() != EOF) {
-			c = is.get();
-			ret += c;
-		}
-
-		// last byte read was the checksum itself
-		return 0xff - (ret - c);
-	}
-
-	map<string, string> m_hdr;
-	buffer m_checksum;
+	protected:
+	virtual void update_metadata() override {}
+	virtual void read_metadata() override {}
 };
-
-class rax_impl
-
-template<class T> auto fwimage_create(istream& is)
-{
-	is.seekg(0);
-	unique_ptr<fwimage::impl> ret;
-
-	if (read_is(is, strlen(T::magic)) == T::magic) {
-		ret = make_unique<T>();
-	}
-
-	is.seekg(0);
-
-	return ret;
-}
-
-auto fwimage_detect(istream& is)
-{
-	auto p = fwimage_create<dni_impl>(is);
-	if (p) {
-		return p;
-	}
-
-	p = fwimage_create<chk_impl>(is);
-	if (p) {
-		return p;
-	}
-
-#if 0
-	p = fwimage_create<rax_impl>(is);
-	if (p) {
-		return p;
-	}
-#endif
-
-	return make_unique<fwimage::impl>();
-}
-}
-
-fwimage::fwimage(const string& filename)
-{
-	ifstream fs(filename.c_str(), ios::in | ios::binary);
-
-	if (!fs.seekg(0) || !fs.good()) {
-		throw invalid_argument(filename + ": error accessing firmware file");
-	}
-
-	m_ss << fs.rdbuf() << flush;
-
-#if 0
-	if (!fs.eof() || !fs.good()) {
-		throw runtime_error(filename + ": error buffering firmware file");
-	}
-#endif
-
-	m_impl = fwimage_detect(m_ss);
-
-	if (!m_impl->type().empty()) {
-		try {
-			m_impl->read_metadata(m_ss);
-			if (m_impl->is_checksum_valid(m_ss)) {
-				return;
-			} else {
-				cerr << "invalid checksum" << endl;
-			}
-		} catch (const exception& e) {
-			throw runtime_error(filename + ": error reading header: "s + e.what());
-		}
-	}
-
-	m_impl = make_unique<fwimage::impl>();
 }
 
 fwimage::~fwimage() {}
 
-size_t fwimage::size() const
+unique_ptr<fwimage> fwimage::open(const string& filename)
 {
-	return m_ss.view().size();
-}
-
-void fwimage::rewind() const
-{
-	m_ss.seekg(0);
-}
-
-bool fwimage::eof() const
-{
-	return m_ss.eof();
-}
-
-buffer fwimage::read(size_t size) const
-{
-	return read_is(m_ss, size);
-}
-
-string fwimage::type() const
-{
-	return m_impl->type();
-}
-
-string fwimage::version() const
-{
-	return version_to_string(m_impl->version());
-}
-
-void fwimage::patch_version(const string& v)
-{
-	auto v_old = m_impl->version();
-	auto v_new = parse_version(v);
-	if (v_new.size() != v_old.size()) {
-		throw invalid_argument("version format mismatch ("
-			+ version_to_string(v_new) + " vs " + version_to_string(v_old) + ")");
+	typedef unique_ptr<fwimage_base> fwimage_ptr;
+	static vector<fwimage_ptr> types;
+	if (types.empty()) {
+		types.emplace_back(new fwimage_chk());
+		types.emplace_back(new fwimage_dni());
+		// this must be the last element
+		types.emplace_back(new fwimage_generic());
 	}
 
-	m_impl->patch_version(m_ss, v_new);
+	for (const auto& t : types) {
+		try {
+			auto ret = t->create();
+			ret->open(filename);
+			return ret;
+		} catch (const ios_base::failure& e) {
+			throw e;
+		} catch (const exception& e) {
+			if (t->type().empty()) {
+				// we've reached fwimage_generic - bail out!
+				throw e;
+			}
+			cerr << t->type() << ": error: " << e.what() << endl;
+		}
+	}
+
+	// fwimage_generic::open() shouldn't fail for anything other than
+	// iostream errors
+
+	throw logic_error("unreachable");
 }
 }
