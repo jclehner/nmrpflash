@@ -1,5 +1,6 @@
 #ifndef NMRPFLASH_FWIMAGE_H
 #define NMRPFLASH_FWIMAGE_H
+#include <functional>
 #include <fstream>
 #include <sstream>
 #include <utility>
@@ -12,11 +13,14 @@ class fwimage
 {
 	public:
 	static std::unique_ptr<fwimage> open(const std::string& filename);
+	static std::unique_ptr<fwimage> parse(const buffer& b);
 
 	virtual ~fwimage();
 
 	virtual size_t size() const = 0;
-	virtual buffer read(ssize_t offset, size_t size) const = 0;
+	virtual buffer read(ssize_t off, size_t n) const = 0;
+
+	void read_all(size_t n, std::function<void(const buffer&)> f) const;
 
 	// returns type of firmware image (such as "dni", "chk", etc.), or empty string
 	virtual std::string type() const = 0;
@@ -25,7 +29,7 @@ class fwimage
 
 	virtual void version(const std::string& v) = 0;
 
-	virtual void patch(size_t offset, const buffer& data) = 0;
+	virtual void patch(ssize_t offset, const buffer& data) = 0;
 
 	protected:
 	fwimage();

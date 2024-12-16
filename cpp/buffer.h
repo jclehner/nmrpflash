@@ -24,8 +24,8 @@ template<boost::endian::order O, class T> T conditional_reverse(T value)
 template<boost::endian::order O, class T> T unpack(const buffer& b, size_t off = 0)
 {
 	static_assert(std::is_pod<T>::value);
-	if ((off + sizeof(T)) >= b.size()) {
-		throw std::out_of_range("offset: " + std::to_string(off));
+	if ((off + sizeof(T)) > b.size()) {
+		throw std::out_of_range("unpack: offset=" + std::to_string(off));
 	}
 
 	return detail::conditional_reverse<O>(*reinterpret_cast<const T*>(&b[off]));
