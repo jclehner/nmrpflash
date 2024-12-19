@@ -1,7 +1,8 @@
-#include <boost/endian/buffers.hpp>
+#include <boost/numeric/conversion/cast.hpp>
 #include <gsl/pointers>
 #include <stdexcept>
 #include <iostream>
+#include <cassert>
 #include <cstring>
 #include <vector>
 #include <map>
@@ -16,16 +17,15 @@ const auto chunk_size = 1024 * 64;
 
 buffer read_is(istream& in, size_t n, bool partial = false)
 {
-	fflush(stdout);
-
 	buffer ret(n, '\x00');
 	in.read(reinterpret_cast<char*>(ret.data()), ret.size());
+	auto rlen = boost::numeric_cast<size_t>(in.gcount());
 
-	if (in.gcount() < ret.size()) {
+	if (rlen < ret.size()) {
 		if (partial || in.eof()) {
-			ret.resize(in.gcount());
+			ret.resize(rlen);
 		} else {
-			throw runtime_error("short read: " + to_string(n) + "b");
+			throw runtime_error("short read: " + to_string(rlen) + "b");
 		}
 	}
 
@@ -37,7 +37,7 @@ vector<uint8_t> split_version(const string& str)
 	istringstream istr(str);
 
 	if (istr.peek() == 'V') {
-		istr.get();
+		istr.seekg(1);
 	}
 
 	vector<uint8_t> ret;
@@ -91,10 +91,17 @@ class fwimage_base : public fwimage
 
 	void open(const string& filename)
 	{
-		m_fs.exceptions(ios::failbit | ios::badbit);
-		m_fs.open(filename.c_str(), ios::binary | ios::ate);
-		m_size = m_fs.tellg();
-		m_fs.seekg(0);
+		m_fs = make_unique<ifstream>(filename.c_str(), ios::binary | ios::ate);
+		m_fs->exceptions(ios::failbit | ios::badbit);
+		m_size = m_fs->tellg();
+		read_metadata();
+	}
+
+	void parse(const buffer& b)
+	{
+		m_fs = make_unique<istringstream>(b);
+		m_fs->exceptions(ios::failbit | ios::badbit);
+		m_size = b.size();
 		read_metadata();
 	}
 
@@ -103,23 +110,25 @@ class fwimage_base : public fwimage
 		return m_size;
 	}
 
-	buffer read(ssize_t off, size_t n) const override
+	buffer read(ssize_t soff, size_t n) const override
 	{
-		if (off < 0) {
-			off += size();
+		if (soff < 0) {
+			soff += size();
 		}
 
+		auto off = boost::numeric_cast<size_t>(soff);
 		if (off >= size()) {
 			throw invalid_argument("offset out of range: " + to_string(off));
 		}
 
-		m_fs.seekg(off);
+		cerr << "read(" << off << ", " << n << ")" << endl;
+
+		m_fs->seekg(off);
 
 		n = min(n, size() - off);
+		buffer buf = read_is(*m_fs, n);
 
-		cerr << "read: n=" << n << endl;
-		buffer buf = read_is(m_fs, n);
-		cerr << " -> " << buf.size() << endl;
+		assert(buf.size() == n);
 
 		// example:
 		//   read(1024, 64)
@@ -127,15 +136,30 @@ class fwimage_base : public fwimage
 		//   m_patch[1024] = (4) "\xaa\xbb\xcc\xdd";
 		//   m_patch[1086] = (3) "foo";
 
+
 		for (auto [patch_off, patch_buf] : m_patches) {
-			if (patch_off < off || patch_off > (off + n)) {
+			auto beg = max(patch_off, off);
+			const auto end = min(patch_off + patch_buf.size(), off + n);
+
+			cerr << "  (" << off << ", " << (off + n) << ") & (" << patch_off << ", " << (patch_off + patch_buf.size()) << ")" << endl;
+			cerr << "    => (" << beg << ", " << end << ")" << endl;
+
+			if (beg >= end) {
 				continue;
 			}
 
-			size_t buf_off = patch_off - off;
-			size_t patch_size = n - buf_off;
+			const auto len = end - beg;
 
-			buf.replace(buf_off, patch_size, patch_buf.substr(0, patch_size));
+			beg -= off;
+
+			const auto patch_beg = (patch_off < beg) ? (beg - patch_off) : 0;
+
+			cerr << "    beg=" << beg << endl;
+			cerr << "    len=" << len << endl;
+			cerr << "    pbeg=" << patch_beg << endl;
+
+			buf.replace(beg, len, patch_buf.substr(patch_beg, len));
+			assert(buf.size() == n);
 		}
 
 		return buf;
@@ -178,8 +202,7 @@ class fwimage_base : public fwimage
 	virtual void set_version(const vector<uint8_t>& v) = 0;
 
 	private:
-	//unique_ptr<istream> m_fs;
-	mutable ifstream m_fs;
+	unique_ptr<istream> m_fs;
 	// key = offset
 	map<size_t, buffer> m_patches;
 	size_t m_size;
@@ -219,6 +242,8 @@ class fwimage_dni : public fwimage_base
 				break;
 			}
 
+			cerr << key << "=" << line.substr(i + 1) << endl;
+
 			m_hdr[key] = line.substr(i + 1);
 			m_hdr_keys.push_back(key);
 		}
@@ -235,8 +260,8 @@ class fwimage_dni : public fwimage_base
 			m_version_prefix = 0;
 		}
 
-		// throw if one of these fields doesn't exist
-		(void) m_hdr.at("hd_id");
+		// throw if this field 't exist. not sure if hd_id is required too, but
+		// OpenWRT's mkdniimg tool doesn't add it unless `-H <hd_id>` is specified.
 		(void) m_hdr.at("region");
 
 		m_checksum = read(-1, 1).at(0);
@@ -366,8 +391,6 @@ class fwimage_chk : public fwimage_base
 	uint32_t calc_hdr_checksum() const
 	{
 		buffer hdr = read(0, m_hdr_len.value());
-		cerr << "hdr: " << hdr.size() << endl;
-		cerr << "hlen: " << m_hdr_len.value() << endl;
 
 		uint32_t c0 = 0;
 		uint32_t c1 = 0;
@@ -414,17 +437,53 @@ class fwimage_generic : public fwimage_base
 	virtual string type() const override { return ""; }
 	virtual string version() const override { return ""; }
 
-	virtual void set_version(const vector<uint8_t>& v) override {}
 
-	virtual void version(const std::string& v) override
+	virtual void version(const string&) override
 	{
 		throw invalid_argument("image type doesn't support version patching");
 	}
 
 	protected:
+	virtual void set_version(const vector<uint8_t>&) override {}
 	virtual void update_metadata() override {}
 	virtual void read_metadata() override {}
 };
+
+unique_ptr<fwimage> fwimage_open_or_parse(const string& filename, const buffer& buf)
+{
+	static vector<unique_ptr<fwimage_base>> types;
+	if (types.empty()) {
+		types.emplace_back(new fwimage_chk());
+		types.emplace_back(new fwimage_dni());
+		// this must be the last element
+		types.emplace_back(new fwimage_generic());
+	}
+
+	for (const auto& t : types) {
+		try {
+			auto ret = t->create();
+			if (!filename.empty()) {
+				ret->open(filename);
+			} else if (!buf.empty()) {
+				ret->parse(buf);
+			}
+			return ret;
+		} catch (const ios_base::failure& e) {
+			throw e;
+		} catch (const exception& e) {
+			if (t->type().empty()) {
+				// we've reached fwimage_generic - bail out!
+				throw e;
+			}
+			cerr << t->type() << ": error: " << e.what() << endl;
+		}
+	}
+
+	// fwimage_generic::open() shouldn't fail for anything other than
+	// iostream errors
+
+	throw logic_error("unreachable");
+}
 }
 
 fwimage::fwimage() {}
@@ -443,34 +502,11 @@ void fwimage::read_all(size_t n, function<void(const buffer&)> f) const
 
 unique_ptr<fwimage> fwimage::open(const string& filename)
 {
-	typedef unique_ptr<fwimage_base> fwimage_ptr;
-	static vector<fwimage_ptr> types;
-	if (types.empty()) {
-		types.emplace_back(new fwimage_chk());
-		types.emplace_back(new fwimage_dni());
-		// this must be the last element
-		types.emplace_back(new fwimage_generic());
-	}
+	return fwimage_open_or_parse(filename, "");
+}
 
-	for (const auto& t : types) {
-		try {
-			auto ret = t->create();
-			ret->open(filename);
-			return ret;
-		} catch (const ios_base::failure& e) {
-			throw e;
-		} catch (const exception& e) {
-			if (t->type().empty()) {
-				// we've reached fwimage_generic - bail out!
-				throw e;
-			}
-			cerr << t->type() << ": error: " << e.what() << endl;
-		}
-	}
-
-	// fwimage_generic::open() shouldn't fail for anything other than
-	// iostream errors
-
-	throw logic_error("unreachable");
+unique_ptr<fwimage> fwimage::parse(const buffer& buf)
+{
+	return fwimage_open_or_parse("", buf);
 }
 }

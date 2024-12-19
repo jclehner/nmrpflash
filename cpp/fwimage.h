@@ -13,7 +13,7 @@ class fwimage
 {
 	public:
 	static std::unique_ptr<fwimage> open(const std::string& filename);
-	static std::unique_ptr<fwimage> parse(const buffer& b);
+	static std::unique_ptr<fwimage> parse(const buffer& buf);
 
 	virtual ~fwimage();
 
