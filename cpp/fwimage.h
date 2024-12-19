@@ -15,12 +15,13 @@ class fwimage
 	static std::unique_ptr<fwimage> open(const std::string& filename);
 	static std::unique_ptr<fwimage> parse(const buffer& buf);
 
-	virtual ~fwimage();
+	virtual ~fwimage() = default;
 
 	virtual size_t size() const = 0;
 	virtual buffer read(ssize_t off, size_t n) const = 0;
 
-	void read_all(size_t n, std::function<void(const buffer&)> f) const;
+	buffer read() const;
+	void read(size_t n, std::function<void(const buffer&)> f) const;
 
 	// returns type of firmware image (such as "dni", "chk", etc.), or empty string
 	virtual std::string type() const = 0;
@@ -32,7 +33,7 @@ class fwimage
 	virtual void patch(ssize_t offset, const buffer& data) = 0;
 
 	protected:
-	fwimage();
+	fwimage() = default;
 };
 }
 #endif

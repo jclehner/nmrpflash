@@ -106,7 +106,7 @@ class mac_addr
 
 	template<class CharT> static mac_addr from_raw(const CharT* addr)
 	{
-		static_assert(sizeof(CharT) == 1);
+		static_assert(sizeof(CharT), ==, 1);
 		return mac_addr(addr, nullptr);	
 	}
 

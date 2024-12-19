@@ -11,7 +11,20 @@ typedef std::string buffer;
 
 template<class T> buffer to_buffer(const T& data, size_t size = sizeof(data))
 {
-	return buffer(reinterpret_cast<const char*>(&data), size);
+	if constexpr (std::is_same_v<const buffer&, T>) {
+		return data.substr(0, size);
+	} else if constexpr (std::is_pointer_v<T>) {
+		return buffer(reinterpret_cast<const char*>(data), size);
+	} else {
+		return buffer(reinterpret_cast<const char*>(&data), size);
+	}
+}
+
+template<> buffer to_buffer(const buffer&, size_t) = delete;
+
+template<class T, size_t N> buffer to_buffer(const T(&data)[N])
+{
+	return to_buffer<const T*>(data, N);
 }
 
 namespace detail {

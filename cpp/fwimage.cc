@@ -7,6 +7,7 @@
 #include <vector>
 #include <map>
 #include "fwimage.h"
+#include "test.h"
 using namespace std;
 using boost::endian::big_uint32_buf_t;
 using gsl::not_null;
@@ -85,8 +86,6 @@ string join_version(const vector<uint8_t>& version)
 class fwimage_base : public fwimage
 {
 	public:
-	virtual ~fwimage_base() {}
-
 	virtual unique_ptr<fwimage_base> create() const = 0;
 
 	void open(const string& filename)
@@ -112,23 +111,17 @@ class fwimage_base : public fwimage
 
 	buffer read(ssize_t soff, size_t n) const override
 	{
-		if (soff < 0) {
-			soff += size();
+		auto off = check_offset(soff);
+		if (n == buffer::npos) {
+			n = size();
 		}
-
-		auto off = boost::numeric_cast<size_t>(soff);
-		if (off >= size()) {
-			throw invalid_argument("offset out of range: " + to_string(off));
-		}
-
-		cerr << "read(" << off << ", " << n << ")" << endl;
 
 		m_fs->seekg(off);
 
 		n = min(n, size() - off);
 		buffer buf = read_is(*m_fs, n);
 
-		assert(buf.size() == n);
+		MY_ASSERT_EQ(buf.size(), n);
 
 		// example:
 		//   read(1024, 64)
@@ -140,26 +133,16 @@ class fwimage_base : public fwimage
 		for (auto [patch_off, patch_buf] : m_patches) {
 			auto beg = max(patch_off, off);
 			const auto end = min(patch_off + patch_buf.size(), off + n);
-
-			cerr << "  (" << off << ", " << (off + n) << ") & (" << patch_off << ", " << (patch_off + patch_buf.size()) << ")" << endl;
-			cerr << "    => (" << beg << ", " << end << ")" << endl;
-
 			if (beg >= end) {
 				continue;
 			}
 
 			const auto len = end - beg;
-
 			beg -= off;
-
 			const auto patch_beg = (patch_off < beg) ? (beg - patch_off) : 0;
 
-			cerr << "    beg=" << beg << endl;
-			cerr << "    len=" << len << endl;
-			cerr << "    pbeg=" << patch_beg << endl;
-
 			buf.replace(beg, len, patch_buf.substr(patch_beg, len));
-			assert(buf.size() == n);
+			MY_ASSERT_EQ(buf.size(), n);
 		}
 
 		return buf;
@@ -170,7 +153,9 @@ class fwimage_base : public fwimage
 		return unpack<boost::endian::order::native, T>(read(off, sizeof(T)));
 	}
 
-	virtual void version(const string& v) override
+	virtual std::string version() const = 0;
+
+	void version(const string& v) final
 	{
 		auto v_old = split_version(version());
 		auto v_new = split_version(v);
@@ -183,25 +168,35 @@ class fwimage_base : public fwimage
 		update_metadata();
 	}
 
-	virtual string version() const override = 0;
-
-	virtual void patch(ssize_t offset, const buffer& data) override
+	void patch(ssize_t off, const buffer& data) override
 	{
-		if (offset < 0) {
-			offset += size();
-		}
-
-		m_patches[offset] = data;
+		m_patches[check_offset(off)] = data;
 	}
 
 	protected:
-	fwimage_base() {}
+	fwimage_base() = default;
 
 	virtual void read_metadata() = 0;
 	virtual void update_metadata() = 0;
 	virtual void set_version(const vector<uint8_t>& v) = 0;
 
 	private:
+	size_t check_offset(ssize_t soff) const
+	{
+		if (soff < 0) {
+			soff += size();
+		}
+
+		if (soff >= 0) {
+			auto off = boost::numeric_cast<size_t>(soff);
+			if (off < size()) {
+				return off;
+			}
+		}
+
+		throw invalid_argument("offset out of range: " + to_string(soff));
+	}
+
 	unique_ptr<istream> m_fs;
 	// key = offset
 	map<size_t, buffer> m_patches;
@@ -211,14 +206,14 @@ class fwimage_base : public fwimage
 class fwimage_dni : public fwimage_base
 {
 	public:
-	virtual unique_ptr<fwimage_base> create() const override
+	unique_ptr<fwimage_base> create() const override
 	{
 		return make_unique<fwimage_dni>();
 	}
 
-	virtual string type() const override { return "dni"; }
+	string type() const override { return "dni"; }
 
-	virtual string version() const override
+	string version() const override
 	{
 		return m_hdr.at("version");
 	}
@@ -226,7 +221,7 @@ class fwimage_dni : public fwimage_base
 	protected:
 	static constexpr auto header_size = 128;
 
-	virtual void read_metadata() override
+	void read_metadata() override
 	{
 		istringstream hdr(read(0, header_size));
 		string line;
@@ -242,8 +237,6 @@ class fwimage_dni : public fwimage_base
 				break;
 			}
 
-			cerr << key << "=" << line.substr(i + 1) << endl;
-
 			m_hdr[key] = line.substr(i + 1);
 			m_hdr_keys.push_back(key);
 		}
@@ -252,10 +245,10 @@ class fwimage_dni : public fwimage_base
 			throw invalid_argument("bad magic");
 		}
 
-		auto prefix = m_hdr.at("version").at(0);
-		if (prefix == 'v' || prefix == 'V') {
-			m_version_prefix = prefix;
-			m_hdr["version"] = m_hdr["version"].substr(1);
+		auto version = m_hdr.at("version");
+		if (tolower(version.at(0)) == 'v') {
+			m_version_prefix = version.at(0);
+			m_hdr["version"] = version.substr(1);
 		} else {
 			m_version_prefix = 0;
 		}
@@ -271,12 +264,12 @@ class fwimage_dni : public fwimage_base
 		}
 	}
 
-	virtual void set_version(const vector<uint8_t>& v) override
+	void set_version(const vector<uint8_t>& v) override
 	{
 		m_hdr["version"] = join_version(v);
 	}
 
-	virtual void update_metadata() override
+	void update_metadata() override
 	{
 		string hdr;
 
@@ -335,13 +328,13 @@ class fwimage_dni : public fwimage_base
 class fwimage_chk : public fwimage_base
 {
 	public:
-	virtual unique_ptr<fwimage_base> create() const override
+	unique_ptr<fwimage_base> create() const override
 	{
 		return make_unique<fwimage_chk>();
 	}
 
-	virtual string type() const override { return "chk"; }
-	virtual string version() const override
+	string type() const override { return "chk"; }
+	string version() const override
 	{
 		return join_version(m_version);
 	}
@@ -354,7 +347,7 @@ class fwimage_chk : public fwimage_base
 	static constexpr auto version_len = 7;
 	static constexpr auto hdr_checksum_offset = 9 * 4;
 
-	virtual void read_metadata() override
+	void read_metadata() override
 	{
 		if (read(0, 4) != magic) {
 			throw runtime_error("bad magic");
@@ -369,20 +362,18 @@ class fwimage_chk : public fwimage_base
 		m_hdr_checksum = read<big_uint32_buf_t>(hdr_checksum_offset);
 
 		if (m_hdr_checksum.value() != calc_hdr_checksum()) {
-			cerr << hex << m_hdr_checksum.value() << endl;
-			cerr << hex << calc_hdr_checksum() << endl;
 			throw runtime_error("checksum error");
 		}
 	}
 
-	virtual void update_metadata() override
+	void update_metadata() override
 	{
 		patch(version_offset, to_buffer(m_version.data(), m_version.size()));
 		m_hdr_checksum = calc_hdr_checksum();
 		patch(hdr_checksum_offset, to_buffer(m_hdr_checksum));
 	}
 
-	virtual void set_version(const vector<uint8_t>& v) override
+	void set_version(const vector<uint8_t>& v) override
 	{
 		m_version = v;
 	}
@@ -429,24 +420,22 @@ class fwimage_chk : public fwimage_base
 class fwimage_generic : public fwimage_base
 {
 	public:
-	virtual unique_ptr<fwimage_base> create() const override
+	unique_ptr<fwimage_base> create() const override
 	{
 		return make_unique<fwimage_generic>();
 	}
 
-	virtual string type() const override { return ""; }
-	virtual string version() const override { return ""; }
+	string type() const override { return ""; }
+	string version() const override { return ""; }
 
-
-	virtual void version(const string&) override
+	protected:
+	void set_version(const vector<uint8_t>&) override
 	{
 		throw invalid_argument("image type doesn't support version patching");
 	}
 
-	protected:
-	virtual void set_version(const vector<uint8_t>&) override {}
-	virtual void update_metadata() override {}
-	virtual void read_metadata() override {}
+	void update_metadata() override {}
+	void read_metadata() override {}
 };
 
 unique_ptr<fwimage> fwimage_open_or_parse(const string& filename, const buffer& buf)
@@ -475,7 +464,7 @@ unique_ptr<fwimage> fwimage_open_or_parse(const string& filename, const buffer& 
 				// we've reached fwimage_generic - bail out!
 				throw e;
 			}
-			cerr << t->type() << ": error: " << e.what() << endl;
+			// TODO log?
 		}
 	}
 
@@ -486,10 +475,12 @@ unique_ptr<fwimage> fwimage_open_or_parse(const string& filename, const buffer& 
 }
 }
 
-fwimage::fwimage() {}
-fwimage::~fwimage() {}
+buffer fwimage::read() const
+{
+	return read(0, size());
+}
 
-void fwimage::read_all(size_t n, function<void(const buffer&)> f) const
+void fwimage::read(size_t n, function<void(const buffer&)> f) const
 {
 	size_t off = 0;
 
