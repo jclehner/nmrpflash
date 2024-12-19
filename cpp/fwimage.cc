@@ -7,14 +7,47 @@
 #include <vector>
 #include <map>
 #include "fwimage.h"
+#include "sha256.h"
 #include "test.h"
 using namespace std;
 using boost::endian::big_uint32_buf_t;
+using boost::endian::big_uint16_buf_t;
 using gsl::not_null;
 
 namespace nmrpflash {
 namespace {
-const auto chunk_size = 1024 * 64;
+const auto chunk_size = 1024 * 1024;
+
+class sha256_hasher
+{
+	public:
+	sha256_hasher()
+	{
+		reset();
+	}
+
+	sha256_hasher& reset()
+	{
+		sha256_init(&m_ctx);
+		return *this;
+	}
+
+	sha256_hasher& update(const buffer& b)
+	{
+		sha256_update(&m_ctx, reinterpret_cast<const uint8_t*>(b.data()), b.size());
+		return *this;
+	}
+
+	buffer finish()
+	{
+		uint8_t digest[SHA256_BLOCK_SIZE];
+		sha256_final(&m_ctx, digest);
+		return to_buffer(digest);
+	}
+
+	private:
+	sha256_ctx m_ctx;
+};
 
 buffer read_is(istream& in, size_t n, bool partial = false)
 {
@@ -54,7 +87,7 @@ vector<uint8_t> split_version(const string& str)
 		int c = istr.peek();
 
 		if (c == '.' || c == '_') {
-			istr.get();
+			(void) istr.get();
 		}
 	}
 
@@ -81,6 +114,22 @@ string join_version(const vector<uint8_t>& version)
 	}
 
 	return ostr.str();
+}
+
+size_t check_offset(gsl::not_null<const fwimage*> img, ssize_t soff)
+{
+	if (soff < 0) {
+		soff += img->size();
+	}
+
+	if (soff >= 0) {
+		auto off = boost::numeric_cast<size_t>(soff);
+		if (off < img->size()) {
+			return off;
+		}
+	}
+
+	throw invalid_argument("offset out of range: " + to_string(soff));
 }
 
 class fwimage_base : public fwimage
@@ -111,7 +160,7 @@ class fwimage_base : public fwimage
 
 	buffer read(ssize_t soff, size_t n) const override
 	{
-		auto off = check_offset(soff);
+		auto off = check_offset(this, soff);
 		if (n == buffer::npos) {
 			n = size();
 		}
@@ -150,7 +199,7 @@ class fwimage_base : public fwimage
 
 	template<class T> T read(ssize_t off) const
 	{
-		return unpack<boost::endian::order::native, T>(read(off, sizeof(T)));
+		return unpack<T, boost::endian::order::native>(read(off, sizeof(T)));
 	}
 
 	virtual std::string version() const = 0;
@@ -170,7 +219,7 @@ class fwimage_base : public fwimage
 
 	void patch(ssize_t off, const buffer& data) override
 	{
-		m_patches[check_offset(off)] = data;
+		m_patches[check_offset(this, off)] = data;
 	}
 
 	protected:
@@ -181,21 +230,6 @@ class fwimage_base : public fwimage
 	virtual void set_version(const vector<uint8_t>& v) = 0;
 
 	private:
-	size_t check_offset(ssize_t soff) const
-	{
-		if (soff < 0) {
-			soff += size();
-		}
-
-		if (soff >= 0) {
-			auto off = boost::numeric_cast<size_t>(soff);
-			if (off < size()) {
-				return off;
-			}
-		}
-
-		throw invalid_argument("offset out of range: " + to_string(soff));
-	}
 
 	unique_ptr<istream> m_fs;
 	// key = offset
@@ -417,6 +451,94 @@ class fwimage_chk : public fwimage_base
 	big_uint32_buf_t m_hdr_checksum;
 };
 
+class fwimage_rax : public fwimage_base
+{
+	public:
+	unique_ptr<fwimage_base> create() const override
+	{
+		return make_unique<fwimage_rax>();
+	}
+
+	string type() const override { return "rax"; }
+
+	string version() const override
+	{
+		return join_version(split_version(m_hdr.at(hdr_field_img_version)));
+	}
+
+	protected:
+	static constexpr uint16_t hdr_field_unknown = 0x0000;
+	static constexpr uint16_t hdr_field_checksum = 0x0001;
+	static constexpr uint16_t hdr_field_img_version = 0x0002;
+	static constexpr uint16_t hdr_field_unk_version = 0x0003;
+
+	void read_metadata() override
+	{
+		const auto magic = "\x00\x01\x00\x20"s;
+		if (read(0, 4) != magic) {
+			throw runtime_error("bad magic");
+		}
+
+		size_t off = 0;
+
+		while (true) {
+			uint16_t t = read<big_uint16_buf_t>(off).value();
+			uint16_t len = read<big_uint16_buf_t>(off + 2).value();
+			if (t == hdr_field_checksum && !len) {
+				break;
+			}
+
+			m_hdr[t] = read(off + 4, len);
+			m_hdr_keys.push_back(t);
+
+			auto val = m_hdr[t];
+
+			off += (len + 4);
+		}
+
+		(void) m_hdr.at(hdr_field_img_version);
+
+		auto checksum = calc_checksum();
+
+		if (m_hdr.at(hdr_field_checksum) != checksum) {
+			cerr << to_hex(m_hdr.at(hdr_field_checksum)) << endl;
+			cerr << to_hex(checksum) << endl;
+			throw runtime_error("checksum error");
+		}
+	}
+
+	void update_metadata() override
+	{
+		throw runtime_error(__PRETTY_FUNCTION__);
+	}
+
+	void set_version(const vector<uint8_t>&) override
+	{
+		throw runtime_error(__PRETTY_FUNCTION__);
+	}
+
+	private:
+	buffer calc_checksum() const
+	{
+		static const auto header_offset = 4 + 32;
+		static const auto salt1 = "hr89sdfgjkehx"s;
+		static const auto salt2 = "nohsli9fjh3f"s;
+
+		sha256_hasher h;
+
+		h.update(salt1);
+
+		fwimage::read([&h] (const buffer& b) {
+				h.update(b);
+		}, chunk_size, header_offset);
+
+		return h.update(salt2).finish();
+	}
+
+	map<uint16_t, buffer> m_hdr;
+	vector<uint16_t> m_hdr_keys;
+};
+
 class fwimage_generic : public fwimage_base
 {
 	public:
@@ -444,6 +566,7 @@ unique_ptr<fwimage> fwimage_open_or_parse(const string& filename, const buffer& 
 	if (types.empty()) {
 		types.emplace_back(new fwimage_chk());
 		types.emplace_back(new fwimage_dni());
+		types.emplace_back(new fwimage_rax());
 		// this must be the last element
 		types.emplace_back(new fwimage_generic());
 	}
@@ -480,10 +603,9 @@ buffer fwimage::read() const
 	return read(0, size());
 }
 
-void fwimage::read(size_t n, function<void(const buffer&)> f) const
+void fwimage::read(function<void(const buffer&)> f, size_t n, ssize_t soff) const
 {
-	size_t off = 0;
-
+	auto off = check_offset(this, soff);
 	while (off < size()) {
 		auto b = read(off, n);
 		f(b);

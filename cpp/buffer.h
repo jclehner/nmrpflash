@@ -9,6 +9,10 @@
 namespace nmrpflash {
 typedef std::string buffer;
 
+constexpr auto endian_native = boost::endian::order::native;
+constexpr auto endian_big = boost::endian::order::big;
+constexpr auto endian_little = boost::endian::order::little;
+
 template<class T> buffer to_buffer(const T& data, size_t size = sizeof(data))
 {
 	if constexpr (std::is_same_v<const buffer&, T>) {
@@ -27,14 +31,16 @@ template<class T, size_t N> buffer to_buffer(const T(&data)[N])
 	return to_buffer<const T*>(data, N);
 }
 
+std::string to_hex(const buffer& b);
+
 namespace detail {
 template<boost::endian::order O, class T> T conditional_reverse(T value)
 {
-	return boost::endian::conditional_reverse<boost::endian::order::native, O>(value);
+	return boost::endian::conditional_reverse<endian_native, O>(value);
 }
 }
 
-template<boost::endian::order O, class T> T unpack(const buffer& b, size_t off = 0)
+template<class T, boost::endian::order O> T unpack(const buffer& b, size_t off = 0)
 {
 	static_assert(std::is_pod<T>::value);
 	if ((off + sizeof(T)) > b.size()) {

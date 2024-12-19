@@ -165,13 +165,6 @@ int main(int argc, char* argv[])
 			if (argc >= 3) {
 				img->version(argv[2]);
 			}
-
-			img->read(64*1024, [](const buffer& b) {
-					cout.write(b.data(), b.size());
-			});
-
-			cout.flush();
-
 		}
 	} else {
 		MY_TEST_RUN(test_dni);

@@ -21,7 +21,7 @@ class fwimage
 	virtual buffer read(ssize_t off, size_t n) const = 0;
 
 	buffer read() const;
-	void read(size_t n, std::function<void(const buffer&)> f) const;
+	void read(std::function<void(const buffer&)> f, size_t n, ssize_t off = 0) const;
 
 	// returns type of firmware image (such as "dni", "chk", etc.), or empty string
 	virtual std::string type() const = 0;
