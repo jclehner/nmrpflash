@@ -43,7 +43,7 @@ void usage(FILE *fp)
 			" -T <timeout>    Time (seconds) to wait after successfull TFTP upload [%d s]\n"
 			" -p <port>       Port to use for TFTP upload [%d]\n"
 #ifdef NMRPFLASH_SET_REGION
-			" -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP)\n"
+			" -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP, AU)\n"
 #endif
 			" -S <n>          Skip <n> bytes of the firmware file\n"
 #ifdef NMRPFLASH_TFTP_TEST

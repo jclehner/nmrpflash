@@ -113,6 +113,7 @@ static uint16_t to_region_code(const char *region)
 	REGION_CODE("IN", 0x0007);
 	REGION_CODE("KO", 0x0008);
 	REGION_CODE("JP", 0x0009);
+	REGION_CODE("AU", 0x000a);
 #undef REGION_CODE
 	return 0;
 }
