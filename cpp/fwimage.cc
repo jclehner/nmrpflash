@@ -547,7 +547,11 @@ class fwimage_generic : public fwimage_base
 		return make_unique<fwimage_generic>();
 	}
 
-	string type() const override { return ""; }
+	string type() const override
+	{
+		return m_type;
+	}
+
 	string version() const override { return ""; }
 
 	protected:
@@ -557,7 +561,26 @@ class fwimage_generic : public fwimage_base
 	}
 
 	void update_metadata() override {}
-	void read_metadata() override {}
+	void read_metadata() override
+	{
+		static const map<buffer, string> signatures {
+			{ "PK\x03\x04",       "zip" },
+			{ "HDR0",             "trx" },
+			{ "\x27\x05\x19\x56", "uimage" },
+		};
+
+		m_type = "(generic)";
+
+		for (const auto& [m, t] : signatures) {
+			if (read(0, m.size()) == m) {
+				m_type = t;
+				break;
+			}
+		}
+	}
+
+	private:
+	string m_type;
 };
 
 unique_ptr<fwimage> fwimage_open_or_parse(const string& filename, const buffer& buf)
@@ -571,6 +594,8 @@ unique_ptr<fwimage> fwimage_open_or_parse(const string& filename, const buffer& 
 		types.emplace_back(new fwimage_generic());
 	}
 
+	string last_err;
+
 	for (const auto& t : types) {
 		try {
 			auto ret = t->create();
@@ -583,18 +608,12 @@ unique_ptr<fwimage> fwimage_open_or_parse(const string& filename, const buffer& 
 		} catch (const ios_base::failure& e) {
 			throw e;
 		} catch (const exception& e) {
-			if (t->type().empty()) {
-				// we've reached fwimage_generic - bail out!
-				throw e;
-			}
+			last_err = e.what();
 			// TODO log?
 		}
 	}
 
-	// fwimage_generic::open() shouldn't fail for anything other than
-	// iostream errors
-
-	throw logic_error("unreachable");
+	throw runtime_error(last_err);
 }
 }
 
