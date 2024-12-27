@@ -1,4 +1,5 @@
 #include <boost/numeric/conversion/cast.hpp>
+#include <boost/algorithm/string.hpp>
 #include <gsl/pointers>
 #include <stdexcept>
 #include <iostream>
@@ -49,6 +50,63 @@ class sha256_hasher
 	sha256_ctx m_ctx;
 };
 
+class version_spec
+{
+	public:
+	version_spec(const version_spec&) = default;
+
+	static version_spec from_string(string_view str)
+	{
+		vector<string> parts_s;
+
+		char prefix = 0;
+
+		if (tolower(str[0]) == 'v') {
+			prefix = str[0];
+			str = str.substr(1);
+		}
+
+		boost::split(parts_s, str, boost::is_any_of("._"));
+
+		vector<uint8_t> parts;
+		for (auto p : parts_s) {
+			parts.push_back(boost::lexical_cast<uint8_t>(p));
+		}
+
+		return { parts, prefix };
+	}
+
+	static version_spec from_binary(const buffer& buf)
+	{
+		auto begin = reinterpret_cast<const uint8_t*>(buf.data());
+		auto end = begin + buf.size();
+		return {{ begin, end }};
+	}
+
+	friend ostream& operator<<(ostream& os, const version_spec& v)
+	{
+		if (v.m_parts.empty()) {
+			return os;
+		}
+
+		os << int(v.m_parts[0]);
+
+		for (size_t i = 1; i < v.m_parts.size(); ++i) {
+			os << ((i == 4) ? '_' : '.') << int(v.m_parts[i]);
+		}
+
+		return os;
+	}
+
+	private:
+	version_spec(const vector<uint8_t>& parts, char prefix = 0)
+	: m_parts(parts), m_prefix(prefix)
+	{}
+
+	const vector<uint8_t> m_parts;
+	const char m_prefix;
+};
+
 buffer read_is(istream& in, size_t n, bool partial = false)
 {
 	buffer ret(n, '\x00');
@@ -66,11 +124,15 @@ buffer read_is(istream& in, size_t n, bool partial = false)
 	return ret;
 }
 
-vector<uint8_t> split_version(const string& str)
+vector<uint8_t> split_version(const string& str, char* prefix = nullptr)
 {
 	istringstream istr(str);
 
-	if (istr.peek() == 'V') {
+	if (tolower(istr.peek()) == 'v') {
+		if (prefix) {
+			*prefix = istr.peek();
+		}
+
 		istr.seekg(1);
 	}
 
@@ -94,13 +156,17 @@ vector<uint8_t> split_version(const string& str)
 	return ret;
 }
 
-string join_version(const vector<uint8_t>& version)
+string join_version(const vector<uint8_t>& version, char prefix = '\0')
 {
 	if (version.empty()) {
 		return "";
 	}
 
 	ostringstream ostr;
+	if (prefix) {
+		ostr << prefix;
+	}
+
 	ostr << int(version[0]);
 
 	for (size_t i = 1; i < version.size(); ++i) {
@@ -202,7 +268,7 @@ class fwimage_base : public fwimage
 		return unpack<T, boost::endian::order::native>(read(off, sizeof(T)));
 	}
 
-	virtual std::string version() const = 0;
+	std::string version() const override = 0;
 
 	void version(const string& v) final
 	{
@@ -230,7 +296,6 @@ class fwimage_base : public fwimage
 	virtual void set_version(const vector<uint8_t>& v) = 0;
 
 	private:
-
 	unique_ptr<istream> m_fs;
 	// key = offset
 	map<size_t, buffer> m_patches;
@@ -496,10 +561,9 @@ class fwimage_rax : public fwimage_base
 			off += (len + 4);
 		}
 
-		(void) m_hdr.at(hdr_field_img_version);
+		(void) split_version(m_hdr.at(hdr_field_img_version), &m_version_prefix);
 
 		auto checksum = calc_checksum();
-
 		if (m_hdr.at(hdr_field_checksum) != checksum) {
 			cerr << to_hex(m_hdr.at(hdr_field_checksum)) << endl;
 			cerr << to_hex(checksum) << endl;
@@ -509,12 +573,14 @@ class fwimage_rax : public fwimage_base
 
 	void update_metadata() override
 	{
-		throw runtime_error(__PRETTY_FUNCTION__);
+		auto checksum = calc_checksum();
+		//patch(4, checksum);
+		throw false;
 	}
 
-	void set_version(const vector<uint8_t>&) override
+	void set_version(const vector<uint8_t>& v) override
 	{
-		throw runtime_error(__PRETTY_FUNCTION__);
+		m_hdr.at(hdr_field_img_version) = join_version(v, m_version_prefix);
 	}
 
 	private:
@@ -537,6 +603,7 @@ class fwimage_rax : public fwimage_base
 
 	map<uint16_t, buffer> m_hdr;
 	vector<uint16_t> m_hdr_keys;
+	char m_version_prefix;
 };
 
 class fwimage_generic : public fwimage_base
