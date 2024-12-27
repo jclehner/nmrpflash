@@ -50,12 +50,22 @@ class sha256_hasher
 	sha256_ctx m_ctx;
 };
 
-class version_spec
+class fwver
 {
 	public:
-	version_spec(const version_spec&) = default;
+	fwver() = default;
+	fwver(const fwver&) = default;
 
-	static version_spec from_string(string_view str)
+	void update(const fwver& v)
+	{
+		if (m_parts.size() != v.m_parts.size()) {
+			throw invalid_argument("version format mismatch");
+		}
+
+		m_parts = v.m_parts;
+	}
+
+	static fwver from_string(string_view str)
 	{
 		vector<string> parts_s;
 
@@ -70,42 +80,64 @@ class version_spec
 
 		vector<uint8_t> parts;
 		for (auto p : parts_s) {
-			parts.push_back(boost::lexical_cast<uint8_t>(p));
+			parts.push_back(boost::numeric_cast<uint8_t>(boost::lexical_cast<int>(p)));
 		}
 
 		return { parts, prefix };
 	}
 
-	static version_spec from_binary(const buffer& buf)
+	static fwver from_binary(const buffer& buf)
 	{
 		auto begin = reinterpret_cast<const uint8_t*>(buf.data());
 		auto end = begin + buf.size();
 		return {{ begin, end }};
 	}
 
-	friend ostream& operator<<(ostream& os, const version_spec& v)
+	string str(bool with_prefix = false) const
 	{
-		if (v.m_parts.empty()) {
-			return os;
+		if (m_parts.empty()) {
+			return "";
 		}
 
-		os << int(v.m_parts[0]);
+		string ret;
 
-		for (size_t i = 1; i < v.m_parts.size(); ++i) {
-			os << ((i == 4) ? '_' : '.') << int(v.m_parts[i]);
+		if (with_prefix && m_prefix) {
+			ret += m_prefix;
 		}
 
-		return os;
+		ret += to_string(int(m_parts[0]));
+
+		for (size_t i = 1; i < m_parts.size(); ++i) {
+			ret += ((i == 4) ? '_' : '.');
+			ret += to_string(m_parts[i]);
+		}
+
+		return ret;
+	}
+
+	auto data() const
+	{
+		return m_parts.data();
+	}
+
+	auto size() const
+	{
+		return m_parts.size();
 	}
 
 	private:
-	version_spec(const vector<uint8_t>& parts, char prefix = 0)
+	fwver(const vector<uint8_t>& parts, char prefix = 0)
 	: m_parts(parts), m_prefix(prefix)
 	{}
 
-	const vector<uint8_t> m_parts;
-	const char m_prefix;
+	vector<uint8_t> m_parts;
+	char m_prefix;
 };
+
+ostream& operator<<(ostream& os, const fwver& v)
+{
+	return os << v.str();
+}
 
 buffer read_is(istream& in, size_t n, bool partial = false)
 {
@@ -122,64 +154,6 @@ buffer read_is(istream& in, size_t n, bool partial = false)
 	}
 
 	return ret;
-}
-
-vector<uint8_t> split_version(const string& str, char* prefix = nullptr)
-{
-	istringstream istr(str);
-
-	if (tolower(istr.peek()) == 'v') {
-		if (prefix) {
-			*prefix = istr.peek();
-		}
-
-		istr.seekg(1);
-	}
-
-	vector<uint8_t> ret;
-	int n;
-
-	while ((istr >> n)) {
-		if (n < 0 || n > 0xff) {
-			throw invalid_argument("invalid version part: " + to_string(n));
-		}
-
-		ret.push_back(n & 0xff);
-
-		int c = istr.peek();
-
-		if (c == '.' || c == '_') {
-			(void) istr.get();
-		}
-	}
-
-	return ret;
-}
-
-string join_version(const vector<uint8_t>& version, char prefix = '\0')
-{
-	if (version.empty()) {
-		return "";
-	}
-
-	ostringstream ostr;
-	if (prefix) {
-		ostr << prefix;
-	}
-
-	ostr << int(version[0]);
-
-	for (size_t i = 1; i < version.size(); ++i) {
-		if (i == 4) {
-			ostr << '_';
-		} else {
-			ostr << '.';
-		}
-
-		ostr << int(version[i]);
-	}
-
-	return ostr.str();
 }
 
 size_t check_offset(gsl::not_null<const fwimage*> img, ssize_t soff)
@@ -272,14 +246,7 @@ class fwimage_base : public fwimage
 
 	void version(const string& v) final
 	{
-		auto v_old = split_version(version());
-		auto v_new = split_version(v);
-
-		if (v_old.size() != v_new.size()) {
-			throw invalid_argument("invalid version format");
-		}
-
-		set_version(v_new);
+		set_version(fwver::from_string(v));
 		update_metadata();
 	}
 
@@ -293,7 +260,7 @@ class fwimage_base : public fwimage
 
 	virtual void read_metadata() = 0;
 	virtual void update_metadata() = 0;
-	virtual void set_version(const vector<uint8_t>& v) = 0;
+	virtual void set_version(const fwver& v) = 0;
 
 	private:
 	unique_ptr<istream> m_fs;
@@ -314,7 +281,7 @@ class fwimage_dni : public fwimage_base
 
 	string version() const override
 	{
-		return m_hdr.at("version");
+		return m_version.str();
 	}
 
 	protected:
@@ -344,13 +311,7 @@ class fwimage_dni : public fwimage_base
 			throw invalid_argument("bad magic");
 		}
 
-		auto version = m_hdr.at("version");
-		if (tolower(version.at(0)) == 'v') {
-			m_version_prefix = version.at(0);
-			m_hdr["version"] = version.substr(1);
-		} else {
-			m_version_prefix = 0;
-		}
+		m_version = fwver::from_string(m_hdr.at("version"));
 
 		// throw if this field 't exist. not sure if hd_id is required too, but
 		// OpenWRT's mkdniimg tool doesn't add it unless `-H <hd_id>` is specified.
@@ -363,9 +324,10 @@ class fwimage_dni : public fwimage_base
 		}
 	}
 
-	void set_version(const vector<uint8_t>& v) override
+	void set_version(const fwver& v) override
 	{
-		m_hdr["version"] = join_version(v);
+		m_version.update(v);
+		m_hdr["version"] = m_version.str(true);
 	}
 
 	void update_metadata() override
@@ -374,10 +336,6 @@ class fwimage_dni : public fwimage_base
 
 		for (auto key : m_hdr_keys) {
 			auto value = m_hdr[key];
-			if (key == "version" && m_version_prefix) {
-				value = m_version_prefix + value;
-			}
-
 			hdr.append(key + ":" + value + "\n");
 		}
 
@@ -421,7 +379,7 @@ class fwimage_dni : public fwimage_base
 	map<string, string> m_hdr;
 	vector<string> m_hdr_keys;
 	uint8_t m_checksum;
-	char m_version_prefix;
+	fwver m_version;
 };
 
 class fwimage_chk : public fwimage_base
@@ -433,9 +391,10 @@ class fwimage_chk : public fwimage_base
 	}
 
 	string type() const override { return "chk"; }
+
 	string version() const override
 	{
-		return join_version(m_version);
+		return m_version.str();
 	}
 
 	protected:
@@ -455,8 +414,7 @@ class fwimage_chk : public fwimage_base
 		m_hdr_len = read<big_uint32_buf_t>(hdr_len_offset);
 		m_region = read(region_offset, 1).at(0);
 
-		auto v = read(version_offset, version_len);
-		m_version = { v.begin(), v.end() };
+		m_version = fwver::from_binary(read(version_offset, version_len));
 
 		m_hdr_checksum = read<big_uint32_buf_t>(hdr_checksum_offset);
 
@@ -472,9 +430,9 @@ class fwimage_chk : public fwimage_base
 		patch(hdr_checksum_offset, to_buffer(m_hdr_checksum));
 	}
 
-	void set_version(const vector<uint8_t>& v) override
+	void set_version(const fwver& v) override
 	{
-		m_version = v;
+		m_version.update(v);
 	}
 
 	private:
@@ -512,7 +470,7 @@ class fwimage_chk : public fwimage_base
 
 	big_uint32_buf_t m_hdr_len;
 	uint8_t m_region;
-	vector<uint8_t> m_version { 0, 0, 0, 0, 0, 0, 0 };
+	fwver m_version;
 	big_uint32_buf_t m_hdr_checksum;
 };
 
@@ -528,7 +486,7 @@ class fwimage_rax : public fwimage_base
 
 	string version() const override
 	{
-		return join_version(split_version(m_hdr.at(hdr_field_img_version)));
+		return m_version.str();
 	}
 
 	protected:
@@ -561,14 +519,14 @@ class fwimage_rax : public fwimage_base
 			off += (len + 4);
 		}
 
-		(void) split_version(m_hdr.at(hdr_field_img_version), &m_version_prefix);
-
 		auto checksum = calc_checksum();
 		if (m_hdr.at(hdr_field_checksum) != checksum) {
 			cerr << to_hex(m_hdr.at(hdr_field_checksum)) << endl;
 			cerr << to_hex(checksum) << endl;
 			throw runtime_error("checksum error");
 		}
+
+		m_version = fwver::from_string(m_hdr.at(hdr_field_img_version));
 	}
 
 	void update_metadata() override
@@ -578,9 +536,10 @@ class fwimage_rax : public fwimage_base
 		throw false;
 	}
 
-	void set_version(const vector<uint8_t>& v) override
+	void set_version(const fwver& v) override
 	{
-		m_hdr.at(hdr_field_img_version) = join_version(v, m_version_prefix);
+		m_version.update(v);
+		m_hdr.at(hdr_field_img_version) = m_version.str(true);
 	}
 
 	private:
@@ -603,7 +562,7 @@ class fwimage_rax : public fwimage_base
 
 	map<uint16_t, buffer> m_hdr;
 	vector<uint16_t> m_hdr_keys;
-	char m_version_prefix;
+	fwver m_version;
 };
 
 class fwimage_generic : public fwimage_base
@@ -622,7 +581,7 @@ class fwimage_generic : public fwimage_base
 	string version() const override { return ""; }
 
 	protected:
-	void set_version(const vector<uint8_t>&) override
+	void set_version(const fwver&) override
 	{
 		throw invalid_argument("image type doesn't support version patching");
 	}

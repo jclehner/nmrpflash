@@ -8,7 +8,6 @@
 
 namespace nmrpflash {
 typedef std::string buffer;
-//typedef std::basic_string<uint8_t> buffer;
 
 constexpr auto endian_native = boost::endian::order::native;
 constexpr auto endian_big = boost::endian::order::big;
