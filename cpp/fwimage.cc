@@ -139,23 +139,6 @@ ostream& operator<<(ostream& os, const fwver& v)
 	return os << v.str();
 }
 
-buffer read_is(istream& in, size_t n, bool partial = false)
-{
-	buffer ret(n, '\x00');
-	in.read(reinterpret_cast<char*>(ret.data()), ret.size());
-	auto rlen = boost::numeric_cast<size_t>(in.gcount());
-
-	if (rlen < ret.size()) {
-		if (partial || in.eof()) {
-			ret.resize(rlen);
-		} else {
-			throw runtime_error("short read: " + to_string(rlen) + "b");
-		}
-	}
-
-	return ret;
-}
-
 size_t check_offset(gsl::not_null<const fwimage*> img, ssize_t soff)
 {
 	if (soff < 0) {
@@ -179,23 +162,21 @@ class fwimage_base : public fwimage
 
 	void open(const string& filename)
 	{
-		m_fs = make_unique<ifstream>(filename.c_str(), ios::binary | ios::ate);
-		m_fs->exceptions(ios::failbit | ios::badbit);
-		m_size = m_fs->tellg();
-		read_metadata();
+		ifstream in;
+		in.exceptions(ios::failbit | ios::badbit);
+		in.open(filename.c_str(), ios::binary);
+		parse(buffer(istreambuf_iterator<char>(in), {}));
 	}
 
 	void parse(const buffer& b)
 	{
-		m_fs = make_unique<istringstream>(b);
-		m_fs->exceptions(ios::failbit | ios::badbit);
-		m_size = b.size();
+		m_buf = b;
 		read_metadata();
 	}
 
 	size_t size() const override
 	{
-		return m_size;
+		return m_buf.size();
 	}
 
 	buffer read(ssize_t soff, size_t n) const override
@@ -205,36 +186,8 @@ class fwimage_base : public fwimage
 			n = size();
 		}
 
-		m_fs->seekg(off);
-
 		n = min(n, size() - off);
-		buffer buf = read_is(*m_fs, n);
-
-		MY_ASSERT_EQ(buf.size(), n);
-
-		// example:
-		//   read(1024, 64)
-		//
-		//   m_patch[1024] = (4) "\xaa\xbb\xcc\xdd";
-		//   m_patch[1086] = (3) "foo";
-
-
-		for (auto [patch_off, patch_buf] : m_patches) {
-			auto beg = max(patch_off, off);
-			const auto end = min(patch_off + patch_buf.size(), off + n);
-			if (beg >= end) {
-				continue;
-			}
-
-			const auto len = end - beg;
-			beg -= off;
-			const auto patch_beg = (patch_off < beg) ? (beg - patch_off) : 0;
-
-			buf.replace(beg, len, patch_buf.substr(patch_beg, len));
-			MY_ASSERT_EQ(buf.size(), n);
-		}
-
-		return buf;
+		return m_buf.substr(off, n);
 	}
 
 	template<class T> T read(ssize_t off) const
@@ -250,9 +203,9 @@ class fwimage_base : public fwimage
 		update_metadata();
 	}
 
-	void patch(ssize_t off, const buffer& data) override
+	void patch(ssize_t off, const buffer& data, size_t len) override
 	{
-		m_patches[check_offset(this, off)] = data;
+		m_buf.replace(check_offset(this, off), len, data);
 	}
 
 	protected:
@@ -263,10 +216,7 @@ class fwimage_base : public fwimage
 	virtual void set_version(const fwver& v) = 0;
 
 	private:
-	unique_ptr<istream> m_fs;
-	// key = offset
-	map<size_t, buffer> m_patches;
-	size_t m_size;
+	buffer m_buf;
 };
 
 class fwimage_dni : public fwimage_base
@@ -345,8 +295,8 @@ class fwimage_dni : public fwimage_base
 
 		hdr.resize(header_size);
 
-		patch(0, hdr);
-		patch(-1, string(1, calc_checksum()));
+		fwimage::patch(0, hdr);
+		fwimage::patch(-1, string(1, calc_checksum()));
 	}
 
 	private:
@@ -425,9 +375,9 @@ class fwimage_chk : public fwimage_base
 
 	void update_metadata() override
 	{
-		patch(version_offset, to_buffer(m_version.data(), m_version.size()));
+		fwimage::patch(version_offset, to_buffer(m_version.data(), m_version.size()));
 		m_hdr_checksum = calc_hdr_checksum();
-		patch(hdr_checksum_offset, to_buffer(m_hdr_checksum));
+		fwimage::patch(hdr_checksum_offset, to_buffer(m_hdr_checksum));
 	}
 
 	void set_version(const fwver& v) override
@@ -656,6 +606,11 @@ void fwimage::read(function<void(const buffer&)> f, size_t n, ssize_t soff) cons
 		f(b);
 		off += b.size();
 	}
+}
+
+void fwimage::patch(ssize_t off, const buffer& buf)
+{
+	patch(off, buf, buf.size());
 }
 
 unique_ptr<fwimage> fwimage::open(const string& filename)

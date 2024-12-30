@@ -30,7 +30,8 @@ class fwimage
 
 	virtual void version(const std::string& v) = 0;
 
-	virtual void patch(ssize_t offset, const buffer& data) = 0;
+	virtual void patch(ssize_t offset, const buffer& data, size_t len) = 0;
+	void patch(ssize_t offset, const buffer& data);
 
 	protected:
 	fwimage() = default;
