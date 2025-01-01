@@ -71,7 +71,7 @@ void usage(FILE *fp)
 			"and MAC set to the device IP address, TFTP port, subnet mask and MAC address,\n"
 			"respectively.\n"
 			"\n"
-			"nmrpflash %s, Copyright (C) 2016-2024 Joseph C. Lehner\n"
+			"nmrpflash %s, Copyright (C) 2016-2025 Joseph C. Lehner\n"
 			"nmrpflash is free software, licensed under the GNU GPLv3.\n"
 			"Source code at https://github.com/jclehner/nmrpflash\n"
 			"\n"
