@@ -164,8 +164,11 @@ class fwimage_base : public fwimage
 	{
 		ifstream in;
 		in.exceptions(ios::failbit | ios::badbit);
-		in.open(filename.c_str(), ios::binary);
-		parse(buffer(istreambuf_iterator<char>(in), {}));
+		in.open(filename.c_str(), ios::binary | ios::ate);
+
+		ostringstream ss;
+		ss << in.rdbuf();
+		parse(ss.str());
 	}
 
 	void parse(const buffer& b)
@@ -199,8 +202,8 @@ class fwimage_base : public fwimage
 
 	void version(const string& v) final
 	{
-		set_version(fwver::from_string(v));
-		update_metadata();
+		update_version(fwver::from_string(v));
+		patch_checksum();
 	}
 
 	void patch(ssize_t off, const buffer& data, size_t len) override
@@ -212,14 +215,46 @@ class fwimage_base : public fwimage
 	fwimage_base() = default;
 
 	virtual void read_metadata() = 0;
-	virtual void update_metadata() = 0;
-	virtual void set_version(const fwver& v) = 0;
+	virtual void patch_checksum() = 0;
+	virtual void update_version(const fwver& v) = 0;
 
 	private:
 	buffer m_buf;
 };
 
-class fwimage_dni : public fwimage_base
+class fwimage_with_str_version : public fwimage_base
+{
+	public:
+	string version() const final
+	{
+		return m_version.str();
+	}
+
+	protected:
+	virtual void patch_version(const string& v_new, size_t off, size_t v_old_len) = 0;
+
+	void update_version(const fwver& v) final
+	{
+		m_version.update(v);
+		auto vs = m_version.str(true);
+		patch_version(vs, m_version_off, m_version_len);
+		m_version_len = vs.size();
+	}
+
+	void store_version(const buffer& buf, size_t off, size_t len)
+	{
+		m_version = fwver::from_string(buf);
+		m_version_off = off;
+		m_version_len = len;
+	}
+
+	private:
+	fwver m_version;
+	size_t m_version_off;
+	size_t m_version_len;
+};
+
+class fwimage_dni : public fwimage_with_str_version
 {
 	public:
 	unique_ptr<fwimage_base> create() const override
@@ -229,73 +264,49 @@ class fwimage_dni : public fwimage_base
 
 	string type() const override { return "dni"; }
 
-	string version() const override
-	{
-		return m_version.str();
-	}
-
 	protected:
 	static constexpr auto header_size = 128;
 
 	void read_metadata() override
 	{
-		istringstream hdr(read(0, header_size));
-		string line;
+		auto hdr = read(0, header_size);
 
-		while (getline(hdr, line) && isalpha(line[0])) {
-			auto i = line.find(':');
-			if (i == string::npos) {
-				break;
-			}
-
-			auto key = line.substr(0, i);
-			if (key.empty()) {
-				break;
-			}
-
-			m_hdr[key] = line.substr(i + 1);
-			m_hdr_keys.push_back(key);
-		}
-
-		if (m_hdr_keys.empty() || m_hdr_keys[0] != "device") {
+		auto beg = hdr.find("device:");
+		if (beg != 0) {
 			throw invalid_argument("bad magic");
 		}
 
-		m_version = fwver::from_string(m_hdr.at("version"));
+		static const string key_version = "version:";
+		beg = hdr.find(key_version);
 
-		// throw if this field 't exist. not sure if hd_id is required too, but
-		// OpenWRT's mkdniimg tool doesn't add it unless `-H <hd_id>` is specified.
-		(void) m_hdr.at("region");
+		if (beg == string::npos) {
+			throw invalid_argument("unexpected header format");
+		}
 
-		m_checksum = read(-1, 1).at(0);
+		auto off = beg + key_version.size();
+		auto end = hdr.find('\n', off);
+		if (end == string::npos) {
+			throw invalid_argument("unexpected header format");
+		}
 
-		if (m_checksum != calc_checksum()) {
+		auto len = end - off;
+		store_version(hdr.substr(off, len), off, len);
+
+		if (uint8_t(read(-1, 1).at(0)) != calc_checksum()) {
 			throw runtime_error("checksum error");
 		}
 	}
 
-	void set_version(const fwver& v) override
+	void patch_version(const string& v_new, size_t off, size_t v_old_len) override
 	{
-		m_version.update(v);
-		m_hdr["version"] = m_version.str(true);
+		auto hdr = read(0, header_size);
+		hdr.replace(off, v_old_len, v_new);
+		hdr.resize(header_size);
+		fwimage::patch(0, hdr);
 	}
 
-	void update_metadata() override
+	void patch_checksum() override
 	{
-		string hdr;
-
-		for (auto key : m_hdr_keys) {
-			auto value = m_hdr[key];
-			hdr.append(key + ":" + value + "\n");
-		}
-
-		if (hdr.size() > header_size) {
-			throw runtime_error("header size out of range");
-		}
-
-		hdr.resize(header_size);
-
-		fwimage::patch(0, hdr);
 		fwimage::patch(-1, string(1, calc_checksum()));
 	}
 
@@ -320,16 +331,6 @@ class fwimage_dni : public fwimage_base
 		// last byte was the checksum itself
 		return 0xff - (ret - last_c);
 	}
-
-	bool has(const string& key) const
-	{
-		return m_hdr.find(key) != m_hdr.end();
-	}
-
-	map<string, string> m_hdr;
-	vector<string> m_hdr_keys;
-	uint8_t m_checksum;
-	fwver m_version;
 };
 
 class fwimage_chk : public fwimage_base
@@ -373,14 +374,14 @@ class fwimage_chk : public fwimage_base
 		}
 	}
 
-	void update_metadata() override
+	void patch_checksum() override
 	{
 		fwimage::patch(version_offset, to_buffer(m_version.data(), m_version.size()));
 		m_hdr_checksum = calc_hdr_checksum();
 		fwimage::patch(hdr_checksum_offset, to_buffer(m_hdr_checksum));
 	}
 
-	void set_version(const fwver& v) override
+	void update_version(const fwver& v) override
 	{
 		m_version.update(v);
 	}
@@ -424,7 +425,7 @@ class fwimage_chk : public fwimage_base
 	big_uint32_buf_t m_hdr_checksum;
 };
 
-class fwimage_rax : public fwimage_base
+class fwimage_rax : public fwimage_with_str_version
 {
 	public:
 	unique_ptr<fwimage_base> create() const override
@@ -434,62 +435,66 @@ class fwimage_rax : public fwimage_base
 
 	string type() const override { return "rax"; }
 
-	string version() const override
-	{
-		return m_version.str();
-	}
-
 	protected:
-	static constexpr uint16_t hdr_field_unknown = 0x0000;
-	static constexpr uint16_t hdr_field_checksum = 0x0001;
-	static constexpr uint16_t hdr_field_img_version = 0x0002;
-	static constexpr uint16_t hdr_field_unk_version = 0x0003;
+	static constexpr uint16_t hdr_checksum_offset = 4;
+	static constexpr uint16_t hdr_tlv_len_offset = 2;
+	static constexpr uint16_t hdr_tlv_type_end = 0x0001;
+	static constexpr uint16_t hdr_tlv_type_version = 0x0002;
 
 	void read_metadata() override
 	{
-		const auto magic = "\x00\x01\x00\x20"s;
-		if (read(0, 4) != magic) {
+		static const char checksum_len = 32;
+		static const auto magic = "\x00\x01\x00"s + checksum_len;
+
+		if (read(0, magic.size()) != magic) {
 			throw runtime_error("bad magic");
 		}
 
-		size_t off = 0;
-
-		while (true) {
-			uint16_t t = read<big_uint16_buf_t>(off).value();
-			uint16_t len = read<big_uint16_buf_t>(off + 2).value();
-			if (t == hdr_field_checksum && !len) {
-				break;
-			}
-
-			m_hdr[t] = read(off + 4, len);
-			m_hdr_keys.push_back(t);
-
-			auto val = m_hdr[t];
-
-			off += (len + 4);
+		static const auto padding = "\x00\x00\x00\x00"s;
+		if (read(magic.size() + checksum_len, padding.size()) != padding) {
+			throw runtime_error("bad padding");
 		}
 
-		auto checksum = calc_checksum();
-		if (m_hdr.at(hdr_field_checksum) != checksum) {
-			cerr << to_hex(m_hdr.at(hdr_field_checksum)) << endl;
-			cerr << to_hex(checksum) << endl;
+		auto checksum = read(magic.size(), checksum_len);
+		if (checksum != calc_checksum()) {
 			throw runtime_error("checksum error");
 		}
 
-		m_version = fwver::from_string(m_hdr.at(hdr_field_img_version));
+		size_t off = magic.size() + checksum_len + padding.size();
+		while (true) {
+			uint16_t tlv_t = read<big_uint16_buf_t>(off).value();
+			uint16_t tlv_l = read<big_uint16_buf_t>(off + hdr_tlv_len_offset).value();
+
+			if (tlv_t == hdr_tlv_type_end && !tlv_l) {
+				break;
+			}
+
+			off += 4;
+			if ((off + tlv_l) >= size()) {
+				throw runtime_error("tlv length out of range");
+			}
+
+			if (tlv_t == hdr_tlv_type_version) {
+				store_version(read(off, tlv_l), off, tlv_l);
+			}
+
+			off += tlv_l;
+		}
+
+		if (version().empty()) {
+			throw runtime_error("missing version field");
+		}
 	}
 
-	void update_metadata() override
+	void patch_version(const string& v_new, size_t off, size_t v_old_len) override
 	{
-		auto checksum = calc_checksum();
-		//patch(4, checksum);
-		throw false;
+		patch(off, v_new, v_old_len);
+		fwimage::patch(off - hdr_tlv_len_offset, to_buffer(big_uint16_buf_t(v_new.size())));
 	}
 
-	void set_version(const fwver& v) override
+	void patch_checksum() override
 	{
-		m_version.update(v);
-		m_hdr.at(hdr_field_img_version) = m_version.str(true);
+		fwimage::patch(hdr_checksum_offset, calc_checksum());
 	}
 
 	private:
@@ -509,10 +514,6 @@ class fwimage_rax : public fwimage_base
 
 		return h.update(salt2).finish();
 	}
-
-	map<uint16_t, buffer> m_hdr;
-	vector<uint16_t> m_hdr_keys;
-	fwver m_version;
 };
 
 class fwimage_generic : public fwimage_base
@@ -531,12 +532,12 @@ class fwimage_generic : public fwimage_base
 	string version() const override { return ""; }
 
 	protected:
-	void set_version(const fwver&) override
+	void update_version(const fwver&) override
 	{
 		throw invalid_argument("image type doesn't support version patching");
 	}
 
-	void update_metadata() override {}
+	void patch_checksum() override {}
 	void read_metadata() override
 	{
 		static const map<buffer, string> signatures {
