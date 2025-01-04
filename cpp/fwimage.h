@@ -23,11 +23,11 @@ class fwimage
 	buffer read() const;
 	void read(std::function<void(const buffer&)> f, size_t n, ssize_t off = 0) const;
 
-	// returns type of firmware image (such as "dni", "chk", etc.), or empty string
+	// returns type of firmware image (such as "dni", "chk", etc.)
 	virtual std::string type() const = 0;
-	// only valid if type() is non-empty
+	// if empty, file is unversioned
 	virtual std::string version() const = 0;
-
+	// change version of firmware image
 	virtual void version(const std::string& v) = 0;
 
 	virtual void patch(ssize_t offset, const buffer& data, size_t len) = 0;
