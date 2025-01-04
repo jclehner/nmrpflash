@@ -544,6 +544,7 @@ class fwimage_generic : public fwimage_base
 			{ "PK\x03\x04",       "zip" },
 			{ "HDR0",             "trx" },
 			{ "\x27\x05\x19\x56", "uimage" },
+			{ "\xd0\x0d\xfe\xed", "dtb" },
 		};
 
 		m_type = "(generic)";
