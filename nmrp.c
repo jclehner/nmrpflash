@@ -381,9 +381,9 @@ bool nmrp_discard(struct ethsock *sock)
 	int ret = pkt_recv(sock, &rx);
 	if (ret == 0) {
 		if (rx.msg.code != NMRP_C_CONF_REQ && rx.msg.code != NMRP_C_TFTP_UL_REQ) {
-			printf("Discarding unexpected %s packet\n", msg_code_str(rx.msg.code));
+			printf("Discarding unexpected %s packet.\n", msg_code_str(rx.msg.code));
 		} else if (verbosity > 1) {
-			printf("Discarding %s packet\n", msg_code_str(rx.msg.code));
+			printf("Discarding late %s packet.\n", msg_code_str(rx.msg.code));
 		}
 	}
 
