@@ -412,7 +412,7 @@ int nmrp_do(struct nmrpd_args *args)
 	struct in_addr ipaddr;
 	struct in_addr ipmask;
 
-	args->maybe_invalid_firmware_file = false;
+	args->hints = 0;
 
 	if (args->op != NMRP_UPLOAD_FW) {
 		fprintf(stderr, "Operation not implemented.\n");
@@ -512,6 +512,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 		if (unplugged) {
 			if (!g_interrupted) {
+				args->hints |= NMRP_NO_ETHERNET_CONNECTION;
 				fprintf(stderr, "Error: Ethernet cable is unplugged.\n");
 				goto out;
 			} else {
@@ -597,8 +598,11 @@ int nmrp_do(struct nmrpd_args *args)
 			status = 1;
 			if ((time_monotonic() - beg) >= timeout) {
 				printf("\nNo response after %d seconds. ", timeout);
+				args->hints |= NMRP_NO_NMRP_RESPONSE;
+
 				if (!args->blind || !was_plugged_in) {
 					if (!was_plugged_in) {
+						args->hints |= NMRP_NO_ETHERNET_CONNECTION;
 						printf("Ethernet cable unplugged. ");
 					}
 
@@ -641,7 +645,7 @@ int nmrp_do(struct nmrpd_args *args)
 					msg_code_str(rx.msg.code), msg_code_str(expect));
 
 			if (ulreqs && expect == NMRP_C_TFTP_UL_REQ && rx.msg.code == NMRP_C_CONF_REQ) {
-				args->maybe_invalid_firmware_file = true;
+				args->hints |= NMRP_MAYBE_FIRMWARE_INVALID;
 			}
 
 			if (++unexpected > 5) {
@@ -677,7 +681,7 @@ int nmrp_do(struct nmrpd_args *args)
 				break;
 			case NMRP_C_TFTP_UL_REQ:
 				if (++ulreqs > 1) {
-					args->maybe_invalid_firmware_file = true;
+					args->hints |= NMRP_MAYBE_FIRMWARE_INVALID;
 				}
 
 				if (ulreqs > NMRP_MAX_UL_REQS) {
@@ -755,7 +759,7 @@ int nmrp_do(struct nmrpd_args *args)
 						// file has been rejected. this feature is only implemented
 						// by some bootloaders.
 						expect = NMRP_C_TFTP_UL_REQ;
-						args->maybe_invalid_firmware_file = true;
+						args->hints |= NMRP_MAYBE_FIRMWARE_INVALID;
 					} else {
 						goto out;
 					}

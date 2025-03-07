@@ -311,13 +311,27 @@ int main(int argc, char **argv)
 		val = ethsock_list_all();
 	} else {
 		val = nmrp_do(&args);
-		if (val != 0 && args.maybe_invalid_firmware_file) {
-			fprintf(stderr,
-					"\n"
-					"Firmware file rejected by remote device. Possible causes:\n"
-					"- Wrong firmware file (model number correct?)\n"
-					"- Wrong file format (e.g. .chk vs .trx file)\n"
-					"- Downgrading to a lower version number\n");
+		if (val != 0) {
+			if (args.hints & NMRP_MAYBE_FIRMWARE_INVALID) {
+				fprintf(stderr,
+						"\n"
+						"Firmware file rejected by router. Possible causes:\n"
+						"- Wrong firmware file (model number correct?)\n"
+						"- Wrong file format (e.g. .chk vs .trx file)\n"
+						"- Downgrading to a lower version number\n");
+			} else if (args.hints & NMRP_NO_ETHERNET_CONNECTION) {
+				fprintf(stderr,
+						"No Ethernet connection detected. Possible causes:\n"
+						"- Wrong Ethernet port - try others there's more than one\n"
+						"- Bad Ethernet cable\n"
+						"- Hardware issue\n");
+			} else if (args.hints & NMRP_NO_NMRP_RESPONSE) {
+				fprintf(stderr,
+						"No response from router. Possible causes/fixes:\n"
+						"- Unsupported router\n"
+						"- Wrong Ethernet port - try others if there's more than one\n"
+						"- Try holding reset button for a few seconds while powering on router\n");
+			}
 		}
 	}
 

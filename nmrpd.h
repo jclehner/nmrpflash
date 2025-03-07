@@ -87,6 +87,10 @@
 #define NMRP_ETH_TIMEOUT_S           60
 #define NMRP_MAX_UL_REQS             3
 
+#define NMRP_MAYBE_FIRMWARE_INVALID  (1 << 0)
+#define NMRP_NO_ETHERNET_CONNECTION  (1 << 1)
+#define NMRP_NO_NMRP_RESPONSE        (1 << 2)
+
 struct eth_hdr {
 	uint8_t ether_dhost[6];
 	uint8_t ether_shost[6];
@@ -117,7 +121,7 @@ struct nmrpd_args {
 	uint16_t port;
 	const char *region;
 	off_t offset;
-	bool maybe_invalid_firmware_file;
+	int hints;
 	struct ethsock *sock;
 };
 
