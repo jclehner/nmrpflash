@@ -90,6 +90,7 @@
 #define NMRP_MAYBE_FIRMWARE_INVALID  (1 << 0)
 #define NMRP_NO_ETHERNET_CONNECTION  (1 << 1)
 #define NMRP_NO_NMRP_RESPONSE        (1 << 2)
+#define NMRP_TFTP_XMIT_BLK0_FAILURE  (1 << 3)
 
 struct eth_hdr {
 	uint8_t ether_dhost[6];

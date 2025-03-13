@@ -331,6 +331,11 @@ int main(int argc, char **argv)
 						"- Unsupported router\n"
 						"- Wrong Ethernet port - try others if there's more than one\n"
 						"- Try holding reset button for a few seconds while powering on router\n");
+			} else if (args.hints & NMRP_TFTP_XMIT_BLK0_FAILURE) {
+				fprintf(stderr,
+						"Failed to send/receive initial TFTP packet. Possible fixes:\n"
+						"- Disable firewall, or add an exception for nmrpflash\n"
+						"- Manually specify IP addresses using `-a` and/or `-A`");
 			}
 		}
 	}

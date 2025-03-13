@@ -240,13 +240,15 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 }
 
 static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
-		struct sockaddr_in *dst)
+		struct sockaddr_in *dst, struct nmrpd_args* args)
 {
 	ssize_t sent;
+	bool is_xrq = false;
 
 	switch (pkt_num(pkt)) {
 		case RRQ:
 		case WRQ:
+			is_xrq = true;
 		case OACK:
 			len = pkt_xrqlen(pkt);
 			break;
@@ -275,6 +277,9 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 #ifndef NMRPFLASH_FUZZ
 	sent = sendto(sock, pkt, len, 0, (struct sockaddr*)dst, sizeof(*dst));
 	if (sent < 0) {
+		if (is_xrq) {
+			args->hints |= NMRP_TFTP_XMIT_BLK0_FAILURE;
+		}
 		sock_perror("sendto");
 	}
 #else
@@ -489,7 +494,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				bytes += len;
 			}
 
-			ret = tftp_sendto(sock, tx, len, &addr);
+			ret = tftp_sendto(sock, tx, len, &addr, args);
 			if (ret < 0) {
 				goto cleanup;
 			}
@@ -530,6 +535,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);
 			} else {
 				fprintf(stderr, "Timeout while waiting for ACK(0)/OACK.\n");
+				args->hints |= NMRP_TFTP_XMIT_BLK0_FAILURE;
 			}
 			ret = -1;
 			goto cleanup;
