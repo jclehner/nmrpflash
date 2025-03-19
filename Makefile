@@ -5,7 +5,6 @@ PREFIX ?= /usr/local
 VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git describe --always | tail -c +2; else echo $$STANDALONE_VERSION; fi)
 CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 SUFFIX ?=
-MACOS_SDK ?= macosx15.0
 NPCAP_SDK = 1.13
 ARCH := $(shell uname -m)
 LINUXDEPLOY = ./linuxdeploy-$(ARCH).AppImage
@@ -43,15 +42,16 @@ else
 	LDFLAGS += -lpcap
 ifeq ($(shell uname -s),Darwin)
 	AFL=afl-clang
-	SYSROOT ?= $(shell xcrun --sdk $(MACOS_SDK) --show-sdk-path)
-	LDFLAGS += -framework CoreFoundation
+	TARGETS ?= -arch x86_64 -arch arm64
+	CFLAGS += $(TARGETS)
+	LDFLAGS += -framework CoreFoundation $(TARGETS)
 endif
 endif
 
 .PHONY: clean install release release/macos release/linux release/win32
 
 nmrpflash$(SUFFIX): $(nmrpflash_OBJ)
-	$(CC) $(CFLAGS) -o nmrpflash$(SUFFIX) $(nmrpflash_OBJ) $(LDFLAGS)
+	$(CC) $(LDFLAGS) $^ -o $@
 
 tftptest:
 	CFLAGS=-DNMRPFLASH_TFTP_TEST make clean nmrpflash
@@ -93,12 +93,8 @@ nmrpflash-$(ARCH).AppImage: $(LINUXDEPLOY) release
 	mkdir -p $(APPDIR)
 	$(LINUXDEPLOY) --appdir $(APPDIR) -e nmrpflash -i nmrpflash.svg -o appimage --create-desktop-file
 
-release/macos:
-	CFLAGS="-isysroot $(SYSROOT) -target arm64-apple-macos11" SUFFIX=".arm64" make release
-	CFLAGS="-isysroot $(SYSROOT) -target x86_64-apple-macos10.8" SUFFIX=".x86_64" make release
-	lipo -create -output nmrpflash nmrpflash.x86_64 nmrpflash.arm64
+release/macos: release
 	zip nmrpflash-$(VERSION)-macos.zip nmrpflash
-	rm -f nmrpflash.x86_64 nmrpflash.arm64
 
 release/linux: release
 	zip nmrpflash-$(VERSION)-linux.zip nmrpflash
