@@ -51,7 +51,7 @@ endif
 .PHONY: clean install release release/macos release/linux release/win32
 
 nmrpflash$(SUFFIX): $(nmrpflash_OBJ)
-	$(CC) $(LDFLAGS) $^ -o $@
+	$(CC) $^ -o $@ $(LDFLAGS)
 
 tftptest:
 	CFLAGS=-DNMRPFLASH_TFTP_TEST make clean nmrpflash
