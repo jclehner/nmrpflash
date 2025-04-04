@@ -19,6 +19,7 @@
 
 #include <unistd.h>
 #include <getopt.h>
+#include <locale.h>
 #include <stdlib.h>
 #include <locale.h>
 #include <stdio.h>
@@ -194,6 +195,7 @@ int main(int argc, char **argv)
 	}
 #endif
 #endif
+	setlocale(LC_ALL, "en_US.UTF-8");
 
 	opterr = 0;
 
