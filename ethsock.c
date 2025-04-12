@@ -28,7 +28,6 @@
 
 #if defined(NMRPFLASH_WINDOWS)
 #  include <iphlpapi.h>
-#  define NMRPFLASH_PRETTY_FMT "%ls"
 #  ifndef ERROR_NDIS_MEDIA_DISCONNECTED
 #    define ERROR_NDIS_MEDIA_DISCONNECTED 0x8034001f
 #  endif
@@ -54,7 +53,6 @@
 
 #ifdef NMRPFLASH_OSX
 #include <CoreFoundation/CoreFoundation.h>
-#define NMRPFLASH_PRETTY_FMT "%s"
 #endif
 
 struct ethsock
@@ -575,6 +573,24 @@ NET_IFINDEX intf_get_index(const char* intf)
 	return ret;
 }
 
+static char* wcs_to_utf8(const wchar_t* src)
+{
+	char* buf = NULL;
+	int len;
+
+	len = WideCharToMultiByte(CP_UTF8, 0, src, -1, 0, 0, NULL, NULL);
+	if (len) {
+		buf = malloc(len);
+		if (buf) {
+			if (WideCharToMultiByte(CP_UTF8, 0, src, -1, buf, len, NULL, NULL) == len) {
+				return buf;
+			}
+			free(buf);
+		}
+	}
+
+	return NULL;
+}
 #endif
 
 #ifdef NMRPFLASH_OSX
@@ -1148,11 +1164,11 @@ int ethsock_list_all(void)
 	uint8_t hwaddr[6];
 	unsigned dev_num = 0, dev_ok = 0;
 #if defined(NMRPFLASH_WINDOWS)
-	wchar_t *pretty = NULL;
+	char* pretty;
 	NET_IFINDEX index;
 	MIB_IF_ROW2 row;
 #elif defined(NMRPFLASH_OSX)
-	char *pretty = NULL;
+	char *pretty;
 #endif
 
 	if (x_pcap_findalldevs(&devs) != 0) {
@@ -1194,7 +1210,9 @@ int ethsock_list_all(void)
 			}
 
 			if (row.Alias[0]) {
-				pretty = row.Alias;
+				pretty = wcs_to_utf8(row.Alias);
+			} else {
+				pretty = NULL;
 			}
 		}
 
@@ -1221,15 +1239,13 @@ int ethsock_list_all(void)
 
 #if defined(NMRPFLASH_WINDOWS) || defined(NMRPFLASH_OSX)
 		if (pretty) {
-			printf("  (" NMRPFLASH_PRETTY_FMT ")", pretty);
+			printf("  (%s)", pretty);
+			free(pretty);
 		} else if (dev->description) {
 			printf("  (%s)", dev->description);
 		}
 #endif
 
-#ifdef NMRPFLASH_OSX
-		free(pretty);
-#endif
 		printf("\n");
 		++dev_ok;
 	}

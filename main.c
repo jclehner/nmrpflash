@@ -172,6 +172,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	SetConsoleOutputCP(CP_UTF8);
 
 #ifndef _WIN64
 	// This dirty hack works around the WOW64 file system redirector[1], which would prevent
