@@ -129,8 +129,8 @@ On Windows, try restarting the Npcap service (commands must be run as
 administrator):
 
 ```
-C:\> net stop npf
-C:\> net start npf
+C:\> net stop npcap
+C:\> net start npcap
 ```
 
 ###### "No response after 60 seconds. Bailing out."
