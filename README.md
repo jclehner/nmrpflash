@@ -11,7 +11,7 @@ WNDR4700, WNR3500), but is likely to be compatible with most other Netgear devic
 
 `mmrpflash` is a cross-platform utility, working on Linux, macOS, Windows, the BSDs, and possibly other POSIX compatible systems.
 Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases/latest)
-([Npcap](https://nmap.org/npcap/#download) is required on Windows - install with "WinPcap Compatibility" enabled). 
+([Npcap](https://nmap.org/npcap/#download) is required on Windows - install with "WinPcap Compatibility" enabled).
 
 On Linux and macOS, [Homebrew](https://formulae.brew.sh/formula/nmrpflash) is the preferred method of installation! **Packages maintained
 by your Linux distribution may be hopelessly outdated** (for example, as of 2024-11-25 the [latest version in Debian](https://packages.debian.org/sid/nmrpflash) based distros such
@@ -32,7 +32,7 @@ Options (-i, and -f or -c are mandatory):
  -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)
  -M <netmask>    Subnet mask to assign to target device [255.255.255.0]
  -t <timeout>    Timeout (in milliseconds) for NMRP packets [10000 ms]
- -T <timeout>    Time (seconds) to wait after successfull TFTP upload [1800 s]
+ -T <timeout>    Time (seconds) to wait after successful TFTP upload [1800 s]
  -p <port>       Port to use for TFTP upload [69]
  -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP)
  -S <n>          Skip <n> bytes of the firmware file
@@ -54,7 +54,7 @@ file will have an extension such as `.chk`, `.bin`, `.trx` or `.img`.
 
 Now, using an Ethernet cable, connect your Netgear router to the computer that will run
 `nmrpflash`. Use the LAN port, which is often colored blue on Netgear devices. If the
-router has multiple LAN ports, use the one labled _1_.
+router has multiple LAN ports, use the one labeled _1_.
 
 Next, you'll have to determine which network interface corresponds to the one connected to
 the Netgear router. All available interfaces can be listed using  
@@ -155,7 +155,7 @@ write the data to the flash chip. Depending on the image size, this can
 take quite some time: times of 15 minutes and more have been reported.
 
 Some devices will send keep-alive packets (see [below](#received-keep-alive-request))
-during this time, which are esentially telling `nmrpflash` that it's still busy flashing.
+during this time, which are telling `nmrpflash` that it's still busy flashing.
 
 Do not reboot your device at this time, because flashing is probably
 still in progress (sometimes indicated by flashing LEDs). Only when
@@ -259,7 +259,7 @@ On Linux, developer packages for `libpcap`, `libnl` and `libnl-route` must be in
 $ sudo apt install libpcap-dev libnl-3-dev libnl-route-3-dev
 ```
 
-Then, it's as easy as 
+Then, it's as easy as
 
 ```
 $ make
@@ -276,4 +276,3 @@ and extract it into the a folder named `Npcap` in the source's root directory.
 You can [buy me a coffee](https://www.buymeacoffee.com/jclehner) if you want, but please consider
 donating the money for charity instead - [Médecins Sans Frontiers](https://www.msf.org/donate) comes to mind,
 but any other organization, local or international, that you think deserves support will do. Thank you!
-

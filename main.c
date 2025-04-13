@@ -41,7 +41,7 @@ void usage(FILE *fp)
 			" -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)\n"
 			" -M <netmask>    Subnet mask to assign to target device [%s]\n"
 			" -t <timeout>    Timeout (in milliseconds) for NMRP packets [%d ms]\n"
-			" -T <timeout>    Time (seconds) to wait after successfull TFTP upload [%d s]\n"
+			" -T <timeout>    Time (seconds) to wait after successful TFTP upload [%d s]\n"
 			" -p <port>       Port to use for TFTP upload [%d]\n"
 #ifdef NMRPFLASH_SET_REGION
 			" -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP, AU)\n"
