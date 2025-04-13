@@ -9,11 +9,11 @@ various models (D7000, DNG3700v2, EX2700, EX6100v2, EX6120, EX6150v2, EX8000, R6
 R7000P, R6800, R8000, R8000P, R8500, RAX40, RAX75, RBR40, RBS40, RBR50, RBR50v2, RBS50, SRR60, SRS60, WAX202, WNDR3800, WNDR4300, WNDR4500v3,
 WNDR4700, WNR3500), but is likely to be compatible with most other Netgear devices as well.
 
-`mmrpflash` is cross-platform, working on Linux, macOS, Windows, the BSDs, and possibly other POSIX compatible systems.
+`mmrpflash` is a cross-platform utility, working on Linux, macOS, Windows, the BSDs, and possibly other POSIX compatible systems.
 Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases/latest)
 ([Npcap](https://nmap.org/npcap/#download) is required on Windows - install with "WinPcap Compatibility" enabled). 
 
-On Linux and macOS, [Homebrew](https://formulae.brew.sh/formula/nmrpflash) is the preferred method of installation. **Packages maintained
+On Linux and macOS, [Homebrew](https://formulae.brew.sh/formula/nmrpflash) is the preferred method of installation! **Packages maintained
 by your Linux distribution may be hopelessly outdated** (for example, as of 2024-11-25 the [latest version in Debian](https://packages.debian.org/sid/nmrpflash) based distros such
 as Ubuntu is 0.9.14, released more than 4 years earlier!). A [FreeBSD package](https://ports.freebsd.org/cgi/ports.cgi?query=nmrpflash)
 can be fetched and installed using the `pkg` command.
