@@ -495,7 +495,9 @@ static const char *intf_name_to_wpcap(const char *intf)
 		NET_LUID luid;
 		GUID guid;
 
-		if (sscanf(intf, "eth%lu", &index) != 1) {
+		// Allow net%lu as well, for backwards compatiblity with <= 0.9.25
+
+		if (sscanf(intf, "eth%lu", &index) != 1 && sscanf(intf, "net%lu", &index) != 1) {
 			index = if_nametoindex(intf);
 			if (!index) {
 				break;
