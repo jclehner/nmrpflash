@@ -34,16 +34,16 @@ Options (-i, and -f or -c are mandatory):
  -t <timeout>    Timeout (in milliseconds) for NMRP packets [10000 ms]
  -T <timeout>    Time (seconds) to wait after successful TFTP upload [1800 s]
  -p <port>       Port to use for TFTP upload [69]
- -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP)
+ -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP, AU)
  -S <n>          Skip <n> bytes of the firmware file
  -v              Be verbose
  -V              Print version and exit
  -L              List network interfaces
  -h              Show this screen
 
-When using -c, the environment variables IP, PORT, NETMASK
-and MAC are set to the device IP address, TFTP port, subnet
-mask and MAC address, respectively.
+ The command specified by -c will have environment variables IP, PORT, NETMASK
+ and MAC set to the device IP address, TFTP port, subnet mask and MAC address,
+ respectively.
 ```
 
 ### Using nmrpflash
