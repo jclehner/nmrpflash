@@ -495,7 +495,7 @@ static const char *intf_name_to_wpcap(const char *intf)
 		NET_LUID luid;
 		GUID guid;
 
-		if (sscanf(intf, "net%lu", &index) != 1) {
+		if (sscanf(intf, "eth%lu", &index) != 1) {
 			index = if_nametoindex(intf);
 			if (!index) {
 				break;
@@ -1217,7 +1217,7 @@ int ethsock_list_all(void)
 		}
 
 		if (!verbosity && index) {
-			printf("net%-2lu", index);
+			printf("eth%-2lu", index);
 		} else {
 			printf("%-15s", dev->name);
 		}

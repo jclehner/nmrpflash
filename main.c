@@ -63,10 +63,11 @@ void usage(FILE *fp)
 #endif
 			")\n\n"
 #ifndef NMRPFLASH_WINDOWS
-			"# nmrpflash -i eth0 -f firmware.bin\n"
+			"# nmrpflash"
 #else
-			"C:\\> nmrpflash.exe -i net0 -f firmware.bin\n"
+			"C:\\> nmrpflash.exe"
 #endif
+			" -i eth0 -f firmware.bin\n"
 			"\n"
 			"The command specified by -c will have environment variables IP, PORT, NETMASK\n"
 			"and MAC set to the device IP address, TFTP port, subnet mask and MAC address,\n"
