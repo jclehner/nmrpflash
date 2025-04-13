@@ -411,6 +411,7 @@ int nmrp_do(struct nmrpd_args *args)
 	void (*sigh_orig)(int);
 	struct in_addr ipaddr;
 	struct in_addr ipmask;
+	uint8_t* arp_mac = NULL;
 
 	args->hints = 0;
 
@@ -625,7 +626,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 	// a manually specified MAC address (using `-m`) takes precedence over
 	// the NMRP response packets' MAC.
-	uint8_t* arp_mac = !mac_is_broadcast(dest) ? dest : rx.eh.ether_shost;
+	arp_mac = !mac_is_broadcast(dest) ? dest : rx.eh.ether_shost;
 	if (ethsock_arp_add(sock, arp_mac, ipaddr.s_addr, &arp_undo) != 0) {
 		goto out;
 	}

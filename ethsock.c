@@ -399,7 +399,7 @@ void win_perror2(const char *msg, DWORD err)
 	FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
 			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			(LPTSTR)&buf, 0, NULL);
+			(LPSTR)&buf, 0, NULL);
 
 	if (buf) {
 		/* FormatMessageA terminates buf with CRLF! */
@@ -1400,7 +1400,7 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 
 	if (add) {
 		row.PrefixOrigin = IpPrefixOriginManual;
-		row.SuffixOrigin = IpPrefixOriginManual;
+		row.SuffixOrigin = IpSuffixOriginManual;
 		row.OnLinkPrefixLength = bitcount(ipmask);
 		row.SkipAsSource = false;
 		row.PreferredLifetime = 0xffffffff;
