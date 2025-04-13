@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include <locale.h>
 #include <stdio.h>
 #include <pcap.h>
 #include "nmrpd.h"
@@ -157,8 +158,12 @@ int main(int argc, char **argv)
 		.blind = false,
 		.offset = 0,
 	};
+	setlocale(LC_ALL, "en_US.UTF-8");
 #ifdef NMRPFLASH_WINDOWS
 	WSADATA wsa;
+
+	SetConsoleOutputCP(CP_UTF8);
+	SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT));
 
 	atexit(&show_exit_prompt);
 
@@ -171,9 +176,6 @@ int main(int argc, char **argv)
 		win_perror2("WSAStartup", val);
 		return 1;
 	}
-
-	SetConsoleOutputCP(CP_UTF8);
-
 #ifndef _WIN64
 	// This dirty hack works around the WOW64 file system redirector[1], which would prevent
 	// us from calling programs residing in %windir%\System32 when running on a 64bit system
