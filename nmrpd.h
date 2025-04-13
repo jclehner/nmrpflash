@@ -54,7 +54,6 @@
 #else
 #  include <winsock2.h>
 #  include <ws2tcpip.h>
-#  include <shellapi.h>
 #  include <windows.h>
 #  include <conio.h>
 #endif

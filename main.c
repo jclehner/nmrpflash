@@ -90,7 +90,7 @@ void usage(FILE *fp)
 }
 
 #ifdef NMRPFLASH_WINDOWS
-void require_admin(int argc, char** argv)
+void require_admin()
 {
 	SID_IDENTIFIER_AUTHORITY auth = { SECURITY_NT_AUTHORITY };
 	PSID group = NULL;
@@ -104,20 +104,7 @@ void require_admin(int argc, char** argv)
 		FreeSid(group);
 		if (success) {
 			if (!admin) {
-				// FIXME this is ugly. argv[0] is expanded to the full path of
-				// the executable (e.g. "C:\nmrpflash.exe") whereas the value
-				// returned by GetCommandLineA() 	starts with the *unexpanded*
-				// argv[0] (for example ".\nmrpflash").
-				// In order not to do too much processing, we prepend a `-_` flag
-				// to nmrpflash's commandline. Its argument (the unexpanded argv[0])
-				// is simply ignored in main().
-				char* cmdline = GetCommandLineA();
-				char* newcmdline = malloc(strlen(cmdline) + 16);
-				sprintf(newcmdline, "-_ %s", cmdline);
-				if ((INT_PTR)ShellExecuteA(NULL, "runas", argv[0], newcmdline, NULL, SW_SHOW) <= 32) {
-					win_perror2("ShellExecuteA", GetLastError());
-				}
-				free(newcmdline);
+				fprintf(stderr, "Error: must be run as administrator\n");
 				exit(1);
 			} else {
 				return;
@@ -142,7 +129,7 @@ void show_exit_prompt()
 	}
 }
 #else
-void require_admin(char** argv)
+void require_admin()
 {
 	if (getuid() != 0) {
 		fprintf(stderr, "Error: must be run as root\n");
@@ -210,12 +197,9 @@ int main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "_:a:A:Bc:f:F:i:m:M:p:R:S:t:T:hLVvU")) != -1) {
+	while ((c = getopt(argc, argv, "a:A:Bc:f:F:i:m:M:p:R:S:t:T:hLVvU")) != -1) {
 		max = 0x7fffffff;
 		switch (c) {
-			case '_':
-				// ignore
-				break;
 			case 'a':
 				args.ipaddr = optarg;
 				break;
@@ -324,7 +308,7 @@ int main(int argc, char **argv)
 	}
 
 	if (!list) {
-		require_admin(argc, argv);
+		require_admin();
 	}
 #endif
 	if (list) {
