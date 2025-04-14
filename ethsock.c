@@ -53,6 +53,7 @@
 
 #ifdef NMRPFLASH_OSX
 #include <CoreFoundation/CoreFoundation.h>
+#include <SystemConfiguration/SystemConfiguration.h>
 #endif
 
 struct ethsock
@@ -603,6 +604,13 @@ void cf_perror(const char* function)
 	}
 }
 
+void cf_release(CFTypeRef cf)
+{
+	if (cf) {
+		CFRelease(cf);
+	}
+}
+
 CFStringRef to_cfstring(const char* str)
 {
 	CFStringRef ret = CFStringCreateWithFileSystemRepresentation(
@@ -612,6 +620,64 @@ CFStringRef to_cfstring(const char* str)
 	}
 	return ret;
 }
+
+#if 0
+char* get_pretty_name2(const char* interface)
+{
+	CFStringRef target = NULL;
+	CFArrayRef interfaces = NULL;
+	char* pretty = NULL;
+
+	target = to_cfstring(interface);
+	if (!target) {
+		return NULL;
+	}
+
+	interfaces = SCNetworkInterfaceCopyAll();
+	if (!interfaces) {
+		goto out;
+	}
+
+	CFIndex size = CFArrayGetCount(interfaces);
+	for (CFIndex i = 0; i < size; ++i) {
+		SCNetworkInterfaceRef intf = (SCNetworkInterfaceRef)CFArrayGetValueAtIndex(interfaces, i);
+		if (!scintf) {
+			continue;
+		}
+
+		CFStringRef dev = SCNetworkInterfaceGetBSDName(intf);
+		if (!dev) {
+			continue;
+		}
+
+		if (CFStringCompare(dev, target, 0) == kCFCompareEqualTo) {
+			CFStringRef	s = SCNetworkInterfaceGetLocalizedDisplayName(interface);
+			if (!s) {
+				continue;
+			}
+
+			CFIndex len = CFStringGetLength(s) + 1;
+			pretty = (char*)malloc(len);
+			if (!pretty) {
+				if (verbosity > 1) {
+					perror("malloc");
+				}
+			} else if (!CFStringGetFileSystemRepresentation(s, pretty, len)) {
+				cf_perror("CFStringGetFileSystemRepresentation");
+				free(pretty);
+				pretty = NULL;
+			}
+
+			break;
+		}
+	}
+
+out:
+	cf_release(target);
+	cf_release(interfaces);
+	return pretty;
+}
+#endif
 
 CFPropertyListRef plist_open(const char* filename)
 {
