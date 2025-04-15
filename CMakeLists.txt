@@ -34,7 +34,7 @@ target_compile_definitions(nmrpflash PUBLIC -DNMRPFLASH_VERSION=\"${NMRPFLASH_VE
 target_compile_options(nmrpflash PUBLIC -Wall)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-	target_link_libraries(nmrpflash -lpcap "-framework CoreFoundation")
+	target_link_libraries(nmrpflash -lpcap "-framework CoreFoundation -framework SystemConfiguration")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_sources(nmrpflash PRIVATE nmrpflash.rc)
 	target_compile_definitions(nmrpflash PUBLIC -D_WIN32_WINNT=0x0600 -DWIN32_LEAN_AND_MEAN -D__USE_MINGW_ANSI_STDIO)

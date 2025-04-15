@@ -44,7 +44,7 @@ ifeq ($(shell uname -s),Darwin)
 	AFL=afl-clang
 	TARGETS ?= -arch x86_64 -arch arm64
 	CFLAGS += $(TARGETS)
-	LDFLAGS += -framework CoreFoundation $(TARGETS)
+	LDFLAGS += -framework CoreFoundation -framework SystemConfiguration $(TARGETS)
 endif
 endif
 

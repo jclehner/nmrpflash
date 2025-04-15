@@ -611,25 +611,15 @@ void cf_release(CFTypeRef cf)
 	}
 }
 
-CFStringRef to_cfstring(const char* str)
+char* get_pretty_name(const char* interface)
 {
-	CFStringRef ret = CFStringCreateWithFileSystemRepresentation(
-			kCFAllocatorDefault, str);
-	if (!ret) {
-		cf_perror("CFStringCreateWithFileSystemRepresentation");
-	}
-	return ret;
-}
-
-#if 0
-char* get_pretty_name2(const char* interface)
-{
-	CFStringRef target = NULL;
+	CFStringRef target_dev = NULL;
 	CFArrayRef interfaces = NULL;
 	char* pretty = NULL;
 
-	target = to_cfstring(interface);
-	if (!target) {
+	target_dev = CFStringCreateWithCString(NULL, interface, kCFStringEncodingUTF8);
+	if (!target_dev) {
+		cf_perror("CFStringCreateWithCString");
 		return NULL;
 	}
 
@@ -641,7 +631,7 @@ char* get_pretty_name2(const char* interface)
 	CFIndex size = CFArrayGetCount(interfaces);
 	for (CFIndex i = 0; i < size; ++i) {
 		SCNetworkInterfaceRef intf = (SCNetworkInterfaceRef)CFArrayGetValueAtIndex(interfaces, i);
-		if (!scintf) {
+		if (!intf) {
 			continue;
 		}
 
@@ -650,8 +640,8 @@ char* get_pretty_name2(const char* interface)
 			continue;
 		}
 
-		if (CFStringCompare(dev, target, 0) == kCFCompareEqualTo) {
-			CFStringRef	s = SCNetworkInterfaceGetLocalizedDisplayName(interface);
+		if (CFStringCompare(dev, target_dev, 0) == kCFCompareEqualTo) {
+			CFStringRef	s = SCNetworkInterfaceGetLocalizedDisplayName(intf);
 			if (!s) {
 				continue;
 			}
@@ -662,8 +652,8 @@ char* get_pretty_name2(const char* interface)
 				if (verbosity > 1) {
 					perror("malloc");
 				}
-			} else if (!CFStringGetFileSystemRepresentation(s, pretty, len)) {
-				cf_perror("CFStringGetFileSystemRepresentation");
+			} else if (!CFStringGetCString(s, pretty, len, kCFStringEncodingUTF8)) {
+				cf_perror("CFStringGetCString");
 				free(pretty);
 				pretty = NULL;
 			}
@@ -673,157 +663,9 @@ char* get_pretty_name2(const char* interface)
 	}
 
 out:
-	cf_release(target);
+	cf_release(target_dev);
 	cf_release(interfaces);
 	return pretty;
-}
-#endif
-
-CFPropertyListRef plist_open(const char* filename)
-{
-	CFURLRef url = NULL;
-	CFReadStreamRef stream = NULL;
-	CFPropertyListRef plist = NULL;
-
-	do {
-		url = CFURLCreateFromFileSystemRepresentation(
-				kCFAllocatorDefault, (const UInt8*)filename,
-				strlen(filename), false);
-		if (!url) {
-			cf_perror("CFURLCreateFromFileSystemRepresentation");
-			break;
-		}
-
-		stream = CFReadStreamCreateWithFile(kCFAllocatorDefault, url);
-		if (!stream) {
-			cf_perror("CFReadStreamCreateWithFile");
-			break;
-		}
-
-		if (!CFReadStreamOpen(stream)) {
-			cf_perror("CFReadStreamOpen");
-			break;
-		}
-
-		plist = CFPropertyListCreateWithStream(
-				kCFAllocatorDefault, stream, 0,
-				kCFPropertyListImmutable, NULL, NULL);
-		if (!plist) {
-			cf_perror("CFPropertyListCreateWithStream");
-			break;
-		}
-	} while (false);
-
-	if (url) {
-		CFRelease(url);
-	}
-
-	if (stream) {
-		CFReadStreamClose(stream);
-		CFRelease(stream);
-	}
-
-	return plist;
-}
-
-bool dict_get_value(CFDictionaryRef dict, const char* key, const void** value)
-{
-	CFStringRef cfkey = to_cfstring(key);
-	if (!cfkey) {
-		return false;
-	}
-
-	Boolean status = CFDictionaryGetValueIfPresent(dict, cfkey, value);
-	CFRelease(cfkey);
-
-	return status;
-}
-
-char* dict_get_string(CFDictionaryRef dict, const char* key)
-{
-	CFStringRef str;
-	if (!dict_get_value(dict, key, (const void**)&str)) {
-		return NULL;
-	}
-
-	CFIndex len = CFStringGetLength(str) + 1;
-	char* buf = (char*)malloc(len);
-	if (!buf) {
-		perror("malloc");
-		return NULL;
-	}
-
-	Boolean status = CFStringGetFileSystemRepresentation(
-			str, buf, len);
-	if (!status) {
-		cf_perror("CFStringGetFileSystemRepresentation");
-		free(buf);
-		return NULL;
-	}
-
-	return buf;
-}
-
-typedef struct {
-	const char* device;
-	char* pretty;
-} find_pretty_name_ctx;
-
-void find_pretty_name(const void* key, const void* value, void* context)
-{
-	find_pretty_name_ctx* ctx = (find_pretty_name_ctx*)context;
-	if (ctx->pretty) {
-		return;
-	}
-
-	CFDictionaryRef dict;
-
-	if (!dict_get_value((CFDictionaryRef)value, "Interface", (const void**)&dict)) {
-		return;
-	}
-
-	char* device = dict_get_string(dict, "DeviceName");
-	if (!device) {
-		return;
-	}
-
-	if (!strcmp(ctx->device, device)) {
-		// there are two instances of UserDefinedName. The one in the "Interface" dict
-		// defines a base name, such as "Wi-Fi", whereas the one in the root dict
-		// might contain a trailing number (e.g. "Wi-Fi 2") to identify multiple
-		// interfaces with the same base name.
-		ctx->pretty = dict_get_string((CFDictionaryRef)value, "UserDefinedName");
-		if (!ctx->pretty) {
-			ctx->pretty = dict_get_string(dict, "UserDefinedName");
-		}
-	}
-
-	free(device);
-}
-
-char* get_pretty_name(const char* interface)
-{
-	CFPropertyListRef plist = plist_open("/Library/Preferences/SystemConfiguration/preferences.plist");
-	if (!plist) {
-		return NULL;
-	}
-
-	// what we're after is a CFDictionary element with the path
-	// /NetworkServices/<UUID>/Interface. The keys we're interested
-	// in are DeviceName (the network interface name), and UserDefinedName
-	// (the pretty name). Since we don't know the interface's UUID,
-	// we have to loop through all of them.
-
-	CFDictionaryRef dict;
-	find_pretty_name_ctx ctx = { interface, NULL };
-
-	if (dict_get_value((CFDictionaryRef)plist, "NetworkServices", (const void**)&dict)) {
-		CFDictionaryApplyFunction(dict, find_pretty_name, &ctx);
-	}
-
-	CFRelease(plist);
-
-	return ctx.pretty;
 }
 #endif
 
