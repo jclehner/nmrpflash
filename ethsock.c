@@ -612,7 +612,8 @@ void cf_release(CFTypeRef cf)
 char* get_pretty_name(const char* interface)
 {
 	CFStringRef target_dev = NULL;
-	CFArrayRef interfaces = NULL;
+	SCPreferencesRef prefs = NULL;
+	CFArrayRef services = NULL;
 	char* pretty = NULL;
 
 	target_dev = CFStringCreateWithCString(NULL, interface, kCFStringEncodingUTF8);
@@ -621,17 +622,30 @@ char* get_pretty_name(const char* interface)
 		return NULL;
 	}
 
-	interfaces = SCNetworkInterfaceCopyAll();
-	if (!interfaces) {
+	prefs = SCPreferencesCreate(NULL, CFSTR("nmrpflash"), NULL);
+	if (!prefs) {
+		cf_perror("SCPreferencesCreate");
 		goto out;
 	}
 
-	CFIndex size = CFArrayGetCount(interfaces);
+	services = SCNetworkServiceCopyAll(prefs);
+	if (!services) {
+		cf_perror("SCNetworkServiceCopyAll");
+		goto out;
+	}
+
+	CFIndex size = CFArrayGetCount(services);
 	for (CFIndex i = 0; i < size; ++i) {
-		SCNetworkInterfaceRef intf = (SCNetworkInterfaceRef)CFArrayGetValueAtIndex(interfaces, i);
+		SCNetworkServiceRef svc = (SCNetworkServiceRef)CFArrayGetValueAtIndex(services, i);
+		if (!svc) {
+			continue;
+		}
+
+		SCNetworkInterfaceRef intf = SCNetworkServiceGetInterface(svc);
 		if (!intf) {
 			continue;
 		}
+
 
 		CFStringRef dev = SCNetworkInterfaceGetBSDName(intf);
 		if (!dev) {
@@ -639,12 +653,15 @@ char* get_pretty_name(const char* interface)
 		}
 
 		if (CFStringCompare(dev, target_dev, 0) == kCFCompareEqualTo) {
-			CFStringRef	s = SCNetworkInterfaceGetLocalizedDisplayName(intf);
+			CFStringRef	s = SCNetworkServiceGetName(svc);
 			if (!s) {
-				continue;
+				s = SCNetworkInterfaceGetLocalizedDisplayName(intf);
+				if (!s) {
+					continue;
+				}
 			}
 
-			CFIndex len = CFStringGetLength(s) + 1;
+			CFIndex len = CFStringGetMaximumSizeForEncoding(CFStringGetLength(s) + 1, kCFStringEncodingUTF8);
 			pretty = (char*)malloc(len);
 			if (!pretty) {
 				if (verbosity > 1) {
@@ -662,7 +679,8 @@ char* get_pretty_name(const char* interface)
 
 out:
 	cf_release(target_dev);
-	cf_release(interfaces);
+	cf_release(prefs);
+	cf_release(services);
 	return pretty;
 }
 #endif
