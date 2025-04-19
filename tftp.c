@@ -516,7 +516,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 
 		// stop calling nmrp_discard() if the last call didn't actually discard anything.
 		// this turned out to be a major bottleneck on Windows, each call blocking > 10ms
-		if (discard) {
+		if (discard && args->sock) {
 			discard &= nmrp_discard(args->sock);
 		}
 

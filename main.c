@@ -48,9 +48,6 @@ void usage(FILE *fp)
 			" -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP, AU)\n"
 #endif
 			" -S <n>          Skip <n> bytes of the firmware file\n"
-#ifdef NMRPFLASH_TFTP_TEST
-			" -U              Test TFTP upload\n"
-#endif
 			" -v              Be verbose\n"
 			" -V              Print version and exit\n"
 			" -L              List network interfaces\n"
@@ -274,14 +271,6 @@ int main(int argc, char **argv)
 				usage(stdout);
 				val = 0;
 				goto out;
-#ifdef NMRPFLASH_TFTP_TEST
-			case 'U':
-				if (args.ipaddr && args.file_local) {
-					val = tftp_put(&args);
-					goto out;
-				}
-				/* fall through */
-#endif
 			default:
 				usage(stderr);
 				val = 1;

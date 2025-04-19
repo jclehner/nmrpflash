@@ -14,7 +14,7 @@ AFL = afl-gcc
 DOCKER_BUILD_NAME=nmrpflash
 DOCKER_CONTAINER_NAME=$(DOCKER_BUILD_NAME)-container
 
-nmrpflash_OBJ = nmrp.o tftp.o ethsock.o main.o util.o
+nmrpflash_OBJ = nmrp.o tftp.o ethsock.o util.o
 
 ifdef MINGW
 	SUFFIX = .exe
@@ -50,11 +50,11 @@ endif
 
 .PHONY: clean install release release/macos release/linux release/win32
 
-nmrpflash$(SUFFIX): $(nmrpflash_OBJ)
+nmrpflash$(SUFFIX): main.o $(nmrpflash_OBJ)
 	$(CC) $^ -o $@ $(LDFLAGS)
 
-tftptest:
-	CFLAGS=-DNMRPFLASH_TFTP_TEST make clean nmrpflash
+t_tftp$(SUFFIX): t_tftp.o $(nmrpflash_OBJ)
+	$(CC) $^ -o $@ $(LDFLAGS)
 
 %.o: %.c nmrpd.h
 	$(CC) -c $(CFLAGS) $< -o $@
@@ -75,7 +75,7 @@ dofuzz_tftp: fuzz_tftp
 	echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 
 clean:
-	rm -f $(nmrpflash_OBJ) nmrpflash*.AppImage nmrpflash nmrpflash.exe fuzz_nmrp fuzz_tftp
+	rm -f $(nmrpflash_OBJ) main.o t_tftp.o nmrpflash*.AppImage nmrpflash nmrpflash.exe fuzz_nmrp fuzz_tftp
 
 install: nmrpflash
 	install -d $(PREFIX)/bin
