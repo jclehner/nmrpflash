@@ -400,6 +400,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 
+#if 0
 	// check if we have an interface address, and bind to it if we do
 	if (args->ipaddr_intf) {
 		addr.sin_addr.s_addr = inet_addr(args->ipaddr_intf);
@@ -413,6 +414,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 			goto cleanup;
 		}
 	}
+#endif
 
 	if ((addr.sin_addr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
 		xperror("inet_addr");
