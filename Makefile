@@ -16,7 +16,7 @@ DOCKER_CONTAINER_NAME=$(DOCKER_BUILD_NAME)-container
 
 nmrpflash_OBJ = nmrp.o tftp.o ethsock.o util.o
 
-ifdef MINGW
+ifneq ($(or $(MINGW),$(filter $(shell uname -s),Windows_NT)),)
 	SUFFIX = .exe
 	CC = $(MINGW)gcc
 	STRIP = $(MINGW)strip
@@ -24,13 +24,19 @@ ifdef MINGW
 	CFLAGS += -DWIN32_LEAN_AND_MEAN
 	CFLAGS += -D_WIN32_WINNT=0x0600
 	CFLAGS += -D__USE_MINGW_ANSI_STDIO
-	CFLAGS += "-I./Npcap/Include"
+	CFLAGS += -I./Npcap/Include
+	ifeq ($(shell uname -m),x86_64)
+		LDFLAGS += -L./Npcap/Lib/x64
+	else $(shell uname -m),aarch64)
+		LDFLAGS += -L./Npcap/Lib/ARM64
+	else
+		LDFLAGS += -L./Npcap/Lib
+	endif
 	LDFLAGS += -lwpcap
 	LDFLAGS += -lPacket
 	LDFLAGS += -liphlpapi
 	LDFLAGS += -lws2_32
 	LDFLAGS += -ladvapi32
-	LDFLAGS += "-L./Npcap/Lib"
 	nmrpflash_OBJ += windres.o
 else ifeq ($(shell uname -s),Linux)
 	CFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --cflags)
