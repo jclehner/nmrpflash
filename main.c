@@ -327,7 +327,7 @@ int main(int argc, char **argv)
 		val = ethsock_list_all();
 	} else {
 		val = nmrp_do(&args);
-		if (val != 0 && args.hints) {
+		if (val != 0 && !g_interrupted && args.hints) {
 			fprintf(stderr, "\n");
 			if (args.hints & NMRP_MAYBE_FIRMWARE_INVALID) {
 				fprintf(stderr,
