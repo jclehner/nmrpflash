@@ -76,8 +76,9 @@ First of all, turn *off* the router. Then start `nmrpflash` using the following 
 Waiting for Ethernet connection (Ctrl-C to skip).
 ```
 
-As soon as you see the `Waiting for Ethernet connection.` message, turn the router *on*. If all went
-well, `nmrpflash` will continue printing messages:
+As soon as you see the `Waiting for Ethernet connection.` message, turn the router *on* (Note that
+one some devices you'll have to hold the reset button while powering on the device, otherwise it
+won't work!) If all went well, `nmrpflash` will continue printing messages:
 
 ```
 Advertising NMRP server on eth2 ... /
