@@ -1124,7 +1124,7 @@ int ethsock_list_all(void)
 			}
 		}
 
-		if (!verbosity && index) {
+		if (index) {
 			printf("eth%-2lu", index);
 		} else {
 			printf("%-15s", dev->name);
