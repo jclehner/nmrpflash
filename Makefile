@@ -105,7 +105,7 @@ release/linux-appimage: nmrpflash-$(ARCH).AppImage
 	mv $(TMP)/release.zip nmrpflash-$(VERSION)-linux-$(ARCH).zip
 
 release/win32:
-	zip nmrpflash-$(VERSION)-win32.zip nmrpflash.exe
+	zip -X nmrpflash-$(VERSION)-win32.zip nmrpflash.exe
 
 release: clean nmrpflash$(SUFFIX)
 	$(STRIP) nmrpflash$(SUFFIX)
