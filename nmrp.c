@@ -229,6 +229,8 @@ static void msg_mkconfack(struct nmrp_msg *msg, uint32_t ipaddr, uint32_t ipmask
 #endif
 }
 
+#define NMRP_ADVERTISE_TIMEOUT_BLIND 5
+
 #ifdef NMRPFLASH_FUZZ
 #define NMRP_ADVERTISE_TIMEOUT 0
 #define ethsock_create(a, b) ((struct ethsock*)1)
@@ -563,7 +565,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 	i = 0;
 	upload_ok = 0;
-	timeout = args->blind ? 10 : NMRP_ADVERTISE_TIMEOUT;
+	timeout = args->blind ? NMRP_ADVERTISE_TIMEOUT_BLIND : NMRP_ADVERTISE_TIMEOUT;
 	beg = time_monotonic();
 
 	printf("Advertising NMRP server on %s ... ", args->intf);
