@@ -306,10 +306,10 @@ int main(int argc, char **argv)
 		val = ethsock_list_all();
 	} else {
 		val = nmrp_do(&args);
-		if (val != 0) {
+		if (val != 0 && args.hints) {
+			fprintf(stderr, "\n");
 			if (args.hints & NMRP_MAYBE_FIRMWARE_INVALID) {
 				fprintf(stderr,
-						"\n"
 						"Firmware file rejected by router. Possible causes:\n"
 						"- Wrong firmware file (model number correct?)\n"
 						"- Wrong file format (e.g. .chk vs .trx file)\n"
