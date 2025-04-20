@@ -434,22 +434,6 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 
-#if 0
-	// check if we have an interface address, and bind to it if we do
-	if (args->ipaddr_intf) {
-		addr.sin_addr.s_addr = inet_addr(args->ipaddr_intf);
-		if ((addr.sin_addr.s_addr = inet_addr(args->ipaddr_intf)) == INADDR_NONE) {
-			xperror("inet_addr");
-			goto cleanup;
-		}
-
-		if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-			sock_perror("bind");
-			goto cleanup;
-		}
-	}
-#endif
-
 	if ((addr.sin_addr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
 		xperror("inet_addr");
 		goto cleanup;
