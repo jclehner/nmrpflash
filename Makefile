@@ -27,7 +27,7 @@ ifneq ($(or $(MINGW),$(filter $(shell uname -s),Windows_NT)),)
 	CFLAGS += -I./Npcap/Include
 	ifeq ($(shell uname -m),x86_64)
 		LDFLAGS += -L./Npcap/Lib/x64
-	else $(shell uname -m),aarch64)
+	else ifeq $(shell uname -m),aarch64)
 		LDFLAGS += -L./Npcap/Lib/ARM64
 	else
 		LDFLAGS += -L./Npcap/Lib
