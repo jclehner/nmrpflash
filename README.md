@@ -124,9 +124,8 @@ installing `nmrpflash` on macOS.
 
 ###### "No suitable network interfaces found."
 
-Make sure the network interface is up (wireless interfaces are not supported).
-On Windows, try restarting the Npcap service (commands must be run as
-administrator):
+Make sure the network interface is enabled. On Windows, try restarting the Npcap service (commands
+must be run as administrator):
 
 ```
 C:\> net stop npcap
@@ -169,7 +168,7 @@ either indicates an IP configuration issue, or a firewall is blocking the TFTP
 packets from reaching the device running `nmrpflash`.
 
 If you do have an active firewall, either disable it before running `nmrpflash`,
-or make sure that incoming packets for port 69 aren't being blocked.
+or make sure that incoming packets from the router aren't blocked.
 
 By default, `nmrpflash` will assign `10.164.183.252` to the target device, while adding
 `10.164.183.253` to the network interface specified by the `-i` flag. You can use `-a`
@@ -214,41 +213,11 @@ By default, file transfers using TFTP are limited to `65535 * 512` bytes
 on the device. If it does fail, your only option is flashing an older image,
 which is smaller than 32 MiB.
 
-###### "Ignoring extra upload request."
-
-Extraneous upload requests are usually sent by the device if the image validation
-failed. Some possible causes are:
-
-* If you downloaded a firmware that's contained in an archive (a `.zip` for
-example), you must extract this file, and then use the contained firmware file
-as the argument to the `-f` parameter. Some examples for file extensions used
-for firmware: `.chk`, `.bin`, `.trx`, `.img`.
-
-* Some devices prevent you from downgrading the firmware. See if it works with
-the latest version available for your device. If you're already using the latest
-version, it might be possible to patch the version info of the firmware file. A
-future version of `nmrpflash` might incorporate an auto-patch feature for these
-cases.
-
-* Your device might expect a different image format for `nmrpflash` than when
-flashing via the web interface.
-
 ###### "Timeout while waiting for 0000." after "Waiting for remote to respond."
 
 This could indicate that the device hasn't finished flashing, after the default timeout
 (15 minutes). Try increasing the timeout, using the `-T <seconds>` option,
 for example use `-T 1800` to specify a timeout of 30 minutes.
-
-###### "bind: Cannot assign requested address"
-
-Specify the address of the router (`-a`), and address of your computer (`-A`).
-For example:
-
-`-A 10.0.0.2 -a 10.0.0.1`
-
-or
-
-`-A 192.168.1.2 -a 192.168.1.1`
 
 ### Building
 ###### Linux, Mac OS X, BSDs
