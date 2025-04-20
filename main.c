@@ -26,6 +26,10 @@
 #include <pcap.h>
 #include "nmrpd.h"
 
+#ifndef NMRPFLASH_WINDOWS
+#include <sys/utsname.h>
+#endif
+
 void usage(FILE *fp)
 {
 	fprintf(fp,
@@ -157,6 +161,7 @@ int main(int argc, char **argv)
 		.blind = false,
 		.offset = 0,
 	};
+
 	setlocale(LC_ALL, "en_US.UTF-8");
 #ifdef NMRPFLASH_WINDOWS
 	WSADATA wsa;
@@ -278,8 +283,24 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (verbosity > 1) {
-		printf("nmrpflash %s\n", NMRPFLASH_VERSION);
+	if (verbosity) {
+		printf("nmrpflash %s", NMRPFLASH_VERSION);
+
+#ifndef NMRPFLASH_WINDOWS
+	  struct utsname uts;
+		if (uname(&uts) == 0) {
+			printf(" on %s %s (%s)", uts.sysname, uts.release, uts.machine);
+		}
+#else
+	  printf(" on Windows");
+		OSVERSIONINFO os;
+		os.dwOSVersionInfoSize = sizeof(os);
+		if (GetVersionEx(&os)) {
+			printf(" %lu.%lu", os.dwMajorVersion, os.dwMinorVersion);
+		}
+		printf(" (%s)", getenv("PROCESSOR_ARCHITECTURE"));
+#endif
+		printf("\n");
 	}
 
 	if (args.ipaddr_intf && !args.ipaddr) {
