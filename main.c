@@ -341,7 +341,7 @@ int main(int argc, char **argv)
 						"- Wrong Ethernet port - try others there's more than one\n"
 						"- Bad Ethernet cable\n"
 						"- Hardware issue\n");
-			} else if (args.hints & NMRP_NO_NMRP_RESPONSE) {
+			} else if ((args.hints & NMRP_NO_NMRP_RESPONSE) && !args.blind) {
 				fprintf(stderr,
 						"No response from router. Possible causes/fixes:\n"
 						"- Unsupported router\n"
