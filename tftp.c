@@ -330,23 +330,23 @@ void sock_perror(const char *msg)
 
 static const char* fw_rule_name = "nmrpflash";
 
-int del_tftp_firewall_rule(struct nmrpd_args* args)
+int del_tftp_firewall_rule(struct sockaddr_in* addr)
 {
 	return systemf("netsh advfirewall firewall delete rule name=%s > NUL", fw_rule_name);
 }
 
-void add_tftp_firewall_rule(struct nmrpd_args* args)
+void add_tftp_firewall_rule(struct sockaddr_in* addr)
 {
 	int err;
 
-	del_tftp_firewall_rule(args);
+	del_tftp_firewall_rule(addr);
 
 	if (verbosity > 1) {
 		printf("Adding firewall rule for TFTP... ");
 	}
 
 	err = systemf("netsh advfirewall firewall add rule name=%s dir=in remoteip=%s protocol=udp action=allow %s",
-			fw_rule_name, args->ipaddr, (verbosity > 1 ? "" : "> NUL 2>&1"));
+			fw_rule_name, inet_ntoa(addr->sin_addr), (verbosity > 1 ? "" : "> NUL 2>&1"));
 	if (err) {
 		fprintf(stderr, "Warning: failed to add firewall rule for TFTP\n");
 	}}
@@ -453,7 +453,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	discard = true;
 
 #ifdef NMRPFLASH_WINDOWS
-	add_tftp_firewall_rule(args);
+	add_tftp_firewall_rule(&addr);
 #endif
 
 	pkt_mkwrq(tx, file_remote, TFTP_BLKSIZE);
@@ -594,7 +594,7 @@ cleanup:
 	}
 
 #ifdef NMRPFLASH_WINDOWS
-	del_tftp_firewall_rule(args);
+	del_tftp_firewall_rule(&addr);
 #endif
 
 	return (ret == 0) ? bytes : ret;
