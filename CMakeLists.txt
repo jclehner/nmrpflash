@@ -57,7 +57,7 @@ else()
 endif()
 
 add_executable(nmrpflash main.c nmrp.c tftp.c util.c ethsock.c)
-add_executable(t_tftp t_tftp.c tftp.c util.c ethsock.c)
+add_executable(t_tftp t_tftp.c nmrp.c tftp.c util.c ethsock.c)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_sources(nmrpflash PRIVATE nmrpflash.rc)
