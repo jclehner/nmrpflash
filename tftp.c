@@ -316,6 +316,40 @@ void sock_perror(const char *msg)
 {
 	win_perror2(msg, WSAGetLastError());
 }
+
+// In standard compliant TFTP implementations, the first
+// packet is sent to the port the server listens on (usually 69),
+// but all subsequent traffic happens on a different (randomly chosen)
+// port.
+//
+// At least on Windows, the firewall automatically blocks incoming traffic
+// not originating from the port that the initial packet was sent to.
+//
+// On many routers this is not an issue, as they keep all traffic on the
+// original port.
+
+static const char* fw_rule_name = "nmrpflash";
+
+int del_tftp_firewall_rule(struct nmrpd_args* args)
+{
+	return systemf("netsh advfirewall firewall delete rule name=%s > NUL", fw_rule_name);
+}
+
+void add_tftp_firewall_rule(struct nmrpd_args* args)
+{
+	int err;
+
+	del_tftp_firewall_rule(args);
+
+	if (verbosity > 1) {
+		printf("Adding firewall rule for TFTP... ");
+	}
+
+	err = systemf("netsh advfirewall firewall add rule name=%s dir=in remoteip=%s protocol=udp action=allow %s",
+			fw_rule_name, args->ipaddr, (verbosity > 1 ? "" : "> NUL 2>&1"));
+	if (err) {
+		fprintf(stderr, "Warning: failed to add firewall rule for TFTP\n");
+	}}
 #endif
 
 inline bool tftp_is_valid_filename(const char *filename)
@@ -433,6 +467,10 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	/* Not really, but this way the loop sends our WRQ before receiving */
 	timeouts = 1;
 	discard = true;
+
+#ifdef NMRPFLASH_WINDOWS
+	add_tftp_firewall_rule(args);
+#endif
 
 	pkt_mkwrq(tx, file_remote, TFTP_BLKSIZE);
 
@@ -570,6 +608,10 @@ cleanup:
 		closesocket(sock);
 #endif
 	}
+
+#ifdef NMRPFLASH_WINDOWS
+	del_tftp_firewall_rule(args);
+#endif
 
 	return (ret == 0) ? bytes : ret;
 }

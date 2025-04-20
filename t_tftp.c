@@ -2,6 +2,11 @@
 #include <stdio.h>
 #include "nmrpd.h"
 
+bool nmrp_discard(struct ethsock *sock)
+{
+	return false;
+}
+
 int main(int argc, char** argv)
 {
 	if (argc < 3 || argc > 4) {

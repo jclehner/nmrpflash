@@ -143,6 +143,8 @@ void sock_perror(const char *msg);
 #define sock_perror(x) xperror(x)
 #endif
 
+int systemf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
+
 extern int verbosity;
 
 struct ethsock_arp_undo;

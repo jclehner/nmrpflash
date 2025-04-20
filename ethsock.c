@@ -116,8 +116,7 @@ static bool intf_get_pcap_flags(const char *intf, bpf_u_int32 *flags)
 	return false;
 }
 
-#ifndef NMRPFLASH_WINDOWS
-static int systemf(const char *fmt, ...)
+int systemf(const char *fmt, ...)
 {
 	char cmd[1024];
 	int ret;
@@ -134,7 +133,6 @@ static int systemf(const char *fmt, ...)
 
 	return ret;
 }
-#endif
 
 #ifndef NMRPFLASH_WINDOWS
 static inline bool sockaddr_get_hwaddr(struct sockaddr *sa, uint8_t *hwaddr)
