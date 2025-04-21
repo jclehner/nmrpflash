@@ -25,13 +25,17 @@ ifneq ($(or $(MINGW),$(filter $(shell uname -s),Windows_NT)),)
 	CFLAGS += -D_WIN32_WINNT=0x0600
 	CFLAGS += -D__USE_MINGW_ANSI_STDIO
 	CFLAGS += -I./Npcap/Include
-	ifeq ($(shell uname -m),x86_64)
+
+	CC_TARGET = $(shell $(CC) -v 2>&1 | grep Target)
+
+	ifneq ($(findstring x86_64,$(CC_TARGET)),)
 		LDFLAGS += -L./Npcap/Lib/x64
-	else ifeq $(shell uname -m),aarch64)
+	else ifneq ($(findstring aarch64,$(CC_TARGET)),)
 		LDFLAGS += -L./Npcap/Lib/ARM64
 	else
 		LDFLAGS += -L./Npcap/Lib
 	endif
+
 	LDFLAGS += -lwpcap
 	LDFLAGS += -lPacket
 	LDFLAGS += -liphlpapi
@@ -81,7 +85,7 @@ dofuzz_tftp: fuzz_tftp
 	echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 
 clean:
-	rm -f $(nmrpflash_OBJ) main.o t_tftp.o nmrpflash*.AppImage nmrpflash nmrpflash.exe fuzz_nmrp fuzz_tftp
+	rm -f $(nmrpflash_OBJ) main.o t_tftp.o windres.o nmrpflash*.AppImage nmrpflash nmrpflash.exe fuzz_nmrp fuzz_tftp
 
 install: nmrpflash
 	install -d $(PREFIX)/bin
