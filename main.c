@@ -170,7 +170,7 @@ void print_version()
 					printf("on Mac OS X");
 				}
 
-				printf("10.%d.%d", maj - 4, min);
+				printf(" 10.%d.%d", maj - 4, min);
 			}
 
 			printf(" (%s)\n", uts.machine);
