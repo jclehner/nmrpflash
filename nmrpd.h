@@ -27,7 +27,7 @@
 #  define NMRPFLASH_WINDOWS
 #elif defined(__APPLE__) && defined(__MACH__)
 #  define NMRPFLASH_UNIX
-#  define NMRPFLASH_OSX
+#  define NMRPFLASH_MACOS
 #  define NMRPFLASH_BSD
 #elif defined (__unix__)
 #  define NMRPFLASH_UNIX

@@ -51,7 +51,7 @@
 #  endif
 #endif
 
-#ifdef NMRPFLASH_OSX
+#ifdef NMRPFLASH_MACOS
 #include <CoreFoundation/CoreFoundation.h>
 #include <SystemConfiguration/SystemConfiguration.h>
 #endif
@@ -594,7 +594,7 @@ static char* wcs_to_utf8(const wchar_t* src)
 }
 #endif
 
-#ifdef NMRPFLASH_OSX
+#ifdef NMRPFLASH_MACOS
 void cf_perror(const char* function)
 {
 	if (verbosity > 1) {
@@ -1075,7 +1075,7 @@ int ethsock_list_all(void)
 	char* pretty;
 	NET_IFINDEX index;
 	MIB_IF_ROW2 row;
-#elif defined(NMRPFLASH_OSX)
+#elif defined(NMRPFLASH_MACOS)
 	char *pretty;
 #endif
 
@@ -1103,7 +1103,7 @@ int ethsock_list_all(void)
 
 #ifndef NMRPFLASH_WINDOWS
 		printf("%-15s", dev->name);
-#  ifdef NMRPFLASH_OSX
+#  ifdef NMRPFLASH_MACOS
 		pretty = get_pretty_name(dev->name);
 #  endif
 #else
@@ -1145,7 +1145,7 @@ int ethsock_list_all(void)
 
 		printf("  %s", mac_to_str(hwaddr));
 
-#if defined(NMRPFLASH_WINDOWS) || defined(NMRPFLASH_OSX)
+#if defined(NMRPFLASH_WINDOWS) || defined(NMRPFLASH_MACOS)
 		if (pretty) {
 			printf("  (%s)", pretty);
 			free(pretty);
@@ -1272,7 +1272,7 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 	if (!intf_add_del_ip(sock->intf, (*undo)->ip[0], (*undo)->ip[1], add)) {
 		goto out;
 	}
-#else // NMRPFLASH_OSX (or any other BSD)
+#else // NMRPFLASH_MACOS (or any other BSD)
 	struct ifaliasreq ifra;
 	memset(&ifra, 0, sizeof(ifra));
 	strncpy(ifra.ifra_name, sock->intf, IFNAMSIZ);

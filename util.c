@@ -23,7 +23,7 @@
 #include <math.h>
 #include "nmrpd.h"
 
-#ifdef NMRPFLASH_OSX
+#ifdef NMRPFLASH_MACOS
 #include <mach/mach_time.h>
 #endif
 

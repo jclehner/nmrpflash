@@ -156,7 +156,7 @@ void print_version()
 #ifndef NMRPFLASH_WINDOWS
 	struct utsname uts;
 	if (uname(&uts) == 0) {
-#ifdef NMRPFLASH_OSX
+#ifdef NMRPFLASH_MACOS
 		int maj, min;
 		if (sscanf(uts.release, "%d.%d", &maj, &min) == 2) {
 			if (maj >= 20) {
