@@ -38,7 +38,7 @@ void usage(FILE *fp)
 			"Options (-i, and -f or -c are mandatory):\n"
 			" -a <ipaddr>     IP address to assign to target device [%s]\n"
 			" -A <ipaddr>     IP address to assign to selected interface [%s]\n"
-			" -B              Blind mode (don't wait for response packets)\n"
+			" -B [<timeout>]  Blind mode. Initial timeout (seconds) [%d s]\n"
 			" -c <command>    Command to run before (or instead of) TFTP upload\n"
 			" -f <firmware>   Firmware file\n"
 			" -F <filename>   Remote filename to use during TFTP upload\n"
@@ -82,6 +82,7 @@ void usage(FILE *fp)
 			"%s\n",
 			NMRP_DEFAULT_IP_REMOTE,
 			NMRP_DEFAULT_IP_LOCAL,
+			NMRP_DEFAULT_BLIND_TIMEOUT_S,
 			NMRP_DEFAULT_SUBNET,
 			NMRP_DEFAULT_RX_TIMEOUT_MS,
 			NMRP_DEFAULT_UL_TIMEOUT_S,
@@ -158,7 +159,7 @@ int main(int argc, char **argv)
 		.op = NMRP_UPLOAD_FW,
 		.port = NMRP_DEFAULT_TFTP_PORT,
 		.region = NULL,
-		.blind = false,
+		.blind_timeout = 0,
 		.offset = 0,
 	};
 
@@ -201,17 +202,13 @@ int main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "a:A:Bc:f:F:i:m:M:p:R:S:t:T:hLVvU")) != -1) {
-		max = 0x7fffffff;
+	while ((c = getopt(argc, argv, ":a:A:Bc:f:F:i:m:M:p:R:S:t:T:hLVvU")) != -1) {
 		switch (c) {
 			case 'a':
 				args.ipaddr = optarg;
 				break;
 			case 'A':
 				args.ipaddr_intf = optarg;
-				break;
-			case 'B':
-				args.blind = true;
 				break;
 			case 'c':
 				args.tftpcmd = optarg;
@@ -237,21 +234,34 @@ int main(int argc, char **argv)
 				args.region = optarg;
 				break;
 #endif
+			case 'B':
 			case 'p':
 			case 'S':
 			case 'T':
 			case 't':
 				if (c == 'p') {
 					max = 0xffff;
+				} else {
+					max = 0x7fffffff;
 				}
 
-				val = atoi(optarg);
-				if (val <= 0 || val > max) {
-					fprintf(stderr, "Invalid numeric value for -%c.\n", c);
+				if (optarg) {
+					val = atoi(optarg);
+					if (val <= 0 || val > max) {
+						fprintf(stderr, "Invalid numeric value for -%c.\n", c);
+						return 1;
+					}
+				} else if (c == 'B') {
+					args.blind_timeout = NMRP_DEFAULT_BLIND_TIMEOUT_S;
+					break;
+				} else {
+					fprintf(stderr, "Missing argument for -%c.\n", c);
 					return 1;
 				}
 
-				if (c == 'p') {
+				if (c == 'B') {
+					args.blind_timeout = val;
+				} else if (c == 'p') {
 					args.port = val;
 				} else if (c == 't') {
 					args.rx_timeout = val;
@@ -276,6 +286,12 @@ int main(int argc, char **argv)
 				usage(stdout);
 				val = 0;
 				goto out;
+			case ':':
+				if (optopt == 'B') {
+					args.blind_timeout = NMRP_DEFAULT_BLIND_TIMEOUT_S;
+					break;
+				}
+				// fallthrough
 			default:
 				usage(stderr);
 				val = 1;
@@ -308,7 +324,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (args.blind && !have_dest_mac) {
+	if (args.blind_timeout && !have_dest_mac) {
 		fprintf(stderr, "Error: use of -B requires -m <mac>.\n");
 		return 1;
 	}
@@ -341,7 +357,7 @@ int main(int argc, char **argv)
 						"- Wrong Ethernet port - try others there's more than one\n"
 						"- Bad Ethernet cable\n"
 						"- Hardware issue\n");
-			} else if ((args.hints & NMRP_NO_NMRP_RESPONSE) && !args.blind) {
+			} else if ((args.hints & NMRP_NO_NMRP_RESPONSE) && !args.blind_timeout) {
 				fprintf(stderr,
 						"No response from router. Possible causes/fixes:\n"
 						"- Unsupported router\n"

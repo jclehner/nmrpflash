@@ -74,6 +74,7 @@
 
 #define NMRP_DEFAULT_UL_TIMEOUT_S    (30 * 60)
 #define NMRP_DEFAULT_RX_TIMEOUT_MS   (10000)
+#define NMRP_DEFAULT_BLIND_TIMEOUT_S 5
 /*
  * These addresses should not cause collisions on most networks,
  * and if they do, the user is probably "poweruser" enough to
@@ -118,7 +119,9 @@ struct nmrpd_args {
 	const char *intf;
 	const char *mac;
 	enum nmrp_op op;
-	bool blind;
+	// time in [s] to wait for response to ADVERTISE packets before continuing.
+	// doubles as boolean flag: if 0, blind mode is disabled
+	unsigned blind_timeout;
 	uint16_t port;
 	const char *region;
 	off_t offset;

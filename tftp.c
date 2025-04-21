@@ -370,8 +370,8 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	const char *file_remote = args->file_remote;
 	char *val, *end;
 	bool rollover, discard;
-	const unsigned rx_timeout = args->blind ? 10 : MAX(args->rx_timeout / 50, 200);
-	const unsigned max_timeouts = args->blind ? 3 : 5;
+	const unsigned rx_timeout = args->blind_timeout ? 10 : MAX(args->rx_timeout / 50, 200);
+	const unsigned max_timeouts = args->blind_timeout ? 3 : 5;
 #ifndef NMRPFLASH_WINDOWS
 	int enabled = 1;
 #else
@@ -550,7 +550,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 		} else if (!ret) {
 			if (++timeouts < max_timeouts || (!block && timeouts < (max_timeouts * 4))) {
 				continue;
-			} else if (args->blind) {
+			} else if (args->blind_timeout) {
 				timeouts = 0;
 				// fake an ACK packet
 				pkt_mknum(rx, ACK);

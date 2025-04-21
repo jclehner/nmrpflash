@@ -229,7 +229,6 @@ static void msg_mkconfack(struct nmrp_msg *msg, uint32_t ipaddr, uint32_t ipmask
 #endif
 }
 
-#define NMRP_ADVERTISE_TIMEOUT_BLIND 5
 
 #ifdef NMRPFLASH_FUZZ
 #define NMRP_ADVERTISE_TIMEOUT 0
@@ -565,7 +564,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 	i = 0;
 	upload_ok = 0;
-	timeout = args->blind ? NMRP_ADVERTISE_TIMEOUT_BLIND : NMRP_ADVERTISE_TIMEOUT;
+	timeout = args->blind_timeout ? args->blind_timeout : NMRP_ADVERTISE_TIMEOUT;
 	beg = time_monotonic();
 
 	printf("Advertising NMRP server on %s ... ", args->intf);
@@ -587,7 +586,7 @@ int nmrp_do(struct nmrpd_args *args)
 		if (status == 0) {
 			if (memcmp(rx.eh.ether_dhost, src, 6) == 0) {
 				// don't continue in blind mode if we've received a response
-				args->blind = false;
+				args->blind_timeout = 0;
 				break;
 			} else if (verbosity) {
 				printf("\nIgnoring bogus response: %s -> %s.\n",
@@ -603,7 +602,7 @@ int nmrp_do(struct nmrpd_args *args)
 				printf("\nNo response after %d seconds. ", timeout);
 				args->hints |= NMRP_NO_NMRP_RESPONSE;
 
-				if (!args->blind || !was_plugged_in) {
+				if (!args->blind_timeout || !was_plugged_in) {
 					if (!was_plugged_in) {
 						args->hints |= NMRP_NO_ETHERNET_CONNECTION;
 						printf("Ethernet cable unplugged. ");
@@ -673,7 +672,7 @@ int nmrp_do(struct nmrpd_args *args)
 				msg_mkconfack(&tx.msg, ipaddr.s_addr, ipmask.s_addr, region);
 				expect = NMRP_C_TFTP_UL_REQ;
 
-				if (!args->blind) {
+				if (!args->blind_timeout) {
 					printf("Received configuration request from %s.\n",
 							mac_to_str(rx.eh.ether_shost));
 				}
@@ -701,7 +700,7 @@ int nmrp_do(struct nmrpd_args *args)
 					printf("Received upload request: filename '%s'.\n", filename);
 				} else if (!args->file_remote) {
 					args->file_remote = leafname(args->file_local);
-					if (!args->blind) {
+					if (!args->blind_timeout) {
 						printf("Received upload request.\n");
 					}
 				}
@@ -753,7 +752,7 @@ int nmrp_do(struct nmrpd_args *args)
 						printf("OK (%zd b)\n", bytes);
 						upload_ok = 1;
 
-						if (args->blind) {
+						if (args->blind_timeout) {
 							printf("Not waiting for further responses in blind mode.\n");
 							goto out;
 						}
@@ -816,7 +815,7 @@ int nmrp_do(struct nmrpd_args *args)
 		status = pkt_recv(sock, &rx);
 		if (status) {
 			if (status == 2) {
-				if (!args->blind) {
+				if (!args->blind_timeout) {
 					fprintf(stderr, "Timeout while waiting for %s.\n",
 							msg_code_str(expect));
 					goto out;
