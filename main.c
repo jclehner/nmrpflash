@@ -30,7 +30,7 @@
 #include <sys/utsname.h>
 #endif
 
-void usage(FILE *fp)
+int usage(FILE *fp)
 {
 	fprintf(fp,
 			"Usage: nmrpflash [OPTIONS...]\n"
@@ -71,8 +71,8 @@ void usage(FILE *fp)
 #endif
 			" -i eth0 -f firmware.bin\n"
 			"\n"
-			"The command specified by -c will have environment variables IP, PORT, NETMASK\n"
-			"and MAC set to the device IP address, TFTP port, subnet mask and MAC address,\n"
+			"The command specified by -c will have environment variables IP, NETMASK, PORT,\n"
+			"and MAC set to the router's IP address, subnet mask, TFTP port, and MAC address,\n"
 			"respectively.\n"
 			"\n"
 			"nmrpflash %s, Copyright (C) 2016-2025 Joseph C. Lehner\n"
@@ -90,6 +90,8 @@ void usage(FILE *fp)
 			NMRPFLASH_VERSION,
 			pcap_lib_version()
 	  );
+
+	return fp == stderr ? 1 : 0;
 }
 
 #ifdef NMRPFLASH_WINDOWS
@@ -130,6 +132,12 @@ void show_exit_prompt()
 		printf("Press any key to exit\n");
 		getch();
 	}
+}
+
+// this is needed because atexit() expects cdecl, while WSACleanup() uses stdcall
+void wsa_cleanup()
+{
+	WSACleanup();
 }
 #else
 void require_admin()
@@ -181,6 +189,9 @@ int main(int argc, char **argv)
 		win_perror2("WSAStartup", val);
 		return 1;
 	}
+
+	atexit(&wsa_cleanup);
+
 #ifndef _WIN64
 	// This dirty hack works around the WOW64 file system redirector[1], which would prevent
 	// us from calling programs residing in %windir%\System32 when running on a 64bit system
@@ -198,7 +209,6 @@ int main(int argc, char **argv)
 	}
 #endif
 #endif
-	setlocale(LC_ALL, "en_US.UTF-8");
 
 	opterr = 0;
 
@@ -274,8 +284,7 @@ int main(int argc, char **argv)
 				break;
 			case 'V':
 				printf("nmrpflash %s\n", NMRPFLASH_VERSION);
-				val = 0;
-				goto out;
+				return 0;
 			case 'v':
 				++verbosity;
 				break;
@@ -283,9 +292,7 @@ int main(int argc, char **argv)
 				list = true;
 				break;
 			case 'h':
-				usage(stdout);
-				val = 0;
-				goto out;
+				return usage(stdout);
 			case ':':
 				if (optopt == 'B') {
 					args.blind_timeout = NMRP_DEFAULT_BLIND_TIMEOUT_S;
@@ -293,9 +300,7 @@ int main(int argc, char **argv)
 				}
 				// fallthrough
 			default:
-				usage(stderr);
-				val = 1;
-				goto out;
+				return usage(stderr);
 		}
 	}
 
@@ -331,8 +336,7 @@ int main(int argc, char **argv)
 
 #ifndef NMRPFLASH_FUZZ
 	if (!list && ((!args.file_local && !args.tftpcmd) || !args.intf)) {
-		usage(stderr);
-		return 1;
+		return usage(stderr);
 	}
 
 	if (!list) {
@@ -362,19 +366,16 @@ int main(int argc, char **argv)
 						"No response from router. Possible causes/fixes:\n"
 						"- Unsupported router\n"
 						"- Wrong Ethernet port - try others if there's more than one\n"
-						"- Try holding reset button for a few seconds while powering on router\n");
+						"- Hold reset button for a few seconds while powering on router\n"
+						"- Try blind mode (`-B` option)");
 			} else if (args.hints & NMRP_TFTP_XMIT_BLK0_FAILURE) {
 				fprintf(stderr,
 						"Failed to send/receive initial TFTP packet. Possible fixes:\n"
 						"- Disable firewall, or add an exception for nmrpflash\n"
-						"- Manually specify IP addresses using `-a` and/or `-A`");
+						"- Manually specify IP addresses using `-a` and/or `-A`\n");
 			}
 		}
 	}
 
-out:
-#ifdef NMRPFLASH_WINDOWS
-	WSACleanup();
-#endif
 	return val;
 }
