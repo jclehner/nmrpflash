@@ -149,6 +149,48 @@ void require_admin()
 }
 #endif
 
+void print_version()
+{
+	printf("nmrpflash %s", NMRPFLASH_VERSION);
+
+#ifndef NMRPFLASH_WINDOWS
+	struct utsname uts;
+	if (uname(&uts) == 0) {
+#ifdef NMRPFLASH_OSX
+		int maj, min;
+		if (sscanf(uts.release, "%d.%d", &maj, &min) == 2) {
+			if (maj >= 20) {
+				printf(" on macOS %d.%d", maj - 9, min);
+			} else {
+				if (maj >= 16) {
+					printf("on macOS");
+				} else if (maj >= 12) {
+					printf("on OS X");
+				} else {
+					printf("on Mac OS X");
+				}
+
+				printf("10.%d.%d", maj - 4, min);
+			}
+
+			printf(" (%s)\n", uts.machine);
+			return;
+		}
+#endif
+		printf(" on %s %s (%s)", uts.sysname, uts.release, uts.machine);
+	}
+#else
+	printf(" on Windows");
+	OSVERSIONINFO os;
+	os.dwOSVersionInfoSize = sizeof(os);
+	if (GetVersionEx(&os)) {
+		printf(" %lu.%lu", os.dwMajorVersion, os.dwMinorVersion);
+	}
+	printf(" (%s)", getenv("PROCESSOR_ARCHITECTURE"));
+#endif
+	printf("\n");
+}
+
 int main(int argc, char **argv)
 {
 	int c, val, max;
@@ -283,7 +325,7 @@ int main(int argc, char **argv)
 
 				break;
 			case 'V':
-				printf("nmrpflash %s\n", NMRPFLASH_VERSION);
+				print_version();
 				return 0;
 			case 'v':
 				++verbosity;
@@ -305,23 +347,7 @@ int main(int argc, char **argv)
 	}
 
 	if (verbosity) {
-		printf("nmrpflash %s", NMRPFLASH_VERSION);
-
-#ifndef NMRPFLASH_WINDOWS
-	  struct utsname uts;
-		if (uname(&uts) == 0) {
-			printf(" on %s %s (%s)", uts.sysname, uts.release, uts.machine);
-		}
-#else
-	  printf(" on Windows");
-		OSVERSIONINFO os;
-		os.dwOSVersionInfoSize = sizeof(os);
-		if (GetVersionEx(&os)) {
-			printf(" %lu.%lu", os.dwMajorVersion, os.dwMinorVersion);
-		}
-		printf(" (%s)", getenv("PROCESSOR_ARCHITECTURE"));
-#endif
-		printf("\n");
+		print_version();
 	}
 
 	if (args.ipaddr_intf && !args.ipaddr) {
