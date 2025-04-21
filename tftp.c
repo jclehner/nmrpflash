@@ -332,7 +332,7 @@ static const char* fw_rule_name = "nmrpflash";
 
 int del_tftp_firewall_rule(struct sockaddr_in* addr)
 {
-	return systemf("netsh advfirewall firewall delete rule name=%s > NUL", fw_rule_name);
+	return systemf("netsh advfirewall firewall delete rule name=%s > NUL 2>&1", fw_rule_name);
 }
 
 void add_tftp_firewall_rule(struct sockaddr_in* addr)
@@ -349,7 +349,8 @@ void add_tftp_firewall_rule(struct sockaddr_in* addr)
 			fw_rule_name, inet_ntoa(addr->sin_addr), (verbosity > 1 ? "" : "> NUL 2>&1"));
 	if (err) {
 		fprintf(stderr, "Warning: failed to add firewall rule for TFTP\n");
-	}}
+	}
+}
 #endif
 
 inline bool tftp_is_valid_filename(const char *filename)
