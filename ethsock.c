@@ -387,6 +387,22 @@ static bool intf_get_hwaddr_and_bridge(const char *intf, uint8_t *hwaddr, bool *
 	}
 
 	freeifaddrs(ifas);
+
+	if (!found) {
+		int fd = socket(AF_INET, SOCK_DGRAM, 0);
+		if (fd >= 0) {
+			struct ifreq ifr;
+			strncpy(ifr.ifr_name, intf, sizeof(ifr.ifr_name));
+
+			if (ioctl(fd, SIOCGIFHWADDR, &ifr) == 0) {
+				memcpy(hwaddr, ifr.ifr_addr.sa_data, 6);
+				found = true;
+			}
+
+			close(fd);
+		}
+	}
+
 	return found;
 }
 
