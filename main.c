@@ -153,6 +153,11 @@ void print_version()
 {
 	printf("nmrpflash %s", NMRPFLASH_VERSION);
 
+	if (!verbosity) {
+		printf("\n");
+		return;
+	}
+
 #ifndef NMRPFLASH_WINDOWS
 	struct utsname uts;
 	if (uname(&uts) == 0) {
@@ -160,7 +165,7 @@ void print_version()
 		int maj, min;
 		if (sscanf(uts.release, "%d.%d", &maj, &min) == 2) {
 			if (maj >= 20) {
-				printf(" on macOS %d.%d", maj - 9, min);
+				printf(" on macOS %d", maj - 9);
 			} else {
 				if (maj >= 16) {
 					printf("on macOS");
@@ -170,14 +175,14 @@ void print_version()
 					printf("on Mac OS X");
 				}
 
-				printf(" 10.%d.%d", maj - 4, min);
+				printf(" 10.%d", maj - 4);
 			}
 
 			printf(" (%s)\n", uts.machine);
 			return;
 		}
 #endif
-		printf(" on %s %s (%s)", uts.sysname, uts.release, uts.machine);
+		printf(" on %s %s (%s)\n", uts.sysname, uts.release, uts.machine);
 	}
 #else
 	printf(" on Windows");
@@ -186,9 +191,8 @@ void print_version()
 	if (GetVersionEx(&os)) {
 		printf(" %lu.%lu", os.dwMajorVersion, os.dwMinorVersion);
 	}
-	printf(" (%s)", getenv("PROCESSOR_ARCHITECTURE"));
+	printf(" (%s)\n", getenv("PROCESSOR_ARCHITECTURE"));
 #endif
-	printf("\n");
 }
 
 int main(int argc, char **argv)
