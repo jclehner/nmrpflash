@@ -47,7 +47,7 @@ time_t time_monotonic()
 	return millis() / 1000;
 }
 
-char *lltostr(long long ll, int base)
+char *xlltostr(long long ll, int base)
 {
 	static char buf[32];
 	snprintf(buf, sizeof(buf) - 1, (base == 16 ? "%llx" : (base == 8 ? "%llo" : "%lld")), ll);

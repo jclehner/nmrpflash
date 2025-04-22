@@ -146,7 +146,7 @@ static void pkt_mkwrq(char *pkt, const char *filename, unsigned blksize)
 	pkt = pkt_mkopt(pkt, filename, "octet");
 
 	if (blksize && blksize != 512) {
-		pkt = pkt_mkopt(pkt, "blksize", lltostr(blksize, 10));
+		pkt = pkt_mkopt(pkt, "blksize", xlltostr(blksize, 10));
 	}
 }
 

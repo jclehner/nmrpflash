@@ -708,7 +708,7 @@ int nmrp_do(struct nmrpd_args *args)
 				if (args->tftpcmd) {
 					printf("Executing '%s' ... \n", args->tftpcmd);
 					setenv("IP", inet_ntoa(ipaddr), 1);
-					setenv("PORT", lltostr(args->port, 10), 1);
+					setenv("PORT", xlltostr(args->port, 10), 1);
 					setenv("MAC", mac_to_str(arp_mac), 1);
 					setenv("NETMASK", inet_ntoa(ipmask), 1);
 					//setenv("FILENAME", args->file_remote ? args->file_remote : "", 1);
