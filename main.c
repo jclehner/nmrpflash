@@ -160,7 +160,7 @@ void print_version()
 
 #ifndef NMRPFLASH_WINDOWS
 	struct utsname uts;
-	if (uname(&uts) == 0) {
+	if (uname(&uts) >= 0) {
 #ifdef NMRPFLASH_MACOS
 		int maj, min;
 		if (sscanf(uts.release, "%d.%d", &maj, &min) == 2) {
@@ -183,6 +183,8 @@ void print_version()
 		}
 #endif
 		printf(" on %s %s (%s)\n", uts.sysname, uts.release, uts.machine);
+	} else {
+		printf(" on unknown Unix-like OS\n");
 	}
 #else
 	printf(" on Windows ");
