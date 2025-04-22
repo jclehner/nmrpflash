@@ -185,11 +185,23 @@ void print_version()
 		printf(" on %s %s (%s)\n", uts.sysname, uts.release, uts.machine);
 	}
 #else
-	printf(" on Windows");
+	printf(" on Windows ");
 	OSVERSIONINFO os;
 	os.dwOSVersionInfoSize = sizeof(os);
 	if (GetVersionEx(&os)) {
-		printf(" %lu.%lu", os.dwMajorVersion, os.dwMinorVersion);
+		if (os.dwMajorVersion == 6) {
+			if (os.dwMinorVersion == 0) {
+				printf("Vista");
+			} else if (os.dwMinorVersion == 1) {
+				printf("7");
+			} else if (os.dwMinorVersion == 2) {
+				printf("8");
+			} else if (os.dwMinorVersion == 3) {
+				printf("8.1");
+			}
+		} else {
+			printf("%lu.%lu", os.dwMajorVersion, os.dwMinorVersion);
+		}
 	}
 	printf(" (%s)\n", getenv("PROCESSOR_ARCHITECTURE"));
 #endif
