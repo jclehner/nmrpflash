@@ -388,6 +388,7 @@ static bool intf_get_hwaddr_and_bridge(const char *intf, uint8_t *hwaddr, bool *
 
 	freeifaddrs(ifas);
 
+#ifdef SIOCGIFHWADDR
 	if (!found) {
 		int fd = socket(AF_INET, SOCK_DGRAM, 0);
 		if (fd >= 0) {
@@ -402,6 +403,7 @@ static bool intf_get_hwaddr_and_bridge(const char *intf, uint8_t *hwaddr, bool *
 			close(fd);
 		}
 	}
+#endif
 
 	return found;
 }
