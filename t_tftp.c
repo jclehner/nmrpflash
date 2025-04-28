@@ -20,7 +20,7 @@ int main(int argc, char** argv)
 		.rx_timeout = NMRP_DEFAULT_RX_TIMEOUT_MS,
 		.file_local = argv[1],
 		.ipaddr = argv[2],
-		.blind = false,
+		.blind_timeout = 0,
 		.port = (argc == 4 ? atoi(argv[3]) : 69),
 		.offset = 0,
 		.sock = NULL,
