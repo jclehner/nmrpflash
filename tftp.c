@@ -328,11 +328,11 @@ void sock_perror(const char *msg)
 // On many routers this is not an issue, as they keep all traffic on the
 // original port.
 
-static const char* fw_rule_name = "nmrpflash";
+static const char* fw_rule_name = "nmrpflash_tftp";
 
 int del_tftp_firewall_rule(struct sockaddr_in* addr)
 {
-	return systemf("netsh advfirewall firewall delete rule name=%s > NUL 2>&1", fw_rule_name);
+	return systemf("netsh advfirewall firewall delete rule name=\"%s\" > NUL 2>&1", fw_rule_name);
 }
 
 void add_tftp_firewall_rule(struct sockaddr_in* addr)
@@ -345,7 +345,7 @@ void add_tftp_firewall_rule(struct sockaddr_in* addr)
 		printf("Adding firewall rule for TFTP... ");
 	}
 
-	err = systemf("netsh advfirewall firewall add rule name=%s dir=in remoteip=%s protocol=udp action=allow %s",
+	err = systemf("netsh advfirewall firewall add rule name=\"%s\" dir=in remoteip=%s protocol=udp action=allow %s",
 			fw_rule_name, inet_ntoa(addr->sin_addr), (verbosity > 1 ? "" : "> NUL 2>&1"));
 	if (err) {
 		fprintf(stderr, "Warning: failed to add firewall rule for TFTP\n");
