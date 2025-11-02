@@ -26,7 +26,7 @@ Usage: nmrpflash [OPTIONS...]
 Options (-i, and -f or -c are mandatory):
  -a <ipaddr>     IP address to assign to target device [10.164.183.253]
  -A <ipaddr>     IP address to assign to selected interface [10.164.183.252]
- -B              Blind mode (don't wait for response packets)
+ -B [<timeout>]  Blind mode. Initial timeout (seconds) [5 s]
  -c <command>    Command to run before (or instead of) TFTP upload
  -f <firmware>   Firmware file
  -F <filename>   Remote filename to use during TFTP upload
