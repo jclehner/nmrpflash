@@ -14,11 +14,11 @@ but is likely to be compatible with most other Netgear devices as well.
 `mmrpflash` is a cross-platform utility, working on Linux, macOS, Windows, the BSDs, and possibly other POSIX compatible systems.
 Prebuilt binaries for Linux, macOS and Windows are available [here](https://github.com/jclehner/nmrpflash/releases/latest)
 ([Npcap](https://nmap.org/npcap/#download) is required on Windows - install with "WinPcap Compatibility" enabled).
+A [FreeBSD package](https://ports.freebsd.org/cgi/ports.cgi?query=nmrpflash) can be fetched and installed using the `pkg` command.
 
 On Linux and macOS, [Homebrew](https://formulae.brew.sh/formula/nmrpflash) is the preferred method of installation! **Packages maintained
 by your Linux distribution may be hopelessly outdated** (for example, as of November 2025 the [latest version in Debian](https://packages.debian.org/sid/nmrpflash) based distros such
-as Ubuntu is 0.9.14, released more than 5 years earlier!). A [FreeBSD package](https://ports.freebsd.org/cgi/ports.cgi?query=nmrpflash)
-can be fetched and installed using the `pkg` command.
+as Ubuntu is 0.9.14, released more than 5 years earlier!).
 
 ```
 Usage: nmrpflash [OPTIONS...]
