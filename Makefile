@@ -5,7 +5,7 @@ PREFIX ?= /usr/local
 VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git describe --always | tail -c +2; else echo $$STANDALONE_VERSION; fi)
 CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
 SUFFIX ?=
-NPCAP_SDK = 1.13
+NPCAP_SDK = 1.15
 ARCH := $(shell uname -m)
 LINUXDEPLOY = ./linuxdeploy-$(ARCH).AppImage
 TMP := $(shell mktemp -d)
