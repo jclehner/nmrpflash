@@ -17,8 +17,8 @@ Prebuilt binaries for Linux, macOS and Windows are available [here](https://gith
 A [FreeBSD package](https://ports.freebsd.org/cgi/ports.cgi?query=nmrpflash) can be fetched and installed using the `pkg` command.
 
 On Linux and macOS, [Homebrew](https://formulae.brew.sh/formula/nmrpflash) is the preferred method of installation! **Packages maintained
-by your Linux distribution may be hopelessly outdated** (for example, as of November 2025 the [latest version in Debian](https://packages.debian.org/sid/nmrpflash) based distros such
-as Ubuntu is 0.9.14, released more than 5 years earlier!).
+by your Linux distribution may be hopelessly outdated** (for example, as of November 2025 the [latest version in Debian](https://packages.debian.org/sid/nmrpflash) based distros (such
+as Ubuntu) is 0.9.14, released in January 2021!).
 
 ```
 Usage: nmrpflash [OPTIONS...]
