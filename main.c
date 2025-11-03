@@ -165,13 +165,18 @@ void print_version()
 		int maj, min;
 		if (sscanf(uts.release, "%d.%d", &maj, &min) == 2) {
 			if (maj >= 20) {
-				printf(" on macOS %d", maj - 9);
+				if (maj >= 25) { // macOS 26+
+					maj += 1;
+				} else { // macOS 11 - 15
+					maj -= 9;
+				}
+				printf(" on macOS %d", maj);
 			} else {
-				if (maj >= 16) {
+				if (maj >= 16) { // macOS 10.12 - 10.15
 					printf("on macOS");
-				} else if (maj >= 12) {
+				} else if (maj >= 12) { // OS X 10.8 - 10.11
 					printf("on OS X");
-				} else {
+				} else { // Mac OS X <= 10.7
 					printf("on Mac OS X");
 				}
 
