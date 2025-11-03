@@ -201,9 +201,17 @@ void print_version()
 			} else if (os.dwMinorVersion == 3) {
 				printf("8.1");
 			}
+		} else if (os.dwMajorVersion == 10) {
+			if (os.dwBuildNumber < 22000) {
+				printf("10");
+			} else {
+				printf("11");
+			}
 		} else {
-			printf("%lu.%lu", os.dwMajorVersion, os.dwMinorVersion);
+			printf("%lu", os.dwMajorVersion);
 		}
+	} else {
+		printf("?");
 	}
 	printf(" (%s)\n", getenv("PROCESSOR_ARCHITECTURE"));
 #endif
