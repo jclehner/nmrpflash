@@ -498,7 +498,14 @@ int nmrp_do(struct nmrpd_args *args)
 			goto out;
 		}
 
-		printf("Waiting for Ethernet connection (Ctrl-C to skip).\n");
+		printf("Waiting for Ethernet connection");
+
+		if (!isatty(STDIN_FILENO)) {
+			printf(".\n");
+			fflush(stdout);
+		} else {
+			printf(" (Ctrl-C to skip).\n");
+		}
 
 		bool unplugged = true;
 		time_t beg = time_monotonic();
@@ -508,6 +515,10 @@ int nmrp_do(struct nmrpd_args *args)
 				unplugged = false;
 				break;
 			}
+		}
+
+		if (g_interrupted && !isatty(STDIN_FILENO)) {
+			goto out;
 		}
 
 		was_plugged_in = !unplugged;
