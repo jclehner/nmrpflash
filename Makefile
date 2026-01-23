@@ -121,7 +121,10 @@ release: clean nmrpflash$(SUFFIX)
 	$(STRIP) nmrpflash$(SUFFIX)
 
 nmrpflash.ico: nmrpflash.svg
-	convert -background transparent -define icon:auto-resize=256,64,48,32,16 $< $@
+	magick convert -background transparent -define icon:auto-resize=256,64,48,32,16 $< $@
+
+nmrpflash.png: nmrpflash.svg
+	magick convert -background transparent -size 256x256 $< $@
 
 build-release-with-docker:
 	docker build --build-arg CACHEBUST=$(shell date +%s) --build-arg NPCAP_SDK=$(NPCAP_SDK) --progress=plain -t $(DOCKER_BUILD_NAME) .
