@@ -54,7 +54,7 @@ char *xlltostr(long long ll, int base)
 	return buf;
 }
 
-const char *mac_to_str(uint8_t *mac)
+const char *mac_to_str(const uint8_t *mac)
 {
 	static char buf[18];
 	snprintf(buf, sizeof(buf), "%02x:%02x:%02x:%02x:%02x:%02x",

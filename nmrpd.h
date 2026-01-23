@@ -137,7 +137,7 @@ int nmrp_do(struct nmrpd_args *args);
 bool nmrp_discard(struct ethsock *sock);
 
 int select_fd(int fd, unsigned timeout);
-const char *mac_to_str(uint8_t *mac);
+const char *mac_to_str(const uint8_t *mac);
 
 #ifdef NMRPFLASH_WINDOWS
 void win_perror2(const char *msg, DWORD err);
@@ -164,7 +164,18 @@ unsigned ethsock_get_timeout(struct ethsock *sock);
 uint8_t *ethsock_get_hwaddr(struct ethsock *sock);
 int ethsock_arp_add(struct ethsock *sock, uint8_t *hwaddr, uint32_t ipaddr, struct ethsock_arp_undo **undo);
 int ethsock_arp_del(struct ethsock *sock, struct ethsock_arp_undo **undo);
-int ethsock_list_all(void);
+
+struct ethsock_list_item
+{
+	const char* device_name;
+	const char* native_name;
+	const char* pcap_name;
+	char* pretty_name;
+	uint8_t hwaddr[6];
+	const char* ip4addr;
+};
+
+int ethsock_list_all(bool (*cb)(const struct ethsock_list_item*, void*), void* cb_arg);
 
 struct ethsock_ip_callback_args
 {

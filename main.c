@@ -222,9 +222,25 @@ void print_version()
 #endif
 }
 
+static bool list_callback(const struct ethsock_list_item* item, void* arg)
+{
+	printf("%-15s  ", item->device_name);
+	printf("%-15s  ", item->ip4addr);
+	printf("%s  ", mac_to_str(item->hwaddr));
+	if (item->pretty_name) {
+		printf("(%s)", item->pretty_name);
+	}
+
+	printf("\n");
+
+	*((int*)arg) += 1;
+
+	return true;
+}
+
 int main(int argc, char **argv)
 {
-	int c, val, max;
+	int c, val, max, count;
 	bool list = false, have_dest_mac = false;
 	struct nmrpd_args args = {
 		.rx_timeout = NMRP_DEFAULT_RX_TIMEOUT_MS,
@@ -401,7 +417,12 @@ int main(int argc, char **argv)
 	}
 #endif
 	if (list) {
-		val = ethsock_list_all();
+		count = 0;
+		val = ethsock_list_all(list_callback, &count);
+		if (!val && !count) {
+			fprintf(stderr, "Error: no suitable network interfaces found.\n");
+			val = -1;
+		}
 	} else {
 		val = nmrp_do(&args);
 		if (val != 0 && !g_interrupted && args.hints) {
@@ -434,5 +455,5 @@ int main(int argc, char **argv)
 		}
 	}
 
-	return val;
+	return val == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

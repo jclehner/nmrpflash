@@ -1101,27 +1101,24 @@ static bool get_hwaddr_from_pcap(const pcap_if_t *dev, uint8_t *hwaddr)
 #endif
 }
 
-int ethsock_list_all(void)
+int ethsock_list_all(bool (*cb)(const struct ethsock_list_item*, void*), void* cb_arg)
 {
 	pcap_if_t *devs, *dev;
 	pcap_addr_t *addr;
-	uint8_t hwaddr[6];
-	unsigned dev_num = 0, dev_ok = 0;
+	struct ethsock_list_item item;
+	bool cont;
 #if defined(NMRPFLASH_WINDOWS)
-	char* pretty;
 	NET_IFINDEX index;
 	MIB_IF_ROW2 row;
-#elif defined(NMRPFLASH_MACOS)
-	char *pretty;
 #endif
 
 	if (x_pcap_findalldevs(&devs) != 0) {
 		return -1;
 	}
 
-	memset(hwaddr, 0, 6);
+	for (dev = devs; dev; dev = dev->next) {
+		memset(&item, 0, sizeof(item));
 
-	for (dev = devs; dev; dev = dev->next, ++dev_num) {
 		if (dev->flags & PCAP_IF_LOOPBACK) {
 			if (verbosity) {
 				printf("%-15s  (loopback device)\n", dev->name);
@@ -1129,7 +1126,7 @@ int ethsock_list_all(void)
 			continue;
 		}
 
-		if (!get_hwaddr_from_pcap(dev, hwaddr)) {
+		if (!get_hwaddr_from_pcap(dev, item.hwaddr)) {
 			if (verbosity) {
 				printf("%-15s  (not an ethernet device)\n",
 						dev->name);
@@ -1137,12 +1134,11 @@ int ethsock_list_all(void)
 			continue;
 		}
 
-#ifndef NMRPFLASH_WINDOWS
-		printf("%-15s", dev->name);
-#  ifdef NMRPFLASH_MACOS
-		pretty = get_pretty_name(dev->name);
-#  endif
-#else
+		item.pcap_name = dev->name;
+		item.device_name = dev->name;
+		item.native_name = dev->name;
+
+#if defined(NMRPFLASH_WINDOWS)
 		index = intf_get_index(dev->name);
 
 		if (intf_get_if_row(index, &row)) {
@@ -1154,48 +1150,49 @@ int ethsock_list_all(void)
 			}
 
 			if (row.Alias[0]) {
-				pretty = wcs_to_utf8(row.Alias);
-			} else {
-				pretty = NULL;
+				item.pretty_name = wcs_to_utf8(row.Alias);
 			}
 		}
 
-		if (index) {
-			printf("eth%-2lu", index);
-		} else {
-			printf("%-15s", dev->name);
+		if (strstr(item.pcap_name, "NPF_{") == item.pcap_name) {
+			item.native_name = item.pcap_name + 4;
 		}
+
+		char device_name_buf[32];
+		if (index) {
+			snprintf(device_name_buf, sizeof(device_name_buf), "eth%lu", index);
+			item.device_name = device_name_buf;
+		}
+#elif defined(NMRPFLASH_MACOS)
+		item.pretty_name = get_pretty_name(dev->name);
 #endif
 
 		for (addr = dev->addresses; addr; addr = addr->next) {
 			if (addr->addr->sa_family == AF_INET) {
-				printf("  %-15s",
-						inet_ntoa(((struct sockaddr_in*)addr->addr)->sin_addr));
+				item.ip4addr = inet_ntoa(((struct sockaddr_in*)addr->addr)->sin_addr);
 				break;
 			}
 		}
 
 		if (!addr) {
-			printf("  %-15s", "0.0.0.0");
+			item.ip4addr = "0.0.0.0";
 		}
 
-		printf("  %s", mac_to_str(hwaddr));
-
-#if defined(NMRPFLASH_WINDOWS) || defined(NMRPFLASH_MACOS)
-		if (pretty) {
-			printf("  (%s)", pretty);
-			free(pretty);
-		} else if (dev->description) {
-			printf("  (%s)", dev->description);
+		if (!item.native_name) {
+			item.native_name = item.pcap_name;
 		}
-#endif
 
-		printf("\n");
-		++dev_ok;
-	}
+		if (!item.pretty_name && dev->description) {
+			item.pretty_name = strdup(dev->description);
+		}
 
-	if (!dev_ok) {
-		printf("No suitable network interfaces found.\n");
+		cont = cb(&item, cb_arg);
+
+		free(item.pretty_name);
+
+		if (!cont) {
+			break;
+		}
 	}
 
 	return 0;
