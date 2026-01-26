@@ -24,6 +24,9 @@
 #include <locale.h>
 #include <stdio.h>
 #include <pcap.h>
+#ifdef WITH_CTRL_THREAD
+#include <pthread.h>
+#endif
 #include "nmrpd.h"
 
 #ifndef NMRPFLASH_WINDOWS
@@ -238,6 +241,28 @@ static bool list_callback(const struct ethsock_list_item* item, void* arg)
 	return true;
 }
 
+#ifdef WITH_CTRL_THREAD
+pthread_t ctrl_thread;
+
+static void* ctrl_thread_func(void* arg)
+{
+	int c;
+
+	while ((c = getchar()) >= 0) {
+		switch (c) {
+			case 'i':
+				kill(getpid(), SIGINT);
+				break;
+			case 't':
+				kill(getpid(), SIGTERM);
+				break;
+		}
+	}
+
+	return NULL;
+}
+#endif
+
 int main(int argc, char **argv)
 {
 	int c, val, max, count;
@@ -424,7 +449,13 @@ int main(int argc, char **argv)
 			val = -1;
 		}
 	} else {
+	#ifdef WITH_CTRL_THREAD
+		pthread_create(&ctrl_thread, NULL, ctrl_thread_func, NULL);
+	#endif
 		val = nmrp_do(&args);
+#ifdef WITH_CTRL_THREAD
+		pthread_cancel(ctrl_thread);
+#endif
 		if (val != 0 && !g_interrupted && args.hints) {
 			fprintf(stderr, "\n");
 			if (args.hints & NMRP_MAYBE_FIRMWARE_INVALID) {
