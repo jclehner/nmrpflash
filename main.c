@@ -263,6 +263,23 @@ static void* ctrl_thread_func(void* arg)
 }
 #endif
 
+void force_line_buffering_if_no_tty(FILE* stream)
+{
+	int fd;
+
+	if (stream == stdout) {
+		fd = STDOUT_FILENO;
+	} else if (stream == stderr) {
+		fd = STDERR_FILENO;
+	} else {
+		return;
+	}
+
+	if (!isatty(fd)) {
+		setvbuf(stream, NULL, _IOLBF, BUFSIZ);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	int c, val, max, count;
@@ -284,6 +301,9 @@ int main(int argc, char **argv)
 		.blind_timeout = 0,
 		.offset = 0,
 	};
+
+	force_line_buffering_if_no_tty(stdout);
+	force_line_buffering_if_no_tty(stderr);
 
 	setlocale(LC_ALL, "en_US.UTF-8");
 #ifdef NMRPFLASH_WINDOWS
