@@ -598,5 +598,5 @@ cleanup:
 	del_tftp_firewall_rule(&addr);
 #endif
 
-	return (ret == 0) ? bytes : ret;
+	return (ret < 0) ? ret : bytes;
 }
