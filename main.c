@@ -21,6 +21,7 @@
 #include <getopt.h>
 #include <locale.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <locale.h>
 #include <stdio.h>
 #include <pcap.h>
@@ -301,6 +302,8 @@ int main(int argc, char **argv)
 		.blind_timeout = 0,
 		.offset = 0,
 	};
+
+	signal(SIGPIPE, SIG_IGN);
 
 	force_line_buffering_if_no_tty(stdout);
 	force_line_buffering_if_no_tty(stderr);
