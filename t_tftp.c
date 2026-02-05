@@ -26,5 +26,10 @@ int main(int argc, char** argv)
 		.sock = NULL,
 	};
 
-	tftp_put(&args);
+	if (tftp_put(&args) < 0) {
+		return 1;
+	}
+
+	printf("\n");
+	return 0;
 }
