@@ -573,9 +573,6 @@ ssize_t tftp_put(struct nmrpd_args *args)
 					printf("Switching to port %d\n", port);
 				}
 				addr.sin_port = htons(port);
-				if (connect(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-					perror("connect");
-				}
 			}
 		}
 	}
