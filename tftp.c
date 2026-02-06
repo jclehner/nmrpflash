@@ -240,7 +240,7 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 }
 
 static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
-		struct sockaddr_in *dst, struct nmrpd_args* args, bool* connected)
+		struct sockaddr_in *dst, struct nmrpd_args* args, bool* p_connected)
 {
 	ssize_t sent;
 	socklen_t alen;
@@ -276,7 +276,7 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 	}
 
 #ifndef NMRPFLASH_FUZZ
-	if (*connected) {
+	if (*p_connected) {
 		alen = 0;
 		dst = NULL;
 	} else {
@@ -588,6 +588,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				if (connect(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
 					perror("connect");
 					fflush(stderr);
+					// FIXME abort?
 				} else {
 					connected = true;
 				}
