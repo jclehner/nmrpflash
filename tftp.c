@@ -240,9 +240,10 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 }
 
 static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
-		struct sockaddr_in *dst, struct nmrpd_args* args)
+		struct sockaddr_in *dst, struct nmrpd_args* args, bool* connected)
 {
 	ssize_t sent;
+	socklen_t alen;
 	bool is_xrq = false;
 
 	switch (pkt_num(pkt)) {
@@ -275,7 +276,14 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 	}
 
 #ifndef NMRPFLASH_FUZZ
-	sent = sendto(sock, pkt, len, 0, (struct sockaddr*)dst, sizeof(*dst));
+	if (connected) {
+		alen = 0;
+		dst = NULL;
+	} else {
+		alen = sizeof(*dst);
+	}
+
+	sent = sendto(sock, pkt, len, 0, (struct sockaddr*)dst, alen);
 	if (sent < 0) {
 		if (is_xrq) {
 			args->hints |= NMRP_TFTP_XMIT_BLK0_FAILURE;
@@ -369,7 +377,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	char rx[2048], tx[2048];
 	const char *file_remote = args->file_remote;
 	char *val, *end;
-	bool rollover, discard;
+	bool rollover, discard, connected;
 	const unsigned rx_timeout = args->blind_timeout ? 10 : MAX(args->rx_timeout / 50, 200);
 	const unsigned max_timeouts = args->blind_timeout ? 3 : 5;
 #ifndef NMRPFLASH_WINDOWS
@@ -452,6 +460,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	/* Not really, but this way the loop sends our WRQ before receiving */
 	timeouts = 1;
 	discard = true;
+	connected = false;
 
 #ifdef NMRPFLASH_WINDOWS
 	add_tftp_firewall_rule(&addr);
@@ -519,7 +528,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				bytes += len;
 			}
 
-			ret = tftp_sendto(sock, tx, len, &addr, args);
+			ret = tftp_sendto(sock, tx, len, &addr, args, &connected);
 			if (ret < 0) {
 				goto cleanup;
 			}
@@ -571,8 +580,16 @@ ssize_t tftp_put(struct nmrpd_args *args)
 			if (!block && port != args->port) {
 				if (verbosity > 1) {
 					printf("Switching to port %d\n", port);
+					fflush(stdout);
 				}
 				addr.sin_port = htons(port);
+
+				if (connect(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
+					perror("connect");
+					fflush(stderr);
+				} else {
+					connected = true;
+				}
 			}
 		}
 	}
