@@ -277,6 +277,7 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 
 #ifndef NMRPFLASH_FUZZ
 	if (connected) {
+		// setting these to 0/NULL makes sendto() behave like send()
 		alen = 0;
 		dst = NULL;
 	} else {
