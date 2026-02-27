@@ -243,14 +243,14 @@ static bool list_callback(const struct ethsock_list_item* item, void* arg)
 }
 
 #ifdef WITH_CTRL_THREAD
-pthread_t ctrl_thread;
+// just temporary, for testing upcoming GUI code
+static pthread_t ctrl_thread;
+static bool ctrl_thread_started = false;
 
 static void* ctrl_thread_func(void* arg)
 {
-	int c;
-
-	while ((c = getchar()) >= 0) {
-		switch (c) {
+	while (true) {
+		switch (getchar()) {
 			case 'i':
 				kill(getpid(), SIGINT);
 				break;
@@ -472,12 +472,23 @@ int main(int argc, char **argv)
 			val = -1;
 		}
 	} else {
-	#ifdef WITH_CTRL_THREAD
-		pthread_create(&ctrl_thread, NULL, ctrl_thread_func, NULL);
-	#endif
+#ifdef WITH_CTRL_THREAD
+		if (!isatty(STDIN_FILENO)) {
+			if (pthread_create(&ctrl_thread, NULL, ctrl_thread_func, NULL) != 0) {
+				perror("pthread_create");
+				return 1;
+			}
+			ctrl_thread_started = true;
+			if (verbosity > 1) {
+				printf("Control thread listening on stdin\n");
+			}
+		}
+#endif
 		val = nmrp_do(&args);
 #ifdef WITH_CTRL_THREAD
-		pthread_cancel(ctrl_thread);
+		if (ctrl_thread_started) {
+			pthread_cancel(ctrl_thread);
+		}
 #endif
 		if (val != 0 && !g_interrupted && args.hints) {
 			fprintf(stderr, "\n");
