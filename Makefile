@@ -3,7 +3,7 @@ STRIP = $(CROSS)strip
 PKG_CONFIG ?= pkg-config
 PREFIX ?= /usr/local
 VERSION := $(shell if [ -d .git ] && which git 2>&1 > /dev/null; then git describe --always | tail -c +2; else echo $$STANDALONE_VERSION; fi)
-CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\"
+CFLAGS += -Wall -g -DNMRPFLASH_VERSION=\"$(VERSION)\" -DWITH_CTRL_THREAD
 SUFFIX ?=
 NPCAP_SDK = 1.15
 ARCH := $(shell uname -m)

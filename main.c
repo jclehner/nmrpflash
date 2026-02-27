@@ -252,10 +252,10 @@ static void* ctrl_thread_func(void* arg)
 	while (true) {
 		switch (getchar()) {
 			case 'i':
-				kill(getpid(), SIGINT);
+				kill(0, SIGINT);
 				break;
 			case 't':
-				kill(getpid(), SIGTERM);
+				kill(0, SIGTERM);
 				break;
 		}
 	}
@@ -480,8 +480,10 @@ int main(int argc, char **argv)
 			}
 			ctrl_thread_started = true;
 			if (verbosity > 1) {
-				printf("Control thread listening on stdin\n");
+				printf("Control thread listening on stdin.\n");
 			}
+		} else if (verbosity > 1) {
+			printf("Not creating control thread.\n");
 		}
 #endif
 		val = nmrp_do(&args);
