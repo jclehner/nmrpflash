@@ -1,3 +1,5 @@
+#include <string.h>
+#include <stdio.h>
 #include "nmrpd.h"
 
 int main(int argc, char** argv)
@@ -13,14 +15,18 @@ int main(int argc, char** argv)
 		.op = NMRP_UPLOAD_FW,
 		.port = 69,
 	};
-#ifdef NMRPFLASH_FUZZ_TFTP
-	if (argc != 2) {
-		return 1;
-	}
-	args.file_local = argv[1];
 
-	return tftp_put(&args);
-#else
-	return nmrp_do(&args);
-#endif
+	int ret = 1;
+
+ 	if (argc == 3 && !strcmp(argv[1], "tftp")) {
+		args.file_local = argv[2];
+		ret = tftp_put(&args);
+		printf("\n");
+	} else if (argc == 2 && !strcmp(argv[1], "nmrp")) {
+		ret = nmrp_do(&args);
+	} else {
+		fprintf(stderr, "Error: bad arguments: argc=%d", argc);
+	}
+
+	return ret;
 }

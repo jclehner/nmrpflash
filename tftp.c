@@ -425,7 +425,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 		fsize = st.st_size - args->offset;
 	}
 
-#ifndef NMRPFLASH_FUZZ_TFTP
+#ifndef NMRPFLASH_FUZZ
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock < 0) {
 		sock_perror("socket");
@@ -578,6 +578,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 			timeouts = 0;
 			ret = 0;
 
+#ifndef NMRPFLASH_FUZZ
 			if (!block && port != args->port) {
 				if (verbosity > 1) {
 					printf("Switching to port %d\n", port);
@@ -592,6 +593,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 					connected = true;
 				}
 			}
+#endif
 		}
 	}
 

@@ -10,7 +10,7 @@ ARCH := $(shell uname -m)
 LINUXDEPLOY = ./linuxdeploy-$(ARCH).AppImage
 TMP := $(shell mktemp -d)
 APPDIR = $(TMP)/AppDir
-AFL = afl-gcc
+AFL_CC = afl-clang-fast
 DOCKER_BUILD_NAME=nmrpflash
 DOCKER_CONTAINER_NAME=$(DOCKER_BUILD_NAME)-container
 
@@ -47,11 +47,9 @@ else ifeq ($(shell uname -s),Linux)
 	CFLAGS += $(shell $(PKG_CONFIG) libpcap --cflags)
 	LDFLAGS += $(shell $(PKG_CONFIG) libnl-route-3.0 --libs)
 	LDFLAGS += $(shell $(PKG_CONFIG) libpcap --libs)
-	AFL = afl-gcc
 else
 	LDFLAGS += -lpcap
 ifeq ($(shell uname -s),Darwin)
-	AFL=afl-clang
 	TARGETS ?= -arch x86_64 -arch arm64
 	CFLAGS += $(TARGETS)
 	LDFLAGS += -framework CoreFoundation -framework SystemConfiguration $(TARGETS)
@@ -72,20 +70,23 @@ t_tftp$(SUFFIX): t_tftp.o $(nmrpflash_OBJ)
 windres.o: nmrpflash.rc nmrpflash.manifest nmrpflash.ico
 	$(WINDRES) $< -o $@
 
-fuzz_nmrp: tftp.c util.c nmrp.c fuzz.c
-	$(AFL) $(CFLAGS) -DNMRPFLASH_FUZZ $^ -o $@
+fuzz: tftp.c util.c nmrp.c fuzz.c
+	$(AFL_CC) $(CFLAGS) -DNMRPFLASH_FUZZ $^ -o $@
 
-fuzz_tftp: tftp.c util.c nmrp.c fuzz.c
-	$(AFL) $(CFLAGS) -DNMRPFLASH_FUZZ -DNMRPFLASH_FUZZ_TFTP $^ -o $@
-
-dofuzz_tftp: fuzz_tftp
+fuzz_tftp:
 	echo core | sudo tee /proc/sys/kernel/core_pattern
 	echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
-	afl-fuzz -i fuzzin/tftp -o fuzzout/tftp -- ./fuzz_tftp fuzzin/tftp.bin
+	afl-fuzz -i fuzzin/tftp -o fuzzout/tftp -- ./fuzz tftp fuzzin/tftp.bin
+	echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+
+fuzz_nmrp:
+	echo core | sudo tee /proc/sys/kernel/core_pattern
+	echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+	afl-fuzz -i fuzzin/nmrp -o fuzzout/nmrp -- ./fuzz nmrp
 	echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 
 clean:
-	rm -f $(nmrpflash_OBJ) main.o t_tftp.o windres.o nmrpflash*.AppImage nmrpflash nmrpflash.exe fuzz_nmrp fuzz_tftp
+	rm -f $(nmrpflash_OBJ) main.o t_tftp.o windres.o nmrpflash*.AppImage nmrpflash nmrpflash.exe fuzz
 
 install: nmrpflash
 	install -d $(PREFIX)/bin
