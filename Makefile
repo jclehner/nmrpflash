@@ -73,18 +73,6 @@ windres.o: nmrpflash.rc nmrpflash.manifest nmrpflash.ico
 fuzz: tftp.c util.c nmrp.c fuzz.c
 	$(AFL_CC) $(CFLAGS) -DNMRPFLASH_FUZZ $^ -o $@
 
-fuzz_tftp:
-	echo core | sudo tee /proc/sys/kernel/core_pattern
-	echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
-	afl-fuzz -i fuzzin/tftp -o fuzzout/tftp -- ./fuzz tftp fuzzin/tftp.bin
-	echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
-
-fuzz_nmrp:
-	echo core | sudo tee /proc/sys/kernel/core_pattern
-	echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
-	afl-fuzz -i fuzzin/nmrp -o fuzzout/nmrp -- ./fuzz nmrp
-	echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
-
 clean:
 	rm -f $(nmrpflash_OBJ) main.o t_tftp.o windres.o nmrpflash*.AppImage nmrpflash nmrpflash.exe fuzz
 

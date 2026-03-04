@@ -348,6 +348,7 @@ static int is_valid_ip_cb(struct ethsock_ip_callback_args *args)
 static int is_valid_ip(struct ethsock *sock, struct in_addr *ipaddr,
 		struct in_addr *ipmask)
 {
+#ifndef NMRPFLASH_FUZZ
 	int status;
 	struct is_valid_ip_arg arg = {
 		.ipaddr = ipaddr,
@@ -357,6 +358,9 @@ static int is_valid_ip(struct ethsock *sock, struct in_addr *ipaddr,
 
 	status = ethsock_for_each_ip(sock, is_valid_ip_cb, &arg);
 	return status < 0 ? status : arg.result;
+#else
+	return 1;
+#endif
 }
 
 static void sigh(int sig)
