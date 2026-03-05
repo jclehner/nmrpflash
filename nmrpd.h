@@ -93,6 +93,10 @@
 #define NMRP_NO_NMRP_RESPONSE        (1 << 2)
 #define NMRP_TFTP_XMIT_BLK0_FAILURE  (1 << 3)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct eth_hdr {
 	uint8_t ether_dhost[6];
 	uint8_t ether_shost[6];
@@ -198,5 +202,14 @@ uint32_t bitcount(uint32_t n);
 uint32_t netmask(uint32_t count);
 void xperror(const char *msg);
 
+#ifdef NMRPFLASH_WINDOWS
+bool console_window_is_ours();
+#endif
+int start_gui(char* argv0, struct nmrpd_args* args);
+
 extern volatile sig_atomic_t g_interrupted;
+
+#ifdef __cplusplus
+}
+#endif
 #endif

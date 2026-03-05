@@ -46,6 +46,9 @@ int usage(FILE *fp)
 			" -c <command>    Command to run before (or instead of) TFTP upload\n"
 			" -f <firmware>   Firmware file\n"
 			" -F <filename>   Remote filename to use during TFTP upload\n"
+#ifdef NMRPFLASH_GUI
+			" -G              Start GUI\n"
+#endif
 			" -i <interface>  Network interface directly connected to device\n"
 			" -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)\n"
 			" -M <netmask>    Subnet mask to assign to target device [%s]\n"
@@ -79,7 +82,7 @@ int usage(FILE *fp)
 			"and MAC set to the router's IP address, subnet mask, TFTP port, and MAC address,\n"
 			"respectively.\n"
 			"\n"
-			"nmrpflash %s, Copyright (C) 2016-2025 Joseph C. Lehner\n"
+			"nmrpflash %s, Copyright (C) 2016-2026 Joseph C. Lehner\n"
 			"nmrpflash is free software, licensed under the GNU GPLv3.\n"
 			"Source code at https://github.com/jclehner/nmrpflash\n"
 			"\n"
@@ -126,13 +129,7 @@ void require_admin()
 
 void show_exit_prompt()
 {
-	DWORD pid;
-	HWND win = GetConsoleWindow();
-	if (!win || !GetWindowThreadProcessId(win, &pid)) {
-		return;
-	}
-
-	if (GetCurrentProcessId() == pid) {
+	if (console_window_is_ours()) {
 		printf("Press any key to exit\n");
 		getch();
 	}
@@ -284,7 +281,7 @@ void force_line_buffering_if_no_tty(FILE* stream)
 int main(int argc, char **argv)
 {
 	int c, val, max, count;
-	bool list = false, have_dest_mac = false;
+	bool list = false, have_dest_mac = false, gui = false;
 	struct nmrpd_args args = {
 		.rx_timeout = NMRP_DEFAULT_RX_TIMEOUT_MS,
 		.ul_timeout = NMRP_DEFAULT_UL_TIMEOUT_S * 1000,
@@ -349,9 +346,21 @@ int main(int argc, char **argv)
 #endif
 #endif
 
+#ifdef NMRPFLASH_GUI
+	if (argc >= 2 && argv[1][0] != '-') {
+		gui = true;
+		args.file_local = argv[1];
+	}
+#endif
+
+#ifdef NMRPFLASH_WINDOWS
+	if (argc == 1 && console_window_is_ours()) {
+		gui = true;
+	}
+#endif
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, ":a:A:Bc:f:F:i:m:M:p:R:S:t:T:hLVvU")) != -1) {
+	while ((c = getopt(argc, argv, ":a:A:Bc:f:F:G:i:m:M:p:R:S:t:T:hLVvU")) != -1) {
 		switch (c) {
 			case 'a':
 				args.ipaddr = optarg;
@@ -367,6 +376,9 @@ int main(int argc, char **argv)
 				break;
 			case 'F':
 				args.file_remote = optarg;
+				break;
+			case 'G':
+				gui = true;
 				break;
 			case 'i':
 				args.intf = optarg;
@@ -436,12 +448,22 @@ int main(int argc, char **argv)
 				if (optopt == 'B') {
 					args.blind_timeout = NMRP_DEFAULT_BLIND_TIMEOUT_S;
 					break;
+				} else if (optopt == 'G') {
+					gui = true;
+					break;
 				}
 				// fallthrough
 			default:
 				return usage(stderr);
 		}
 	}
+
+#ifndef NMRPFLASH_GUI
+	if (gui) {
+		fprintf(stderr, "Error: nmrpflash was built without GUI support.\n");
+		return 2;
+	}
+#endif
 
 	if (verbosity) {
 		print_version();
@@ -457,15 +479,10 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-#ifndef NMRPFLASH_FUZZ
-	if (!list && ((!args.file_local && !args.tftpcmd) || !args.intf)) {
+	if (!gui && !list && ((!args.file_local && !args.tftpcmd) || !args.intf)) {
 		return usage(stderr);
 	}
 
-	if (!list) {
-		require_admin();
-	}
-#endif
 	if (list) {
 		count = 0;
 		val = ethsock_list_all(list_callback, &count);
@@ -474,6 +491,12 @@ int main(int argc, char **argv)
 			val = -1;
 		}
 	} else {
+		if (gui) {
+			return start_gui(argv[0], &args);
+		}
+
+		require_admin();
+
 #ifdef WITH_CTRL_THREAD
 		if (!isatty(STDIN_FILENO)) {
 			if (pthread_create(&ctrl_thread, NULL, ctrl_thread_func, NULL) != 0) {

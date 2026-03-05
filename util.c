@@ -104,3 +104,16 @@ void xperror(const char *msg)
 		printf("\n");
 	}
 }
+
+#ifdef NMRPFLASH_WINDOWS
+bool console_window_is_ours()
+{
+	DWORD pid;
+	HWND win = GetConsoleWindow();
+	if (!win || !GetWindowThreadProcessId(win, &pid)) {
+		return false;
+	}
+
+	return GetCurrentProcessId() == pid;
+}
+#endif

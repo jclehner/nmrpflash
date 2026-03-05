@@ -1,3 +1,8 @@
-#include "winuser.h"
+#include <winuser.h>
 IDI_ICON1 ICON "nmrpflash.ico"
+
+#ifdef NMRPFLASH_GUI
+#include "gui/nmrpflash.rc"
+#endif
+
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "nmrpflash.manifest"
