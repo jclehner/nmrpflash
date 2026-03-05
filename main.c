@@ -303,7 +303,9 @@ int main(int argc, char **argv)
 		.offset = 0,
 	};
 
+#ifndef NMRPFLASH_WINDOWS
 	signal(SIGPIPE, SIG_IGN);
+#endif
 
 	force_line_buffering_if_no_tty(stdout);
 	force_line_buffering_if_no_tty(stderr);
