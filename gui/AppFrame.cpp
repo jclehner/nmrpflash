@@ -1,11 +1,10 @@
 #include "AppFrame.h"
 #include "Util.h"
+#include "../nmrpd.h"
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <stdexcept>
-#include <system_error>
-#include <pcap/pcap.h>
 #include <wx/event.h>
 #include <wx/log.h>
 #include <wx/menu.h>
@@ -19,40 +18,25 @@
 #include <wx/cmdline.h>
 #include <wx/windowptr.h>
 
-#ifdef __APPLE__
+#ifdef NMRPFLASH_MACOS
 #include <mach-o/dyld.h>
 #endif
 
-#ifndef _WIN32
-#  include <pcap.h>
-#else
-#  include <winsock2.h>
-#  include <ws2tcpip.h>
-#  include <iphlpapi.h>
-#endif
 using namespace std;
 
 namespace nmrpflash {
 namespace {
 struct AdapterData : public wxClientData
 {
-#ifdef _WIN32
-	AdapterData(const MIB_IF_ROW2& row)
+	AdapterData(const ethsock_list_item* p)
 	{
-		this->name = "eth" + to_string(row.InterfaceIndex);
-		memcpy(hwaddr, row.PhysicalAddress, min(row.PhysicalAddressLength, ULONG(sizeof(hwaddr))));
-		this->wifi = row.Type == IF_TYPE_IEEE80211;
+		this->native_name = p->native_name;
+		this->pcap_name = p->pcap_name;
+		memcpy(hwaddr, p->hwaddr, sizeof(hwaddr));
 	}
-#else
-	AdapterData(const pcap_if_t* p)
-	{
-		this->name = p->name;
-		this->wifi = p->flags & PCAP_IF_WIRELESS;
-	}
-#endif
 
-	string name;
-	string description;
+	string native_name;
+	string pcap_name;
 	uint8_t hwaddr[6];
 	bool wifi = false;
 };
@@ -312,7 +296,7 @@ long AppFrame::ExecuteProcess()
 	auto adapter = dynamic_cast<AdapterData*>(m_adapterList->GetClientObject(m_adapterList->GetSelection()));
 	long ret = m_process->Execute("nmrpflash", {
 		m_textCmdlineAdd->GetValue().ToStdString(),
-		"-i", adapter->name,
+		"-i", adapter->native_name,
 		"-f", m_filePicker->GetPath().ToStdString()
 	});
 
@@ -327,85 +311,16 @@ void AppFrame::UpdateProcessState(bool running)
 	m_textCmdlineAdd->Enable(!running);
 }
 
-namespace {
-#ifdef _WIN32
-auto mac_to_str(const MIB_IF_ROW2& row)
-{
-	wxString ret;
-
-	for (ULONG i = 0; i < row.PhysicalAddressLength; ++i) {
-		if (i) {
-			ret += ":";
-		}
-		ret += wxString::Format("%02x", row.PhysicalAddress[i]);
-	}
-
-	return ret;
-}
-#endif
-}
-
 void AppFrame::UpdateNetAdapterList(bool userInitiated)
 {
 	m_adapterList->Clear();
 
-#ifndef _WIN32
-	char errbuf[PCAP_ERRBUF_SIZE];
-	pcap_if_t* dev;
-	int r = pcap_findalldevs(&dev, errbuf);
-	if (r != 0) {
-		return;
-	}
-
-	for (; dev; dev = dev->next) {
-		auto s = wxString::Format("%s", dev->name);
-		m_adapterList->Append(s, new AdapterData(dev));
-	}
-
-	pcap_freealldevs(dev);
-#else
-	PIP_ADAPTER_ADDRESSES adapters;
-	ULONG ret, flags, bufLen;
-	bool found = false;
-
-	flags = GAA_FLAG_INCLUDE_ALL_INTERFACES;
-	bufLen = 0;
-	ret = GetAdaptersAddresses(AF_UNSPEC, flags, NULL, NULL, &bufLen);
-	if (ret != ERROR_BUFFER_OVERFLOW) {
-		fprintf(stderr, "GetAdaptersAddresses: ret=%lu\n", ret);
-		return;
-	}
-
-	adapters = static_cast<PIP_ADAPTER_ADDRESSES>(malloc(bufLen));
-	if (!adapters) {
-		perror("malloc");
-		return;
-	}
-
-	ret = GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapters, &bufLen);
-	if (ret == NO_ERROR) {
-		for (auto a = adapters; a; a = a->Next) {
-			if (a->IfType != IF_TYPE_ETHERNET_CSMACD && a->IfType != IF_TYPE_IEEE80211) {
-				continue;
-			}
-
-			MIB_IF_ROW2 row;
-			memset(&row, 0, sizeof(row));
-			row.InterfaceIndex = a->IfIndex;
-
-			if (GetIfEntry2(&row) != NO_ERROR || !row.InterfaceAndOperStatusFlags.HardwareInterface) {
-				continue;
-			} else if (!row.PhysicalAddressLength) {
-				continue;
-			}
-
-			auto s = wxString::Format("%ls (%s)", a->FriendlyName, mac_to_str(row));
-			m_adapterList->Append(s, new AdapterData(row));
-		}
-	}
-
-	free(adapters);
-#endif
+	ethsock_list_all([](const ethsock_list_item* p, void* adapterListRaw) -> bool {
+		auto name = p->pretty_name ?: p->native_name;
+		auto choice = static_cast<decltype(m_adapterList)>(adapterListRaw);
+		choice->Append(name, new AdapterData(p));
+		return true;
+	}, m_adapterList);
 
 	if (m_adapterList->IsEmpty()) {
 		m_adapterList->Append("No suitable network interfaces found!");
