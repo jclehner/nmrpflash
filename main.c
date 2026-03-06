@@ -17,6 +17,7 @@
  *
  */
 
+#include <cstring>
 #include <unistd.h>
 #include <getopt.h>
 #include <locale.h>
@@ -47,7 +48,7 @@ int usage(FILE *fp)
 			" -f <firmware>   Firmware file\n"
 			" -F <filename>   Remote filename to use during TFTP upload\n"
 #ifdef NMRPFLASH_GUI
-			" -G              Start GUI\n"
+			" -g [<setting>]  GUI: 0: off, 1: on, a: auto [auto]\n"
 #endif
 			" -i <interface>  Network interface directly connected to device\n"
 			" -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)\n"
@@ -281,7 +282,7 @@ void force_line_buffering_if_no_tty(FILE* stream)
 int main(int argc, char **argv)
 {
 	int c, val, max, count;
-	bool list = false, have_dest_mac = false, gui = false;
+	bool list = false, have_dest_mac = false;
 	struct nmrpd_args args = {
 		.rx_timeout = NMRP_DEFAULT_RX_TIMEOUT_MS,
 		.ul_timeout = NMRP_DEFAULT_UL_TIMEOUT_S * 1000,
@@ -299,6 +300,8 @@ int main(int argc, char **argv)
 		.blind_timeout = 0,
 		.offset = 0,
 	};
+	// -1: auto, 0: off, 1: on
+	int gui_mode = -1;
 
 #ifndef NMRPFLASH_WINDOWS
 	signal(SIGPIPE, SIG_IGN);
@@ -346,21 +349,9 @@ int main(int argc, char **argv)
 #endif
 #endif
 
-#ifdef NMRPFLASH_GUI
-	if (argc >= 2 && argv[1][0] != '-') {
-		gui = true;
-		args.file_local = argv[1];
-	}
-#endif
-
-#ifdef NMRPFLASH_WINDOWS
-	if (argc == 1 && console_window_is_ours()) {
-		gui = true;
-	}
-#endif
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, ":a:A:Bc:f:F:G:i:m:M:p:R:S:t:T:hLVvU")) != -1) {
+	while ((c = getopt(argc, argv, ":a:A:Bc:f:F:g:i:m:M:p:R:S:t:T:hLVvU")) != -1) {
 		switch (c) {
 			case 'a':
 				args.ipaddr = optarg;
@@ -377,9 +368,6 @@ int main(int argc, char **argv)
 			case 'F':
 				args.file_remote = optarg;
 				break;
-			case 'G':
-				gui = true;
-				break;
 			case 'i':
 				args.intf = optarg;
 				break;
@@ -395,6 +383,18 @@ int main(int argc, char **argv)
 				args.region = optarg;
 				break;
 #endif
+			case 'g':
+				if (!strcmp(optarg, "auto")) {
+					gui_mode = -1;
+				} else if (!strcmp(optarg, "0") || !strcmp(optarg, "off")) {
+					gui_mode = 0;
+				} else if (!strcmp(optarg, "1") || !strcmp(optarg, "on")) {
+					gui_mode = 1;
+				} else {
+					fprintf(stderr, "Invalid argument for -g.\n");
+					return 1;
+				}
+				break;
 			case 'B':
 			case 'p':
 			case 'S':
@@ -404,6 +404,10 @@ int main(int argc, char **argv)
 					max = 0xffff;
 				} else {
 					max = 0x7fffffff;
+				}
+
+				if (!optarg) {
+					fprintf(stderr, "optarg is NULL for -%c!\n", c);
 				}
 
 				if (optarg) {
@@ -430,6 +434,8 @@ int main(int argc, char **argv)
 					args.ul_timeout = val * 1000;
 				} else if (c == 'S') {
 					args.offset = val;
+				} else if (c == 'g') {
+					gui_mode = val;
 				}
 
 				break;
@@ -448,8 +454,8 @@ int main(int argc, char **argv)
 				if (optopt == 'B') {
 					args.blind_timeout = NMRP_DEFAULT_BLIND_TIMEOUT_S;
 					break;
-				} else if (optopt == 'G') {
-					gui = true;
+				} else if (optopt == 'g') {
+					gui_mode = 1;
 					break;
 				}
 				// fallthrough
@@ -458,8 +464,33 @@ int main(int argc, char **argv)
 		}
 	}
 
-#ifndef NMRPFLASH_GUI
-	if (gui) {
+	printf("here!\n");
+
+#ifdef NMRPFLASH_GUI
+	if (gui_mode == -1) {
+		// start the gui if all of the following are true:
+		// - we're not being started from a terminal
+		// - at most, a single (non-option) argument is supplied (aside from -g auto)
+
+		// in auto-mode, start the GUI if we're not being called from a terminal, and either
+		// no or just a single argument 
+
+		printf("argc=%d, optind=%d\n", argc, optind);
+
+		if (argc == optind || (argc == (optind+1) && argv[optind][0] != '-')) {
+#  ifdef NMRPFLASH_WINDOWS
+			gui_mode = console_window_is_ours() ? 1 : 0;
+#  else
+			gui_mode = (!isatty(STDIN_FILENO) && !isatty(STDOUT_FILENO) && !isatty(STDERR_FILENO)) ? 1 : 0;
+#  endif
+		} else {
+			gui_mode = 0;
+		}
+	}
+#else
+	if (gui_mode == -1) {
+		gui_mode = 0;
+	} else if (gui_mode == 1) {
 		fprintf(stderr, "Error: nmrpflash was built without GUI support.\n");
 		return 2;
 	}
@@ -479,7 +510,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (!gui && !list && ((!args.file_local && !args.tftpcmd) || !args.intf)) {
+	if (!gui_mode && !list && ((!args.file_local && !args.tftpcmd) || !args.intf)) {
 		return usage(stderr);
 	}
 
@@ -490,11 +521,9 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Error: no suitable network interfaces found.\n");
 			val = -1;
 		}
+	} else if (gui_mode) {
+		return start_gui(argv[0], &args);
 	} else {
-		if (gui) {
-			return start_gui(argv[0], &args);
-		}
-
 		require_admin();
 
 #ifdef WITH_CTRL_THREAD
