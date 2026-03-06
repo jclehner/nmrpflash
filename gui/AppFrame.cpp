@@ -294,8 +294,9 @@ void AppFrame::EndProcess()
 long AppFrame::ExecuteProcess()
 {
 	auto adapter = dynamic_cast<AdapterData*>(m_adapterList->GetClientObject(m_adapterList->GetSelection()));
-	long ret = m_process->Execute("nmrpflash", {
+	long ret = m_process->Execute(GetMyExecutableFilename().string(), {
 		m_textCmdlineAdd->GetValue().ToStdString(),
+		"-g", "0",
 		"-i", adapter->native_name,
 		"-f", m_filePicker->GetPath().ToStdString()
 	});
