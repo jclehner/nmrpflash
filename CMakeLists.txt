@@ -1,12 +1,10 @@
-# Still WIP! Use the regular Makefile for now!
-
 cmake_minimum_required(VERSION 3.24)
 
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 	message(FATAL_ERROR "In-source builds are not allowed")
 endif()
 
-option(NMRPFLASH_BUILD_GUI "Build with GUI support" OFF)
+option(NMRPFLASH_BUILD_GUI "Enable GUI" OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
@@ -71,22 +69,22 @@ target_compile_definitions(fuzz PRIVATE NMRPFLASH_FUZZ)
 if (NMRPFLASH_BUILD_GUI)
 	add_subdirectory(gui)
 	add_compile_definitions(NMRPFLASH_GUI=1)
-	message("Building GUI too!")
+	target_link_libraries(nmrpflash PRIVATE nmrpflash-gui)
 endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-	target_link_libraries(nmrpflash -lpcap "-framework CoreFoundation -framework SystemConfiguration")
+	target_link_libraries(nmrpflash PRIVATE -lpcap "-framework CoreFoundation -framework SystemConfiguration")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	target_sources(nmrpflash PRIVATE nmrpflash.rc)
-	add_compile_definitions(_WIN32_WINNT=0x0600 WIN32_LEAN_AND_MEAN __USE_MINGW_ANSI_STDIO)
-	link_libraries(-lwpcap -lPacket -liphlpapi -lws2_32 -ladvapi32)
-
-	include_directories(3rdparty/Npcap/Include)
+	target_include_directories(nmrpflash PRIVATE ./Npcap/Include)
 	if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-		link_directories(3rdparty/Npcap/Lib/x64)
+		target_link_directories(nmrpflash PRIVATE ./Npcap/Lib/x64)
 	else()
-		link_directories(3rdparty/Npcap/Lib)
+		target_link_directories(nmrpflash PRIVATE ./Npcap/Lib)
 	endif()
+
+	target_sources(nmrpflash PRIVATE nmrpflash.rc)
+	target_link_libraries(nmrpflash PRIVATE -lwpcap -lPacket -liphlpapi -lws2_32 -ladvapi32)
+	add_compile_definitions(_WIN32_WINNT=0x0600 WIN32_LEAN_AND_MEAN __USE_MINGW_ANSI_STDIO)
 else()
 	find_package(PkgConfig)
 	pkg_check_modules(PCAP REQUIRED IMPORTED_TARGET libpcap)
@@ -100,7 +98,6 @@ else()
 		target_include_directories(t_tftp PRIVATE PkgConfig::NLROUTE)
 	endif()
 endif()
-
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_sources(nmrpflash PRIVATE nmrpflash.rc)
