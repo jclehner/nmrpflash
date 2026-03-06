@@ -37,7 +37,7 @@
 #endif
 
 #ifdef NMRPFLASH_WINDOWS
-#define setenv(name, value, overwrite) SetEnvironmentVariable(name, value)
+#define setenv(name, value, overwrite) SetEnvironmentVariableA(name, value)
 #endif
 
 enum nmrp_code {

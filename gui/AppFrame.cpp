@@ -96,7 +96,7 @@ fs::path GetMyExecutableFilename()
 #ifdef _WIN32
 	char buf[MAX_PATH];
 
-	if (GetModuleFileName(nullptr, buf, sizeof(buf)) > 0) {
+	if (GetModuleFileNameA(nullptr, buf, sizeof(buf)) > 0) {
 		return buf;
 	}
 #endif
