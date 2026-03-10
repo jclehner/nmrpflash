@@ -1,25 +1,34 @@
 cmake_minimum_required(VERSION 3.24)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 add_library(nmrpflash-gui OBJECT)
 
 include(FetchContent)
-set(FETCHCONTENT_QUIET False)
+set(FETCHCONTENT_QUIET FALSE)
 
 FetchContent_Declare(
 	wxWidgets
 	GIT_REPOSITORY https://github.com/wxWidgets/wxWidgets
 	GIT_TAG v3.2.10
-	GIT_PROGRESS True
+	GIT_PROGRESS TRUE
+	GIT_SHALLOW TRUE
+	EXCLUDE_FROM_ALL
+#	FIND_PACKAGE_ARGS COMPONENTS core base xrc
 )
 
+set(BOOST_INCLUDE_LIBRARIES algorithm)
+set(BOOST_ENABLE_CMAKE ON)
+cmake_policy(SET CMP0167 NEW)
+
 FetchContent_Declare(
-	BoostAlgorithm
-	GIT_REPOSITORY https://github.com/boostorg/algorithm
-	GIT_TAG boost-1.90.0
-	GIT_PROGRESS True
+	Boost
+	URL https://github.com/boostorg/boost/releases/download/boost-1.90.0/boost-1.90.0-cmake.7z
+	USES_TERMINAL_DOWNLOAD TRUE
+	DOWNLOAD_NO_EXTRACT FALSE
+	EXCLUDE_FROM_ALL
+#	FIND_PACKAGE_ARGS COMPONENTS algorithm
 )
 
 find_package(wxWidgets COMPONENTS core base xrc)
@@ -31,34 +40,22 @@ else()
 	set(wxBUILD_SHARED OFF)
 	set(wxUSE_STL ON)
 	# speed up `make all` builds by disabling unneccessary stuff
-	set(wxUSE_ADV OFF)
-	set(wxUSE_AUI OFF)
-	set(wxUSE_GL OFF)
-	set(wxUSE_LIBJPEG OFF)
-	set(wxUSE_LIBTIFF OFF)
-	set(wxUSE_MEDIA OFF)
-	set(wxUSE_NET OFF)
-	set(wxUSE_PROPGRID OFF)
-	set(wxUSE_QA OFF)
-	set(wxUSE_REGEX OFF)
-	set(wxUSE_RIBBON OFF)
-	set(wxUSE_RICHTEXT OFF)
-	set(wxUSE_SCINTILLA OFF)
-	set(wxUSE_STC OFF)
 	set(wxUSE_WEBVIEW OFF)
+	set(wxUSE_REGEX OFF)
 	FetchContent_MakeAvailable(wxWidgets)
 	target_link_libraries(nmrpflash-gui PUBLIC wx::core wx::base wx::xrc)
 	set(wxrc $<TARGET_FILE:wxrc>)
 	set(wxrc_depends "wxrc")
 endif()
 
-cmake_policy(SET CMP0167 NEW)
-find_package(Boost)
-if(Boost_FOUND)
-	target_include_directories(nmrpflash-gui PRIVATE Boost::headers)
-else()
-	FetchContent_MakeAvailable(BoostAlgorithm)
-endif()
+#cmake_policy(SET CMP0167 NEW)
+#find_package(Boost)
+#if(Boost_FOUND)
+#	target_include_directories(nmrpflash-gui PRIVATE Boost::algorithm)
+#else()
+FetchContent_MakeAvailable(Boost)
+target_link_libraries(nmrpflash-gui PRIVATE Boost::algorithm)
+#endif()
 
 set(xrc_files ${CMAKE_CURRENT_SOURCE_DIR}/resources.xrc)
 set(resources_cpp ${CMAKE_CURRENT_BINARY_DIR}/Resources.cpp)
