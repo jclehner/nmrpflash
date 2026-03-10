@@ -131,6 +131,7 @@ struct nmrpd_args {
 	off_t offset;
 	int hints;
 	struct ethsock *sock;
+	bool is_gui_subprocess;
 };
 
 const char *leafname(const char *path);
@@ -205,7 +206,9 @@ void xperror(const char *msg);
 #ifdef NMRPFLASH_WINDOWS
 bool console_window_is_ours();
 #endif
+
 int start_gui(char* argv0, struct nmrpd_args* args);
+int start_control_thread();
 
 extern volatile sig_atomic_t g_interrupted;
 

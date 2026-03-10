@@ -17,21 +17,17 @@
  *
  */
 
-#include <cstring>
 #include <unistd.h>
 #include <getopt.h>
 #include <locale.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <locale.h>
 #include <stdio.h>
 #include <pcap.h>
-#ifdef WITH_CTRL_THREAD
-#include <pthread.h>
-#endif
 #include "nmrpd.h"
 
 #ifndef NMRPFLASH_WINDOWS
+#include <signal.h>
 #include <sys/utsname.h>
 #endif
 
@@ -48,7 +44,7 @@ int usage(FILE *fp)
 			" -f <firmware>   Firmware file\n"
 			" -F <filename>   Remote filename to use during TFTP upload\n"
 #ifdef NMRPFLASH_GUI
-			" -g [<setting>]  GUI: 0: off, 1: on, a: auto [auto]\n"
+			" -g [<setting>]  GUI mode: 0: off, 1: on, a: auto [auto]\n"
 #endif
 			" -i <interface>  Network interface directly connected to device\n"
 			" -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)\n"
@@ -240,28 +236,6 @@ static bool list_callback(const struct ethsock_list_item* item, void* arg)
 	return true;
 }
 
-#ifdef WITH_CTRL_THREAD
-// just temporary, for testing upcoming GUI code
-static pthread_t ctrl_thread;
-static bool ctrl_thread_started = false;
-
-static void* ctrl_thread_func(void* arg)
-{
-	while (true) {
-		switch (getchar()) {
-			case 'i':
-				kill(0, SIGINT);
-				break;
-			case 't':
-				kill(0, SIGTERM);
-				break;
-		}
-	}
-
-	return NULL;
-}
-#endif
-
 void force_line_buffering_if_no_tty(FILE* stream)
 {
 	int fd;
@@ -384,12 +358,15 @@ int main(int argc, char **argv)
 				break;
 #endif
 			case 'g':
-				if (!strcmp(optarg, "auto")) {
+				if (!strcmp(optarg, "a") || !strcmp(optarg, "auto")) {
 					gui_mode = -1;
 				} else if (!strcmp(optarg, "0") || !strcmp(optarg, "off")) {
 					gui_mode = 0;
 				} else if (!strcmp(optarg, "1") || !strcmp(optarg, "on")) {
 					gui_mode = 1;
+				} else if (!strcmp(optarg, "sub")) {
+					gui_mode = 0;
+					args.is_gui_subprocess = true;
 				} else {
 					fprintf(stderr, "Invalid argument for -g.\n");
 					return 1;
@@ -404,10 +381,6 @@ int main(int argc, char **argv)
 					max = 0xffff;
 				} else {
 					max = 0x7fffffff;
-				}
-
-				if (!optarg) {
-					fprintf(stderr, "optarg is NULL for -%c!\n", c);
 				}
 
 				if (optarg) {
@@ -464,8 +437,6 @@ int main(int argc, char **argv)
 		}
 	}
 
-	printf("here!\n");
-
 #ifdef NMRPFLASH_GUI
 	if (gui_mode == -1) {
 		// start the gui if all of the following are true:
@@ -474,8 +445,6 @@ int main(int argc, char **argv)
 
 		// in auto-mode, start the GUI if we're not being called from a terminal, and either
 		// no or just a single argument 
-
-		printf("argc=%d, optind=%d\n", argc, optind);
 
 		if (argc == optind || (argc == (optind+1) && argv[optind][0] != '-')) {
 #  ifdef NMRPFLASH_WINDOWS
@@ -526,26 +495,11 @@ int main(int argc, char **argv)
 	} else {
 		require_admin();
 
-#ifdef WITH_CTRL_THREAD
-		if (!isatty(STDIN_FILENO)) {
-			if (pthread_create(&ctrl_thread, NULL, ctrl_thread_func, NULL) != 0) {
-				perror("pthread_create");
-				return 1;
-			}
-			ctrl_thread_started = true;
-			if (verbosity > 1) {
-				printf("Control thread listening on stdin.\n");
-			}
-		} else if (verbosity > 1) {
-			printf("Not creating control thread.\n");
+		if (args.is_gui_subprocess) {
+			start_control_thread();
 		}
-#endif
+
 		val = nmrp_do(&args);
-#ifdef WITH_CTRL_THREAD
-		if (ctrl_thread_started) {
-			pthread_cancel(ctrl_thread);
-		}
-#endif
 		if (val != 0 && !g_interrupted && args.hints) {
 			fprintf(stderr, "\n");
 			if (args.hints & NMRP_MAYBE_FIRMWARE_INVALID) {

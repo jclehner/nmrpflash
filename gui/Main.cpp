@@ -1,4 +1,8 @@
+#include <chrono>
+#include <conio.h>
 #include <exception>
+#include <thread>
+#include <signal.h>
 #include <wx/cmdline.h>
 #include <wx/log.h>
 #include <wx/xrc/xmlres.h>
@@ -55,6 +59,8 @@ std::string MyApp::filename;
 
 wxIMPLEMENT_APP_NO_MAIN(nmrpflash::MyApp);
 
+// the functions below are called from C code
+
 int start_gui(char* argv0, nmrpd_args* args)
 {
 	umask(077);
@@ -76,4 +82,39 @@ int start_gui(char* argv0, nmrpd_args* args)
 #endif
 
 	return wxEntry(argc, argv);
+}
+
+int start_control_thread()
+{
+	try {
+		std::thread ctrl([] () {
+			if (verbosity > 1) {
+				std::cout << "Control thread reading from stdin..." << std::endl;
+			}
+
+			while (true) {
+				char c = getchar();
+				if (verbosity > 2) {
+					std::cout << "ctrl: c=" << int(c) << std::endl;
+				}
+
+				if (c == 'i') {
+					g_interrupted = 1;
+				} else if (c == 't') {
+					raise(SIGTERM);
+				}
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			}
+		});
+
+		ctrl.detach();
+		return 0;
+	} catch (const std::exception& e) {
+		std::cerr <<  __func__ << ": " << e.what() << "\n";
+	} catch (...) {
+		std::cerr <<  __func__ << ": unknown exception\n";
+	}
+
+	return -1;
 }

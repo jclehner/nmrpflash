@@ -5,6 +5,7 @@
 #include <cerrno>
 #include <system_error>
 #include <wx/stream.h>
+#include "../nmrpd.h"
 
 namespace nmrpflash {
 namespace fs = std::filesystem;

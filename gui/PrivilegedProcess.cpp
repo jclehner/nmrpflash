@@ -25,7 +25,13 @@ namespace {
 std::string EscapeAndQuote(std::string s, char quote, bool quoteIfSpace, bool quoteAlways)
 {
 	bool doQuote = quoteAlways;
-	std::string delims = "\\"s + quote + (quoteIfSpace ? " " : "");
+#ifndef NMRPFLASH_WINDOWS
+	std::string delims = "\\";
+#else
+	std::string delims = "";
+#endif
+
+	delims += quote + std::string(quoteIfSpace ? " " : "");
 
 	size_t i = 0;
 	while ((i = s.find_first_of(delims, i)) != s.npos) {
@@ -46,14 +52,14 @@ std::string EscapeAndQuote(std::string s, char quote, bool quoteIfSpace, bool qu
 	return s;
 }
 
-std::string EscapeShellArgvElement(const std::string& s)
+std::string EscapeArgvElement(const std::string& s)
 {
-	return EscapeAndQuote(s, '\'', true, false);
-}
-
-std::string EscapeAndSingleQuote(const std::string& s)
-{
-	return EscapeAndQuote(s, '\'', true, true);
+#ifdef NMRPFLASH_WINDOWS
+	char quote = '\"';
+#else
+	char quote = '\'';
+#endif
+	return EscapeAndQuote(s, quote, true, false);
 }
 
 std::string EscapeAndDoubleQuote(const std::string& s)
@@ -70,7 +76,7 @@ fs::path which(const std::string& cmd)
 	return ret;
 }
 
-fs::path cmd_to_absolute_path(const std::string& cmd)
+fs::path CmdToAbsolutePath(const std::string& cmd)
 {
 	auto p = fs::path(cmd);
 	if (p.is_absolute()) {
@@ -233,10 +239,13 @@ public:
 
 		std::string redirection;
 
-		cmd = cmd_to_absolute_path(cmd).string();
+		cmd = CmdToAbsolutePath(cmd).string();
 		AdjustCommand(cmd, args, redirection);
 
 		auto cmdstr = ToCmdString(cmd, args, redirection);
+
+		std::cout << "[gui] cmdstr:" << cmdstr << std::endl;
+
 		long ret = wxExecute(cmdstr, wxEXEC_ASYNC | wxEXEC_MAKE_GROUP_LEADER, m_wxprocess.get());
 		if (!ret) {
 			return ret;
@@ -273,16 +282,11 @@ protected:
 
 	static std::string ToCmdString(const std::string& cmd, const Args& args, const std::string& redirection)
 	{
-#ifdef _WIN32
-		auto f = &EscapeAndDoubleQuote;
-#else
-		auto f = &EscapeAndSingleQuote;
-#endif
-		auto s = EscapeShellArgvElement(cmd);
+		auto s = EscapeArgvElement(cmd);
 
 		for (auto& a : args) {
 			if (!a.empty()) {
-				s += " " + f(a);
+				s += " " + EscapeArgvElement(a);
 			}
 		}
 
@@ -324,7 +328,7 @@ private:
 	bool m_isRedirected = false;
 };
 
-#ifndef _WIN32
+#ifndef NMRPFLASH_WINDOWS
 class ProcessWithPkExec : public ProcessBase
 {
 protected:
@@ -571,7 +575,7 @@ PrivilegedProcess::~PrivilegedProcess() {}
 std::unique_ptr<PrivilegedProcess> PrivilegedProcess::Create(wxEvtHandler* parent)
 {
 	std::unique_ptr<ProcessBase> ret;
-#ifndef _WIN32
+#ifndef NMRPFLASH_WINDOWS
 	if (!which("pkexec").empty()) {
 		ret.reset(new ProcessWithPkExec);
 	} else if (!which("osascript").empty()) {

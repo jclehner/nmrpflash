@@ -507,11 +507,10 @@ int nmrp_do(struct nmrpd_args *args)
 
 		printf("Waiting for Ethernet connection");
 
-		if (!isatty(STDIN_FILENO)) {
-			printf(".\n");
-			fflush(stdout);
-		} else {
+		if (!args->is_gui_subprocess) {
 			printf(" (Ctrl-C to skip).\n");
+		} else {
+			printf(".\n");
 		}
 
 		bool unplugged = true;
@@ -524,7 +523,7 @@ int nmrp_do(struct nmrpd_args *args)
 			}
 		}
 
-		if (g_interrupted && !isatty(STDIN_FILENO)) {
+		if (g_interrupted && args->is_gui_subprocess) {
 			goto out;
 		}
 
@@ -848,7 +847,6 @@ int nmrp_do(struct nmrpd_args *args)
 		}
 
 		ethsock_set_timeout(sock, args->rx_timeout);
-
 	}
 
 	if (!g_interrupted) {
