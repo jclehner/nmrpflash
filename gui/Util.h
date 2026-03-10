@@ -5,6 +5,7 @@
 #include <cerrno>
 #include <system_error>
 #include <wx/stream.h>
+#include <boost/algorithm/string.hpp>
 #include "../nmrpd.h"
 
 namespace nmrpflash {

@@ -13,10 +13,6 @@
 #include <wx/textdlg.h>
 #include <wx/wfstream.h>
 
-#ifndef _WIN32
-#include <boost/algorithm/string/join.hpp>
-#endif
-
 using namespace std::literals::string_literals;
 
 namespace nmrpflash {
