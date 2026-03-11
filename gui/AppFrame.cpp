@@ -44,7 +44,22 @@ struct AdapterData : public wxClientData
 
 fs::path GetMyExecutableFilename()
 {
-#ifndef _WIN32
+#if defined(NMRPFLASH_MACOS)
+	uint32_t bufsize = 0;
+
+	_NSGetExecutablePath(nullptr, &bufsize);
+	auto buf = std::make_unique<char>(bufsize);
+
+	if (_NSGetExecutablePath(buf.get(), &bufsize) == 0) {
+		return buf.get();
+	}
+#elif defined(NMRPFLASH_WINDOWS)
+	char buf[MAX_PATH];
+
+	if (GetModuleFileNameA(nullptr, buf, sizeof(buf)) > 0) {
+		return buf;
+	}
+#else
 	fs::path paths[] = {
 		"/proc/self/exe",
 		"/proc/self/exefile",
@@ -64,25 +79,6 @@ fs::path GetMyExecutableFilename()
 		} catch(const fs::filesystem_error&e ) {
 			wxLogWarning("%s", e.what());
 		}
-	}
-#endif
-
-#ifdef __APPLE__
-	uint32_t bufsize = 0;
-
-	_NSGetExecutablePath(nullptr, &bufsize);
-	auto buf = std::make_unique<char>(bufsize);
-
-	if (_NSGetExecutablePath(buf.get(), &bufsize) == 0) {
-		return buf.get();
-	}
-#endif
-
-#ifdef _WIN32
-	char buf[MAX_PATH];
-
-	if (GetModuleFileNameA(nullptr, buf, sizeof(buf)) > 0) {
-		return buf;
 	}
 #endif
 
