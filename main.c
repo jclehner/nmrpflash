@@ -53,9 +53,7 @@ int usage(FILE *fp)
 			" -t <timeout>    Timeout (in milliseconds) for NMRP packets [%d ms]\n"
 			" -T <timeout>    Time (seconds) to wait after successful TFTP upload [%d s]\n"
 			" -p <port>       Port to use for TFTP upload [%d]\n"
-#ifdef NMRPFLASH_SET_REGION
 			" -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP, AU)\n"
-#endif
 			" -S <n>          Skip <n> bytes of the firmware file\n"
 			" -v              Be verbose\n"
 			" -V              Print version and exit\n"
@@ -354,11 +352,9 @@ int main(int argc, char **argv)
 			case 'M':
 				args.ipmask = optarg;
 				break;
-#ifdef NMRPFLASH_SET_REGION
 			case 'R':
 				args.region = optarg;
 				break;
-#endif
 			case 'g':
 				if (!strcmp(optarg, "a") || !strcmp(optarg, "auto")) {
 					gui_mode = -1;
