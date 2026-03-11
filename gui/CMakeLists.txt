@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
+cmake_policy(SET CMP0167 NEW)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
@@ -15,12 +17,10 @@ FetchContent_Declare(
 	GIT_PROGRESS TRUE
 	GIT_SHALLOW TRUE
 	EXCLUDE_FROM_ALL
-#	FIND_PACKAGE_ARGS COMPONENTS core base xrc
 )
 
 set(BOOST_INCLUDE_LIBRARIES algorithm)
 set(BOOST_ENABLE_CMAKE ON)
-cmake_policy(SET CMP0167 NEW)
 
 FetchContent_Declare(
 	Boost
@@ -28,7 +28,7 @@ FetchContent_Declare(
 	USES_TERMINAL_DOWNLOAD TRUE
 	DOWNLOAD_NO_EXTRACT FALSE
 	EXCLUDE_FROM_ALL
-#	FIND_PACKAGE_ARGS COMPONENTS algorithm
+	FIND_PACKAGE_ARGS COMPONENTS algorithm
 )
 
 find_package(wxWidgets COMPONENTS core base xrc)
@@ -39,7 +39,6 @@ if(wxWidgets_FOUND)
 else()
 	set(wxBUILD_SHARED OFF)
 	set(wxUSE_STL ON)
-	# speed up `make all` builds by disabling unneccessary stuff
 	set(wxUSE_WEBVIEW OFF)
 	set(wxUSE_REGEX OFF)
 	FetchContent_MakeAvailable(wxWidgets)
@@ -48,14 +47,8 @@ else()
 	set(wxrc_depends "wxrc")
 endif()
 
-#cmake_policy(SET CMP0167 NEW)
-#find_package(Boost)
-#if(Boost_FOUND)
-#	target_include_directories(nmrpflash-gui PRIVATE Boost::algorithm)
-#else()
 FetchContent_MakeAvailable(Boost)
-target_link_libraries(nmrpflash-gui PRIVATE Boost::algorithm)
-#endif()
+target_include_directories(nmrpflash-gui PRIVATE Boost::algorithm)
 
 set(xrc_files ${CMAKE_CURRENT_SOURCE_DIR}/resources.xrc)
 set(resources_cpp ${CMAKE_CURRENT_BINARY_DIR}/Resources.cpp)
