@@ -1,5 +1,7 @@
 #include "AppFrame.h"
 #include "Util.h"
+#include "boost/algorithm/string/classification.hpp"
+#include "boost/algorithm/string/constants.hpp"
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
@@ -300,7 +302,7 @@ long AppFrame::ExecuteProcess()
 	auto adapter = dynamic_cast<AdapterData*>(m_adapterList->GetClientObject(m_adapterList->GetSelection()));
 
 	list<string> args;
-	boost::algorithm::split(args, boost::is_any_of(" "), m_textCmdlineAdd->GetValue());
+	boost::algorithm::split(args, m_textCmdlineAdd->GetValue(), boost::is_any_of(" "), boost::algorithm::token_compress_on);
 	args.insert(args.end(), {
 		"-g", "sub",
 		"-i", adapter->native_name,
