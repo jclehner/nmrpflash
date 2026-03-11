@@ -273,6 +273,7 @@ int main(int argc, char **argv)
 		.region = NULL,
 		.blind_timeout = 0,
 		.offset = 0,
+		.is_gui_subprocess = false
 	};
 	// -1: auto, 0: off, 1: on
 	int gui_mode = -1;
@@ -452,6 +453,9 @@ int main(int argc, char **argv)
 #  else
 			gui_mode = (!isatty(STDIN_FILENO) && !isatty(STDOUT_FILENO) && !isatty(STDERR_FILENO)) ? 1 : 0;
 #  endif
+			if (argc == (optind+1)) {
+				args.file_local = argv[optind];
+			}
 		} else {
 			gui_mode = 0;
 		}
@@ -495,9 +499,11 @@ int main(int argc, char **argv)
 	} else {
 		require_admin();
 
+#ifdef NMRPFLASH_GUI
 		if (args.is_gui_subprocess) {
 			start_control_thread();
 		}
+#endif
 
 		val = nmrp_do(&args);
 		if (val != 0 && !g_interrupted && args.hints) {
