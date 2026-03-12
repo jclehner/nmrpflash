@@ -48,7 +48,7 @@ else()
 endif()
 
 FetchContent_MakeAvailable(Boost)
-target_include_directories(nmrpflash-gui PRIVATE Boost::algorithm)
+target_link_libraries(nmrpflash-gui PRIVATE Boost::boost)
 
 set(xrc_files ${CMAKE_CURRENT_SOURCE_DIR}/resources.xrc)
 set(resources_cpp ${CMAKE_CURRENT_BINARY_DIR}/Resources.cpp)
