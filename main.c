@@ -449,7 +449,7 @@ int main(int argc, char **argv)
 			gui_mode = console_window_is_ours() ? 1 : 0;
 #  else
 			gui_mode = (!isatty(STDIN_FILENO) && !isatty(STDOUT_FILENO) && !isatty(STDERR_FILENO)) ? 1 : 0;
-#endif
+#  endif
 			if (argc == (optind+1)) {
 				args.file_local = argv[optind];
 			}
