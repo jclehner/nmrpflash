@@ -435,7 +435,6 @@ int main(int argc, char **argv)
 		}
 	}
 
-#ifdef NMRPFLASH_GUI
 	if (gui_mode == -1) {
 		// start the gui if all of the following are true:
 		// - we're not being started from a terminal
@@ -444,27 +443,23 @@ int main(int argc, char **argv)
 		// in auto-mode, start the GUI if we're not being called from a terminal, and either
 		// no or just a single argument 
 
+#ifdef NMRPFLASH_GUI
 		if (argc == optind || (argc == (optind+1) && argv[optind][0] != '-')) {
 #  ifdef NMRPFLASH_WINDOWS
 			gui_mode = console_window_is_ours() ? 1 : 0;
 #  else
 			gui_mode = (!isatty(STDIN_FILENO) && !isatty(STDOUT_FILENO) && !isatty(STDERR_FILENO)) ? 1 : 0;
-#  endif
+#endif
 			if (argc == (optind+1)) {
 				args.file_local = argv[optind];
 			}
 		} else {
 			gui_mode = 0;
 		}
-	}
 #else
-	if (gui_mode == -1) {
 		gui_mode = 0;
-	} else if (gui_mode == 1) {
-		fprintf(stderr, "Error: nmrpflash was built without GUI support.\n");
-		return 2;
-	}
 #endif
+	}
 
 	if (verbosity) {
 		print_version();
@@ -492,7 +487,12 @@ int main(int argc, char **argv)
 			val = -1;
 		}
 	} else if (gui_mode) {
+#ifdef NMRPFLASH_GUI
 		return start_gui(argv[0], &args);
+#else
+		fprintf(stderr, "Error: nmrpflash was built without GUI support.\n");
+		return 1;
+#endif
 	} else {
 		require_admin();
 
