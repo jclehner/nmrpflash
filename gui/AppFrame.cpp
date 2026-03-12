@@ -23,6 +23,10 @@
 #include <mach-o/dyld.h>
 #endif
 
+#ifdef __FreeBSD__
+#include <sys/sysctl.h>
+#endif
+
 using namespace std;
 
 namespace nmrpflash {
@@ -42,7 +46,7 @@ struct AdapterData : public wxClientData
 	bool wifi = false;
 };
 
-fs::path GetMyExecutableFilename()
+std::string GetMyExecutableFilename()
 {
 #if defined(NMRPFLASH_MACOS)
 	uint32_t bufsize = 0;
@@ -51,13 +55,21 @@ fs::path GetMyExecutableFilename()
 	auto buf = std::make_unique<char>(bufsize);
 
 	if (_NSGetExecutablePath(buf.get(), &bufsize) == 0) {
-		return buf.get();
+		return { buf.get(), bufsize };
 	}
 #elif defined(NMRPFLASH_WINDOWS)
 	char buf[MAX_PATH];
 
 	if (GetModuleFileNameA(nullptr, buf, sizeof(buf)) > 0) {
 		return buf;
+	}
+#elif defined(__FreeBSD__)
+	char buf[1024];
+	size_t bufsize = sizeof(buf);
+	int name[] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
+
+	if (sysctl(name, std::size(name), buf, &bufsize, nullptr, 0) == 0 && bufsize > 0) {
+		return { buf, bufsize };
 	}
 #else
 	fs::path paths[] = {
@@ -108,7 +120,7 @@ m_timer(new wxTimer(this))
 	auto dummy = "0" + string(60-3, '.') + "60" + string(20-2, '.') + "80";
 	m_textLog->WriteText(dummy + "\n");
 
-	m_textLog->WriteText("self: " + GetMyExecutableFilename().string() + "\n");
+	m_textLog->WriteText("self: " + GetMyExecutableFilename() + "\n");
 
 	while (m_textLog->GetNumberOfLines() < 10) {
 		m_textLog->WriteText("\n");
@@ -305,7 +317,7 @@ long AppFrame::ExecuteProcess()
 		"-f", m_filePicker->GetPath().ToStdString()
 	});
 
-	long ret = m_process->Execute(GetMyExecutableFilename().string(), args);
+	long ret = m_process->Execute(GetMyExecutableFilename(), args);
 
 	return ret;
 }
