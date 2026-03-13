@@ -233,21 +233,9 @@ static bool list_callback(const struct ethsock_list_item* item, void* arg)
 	return true;
 }
 
-void force_line_buffering_if_no_tty(FILE* stream)
+void force_line_buffering(FILE* stream)
 {
-	int fd;
-
-	if (stream == stdout) {
-		fd = STDOUT_FILENO;
-	} else if (stream == stderr) {
-		fd = STDERR_FILENO;
-	} else {
-		return;
-	}
-
-	if (!isatty(fd)) {
-		setvbuf(stream, NULL, _IOLBF, BUFSIZ);
-	}
+	setvbuf(stream, NULL, _IOLBF, BUFSIZ);
 }
 
 int main(int argc, char **argv)
@@ -281,8 +269,8 @@ int main(int argc, char **argv)
 	signal(SIGPIPE, SIG_IGN);
 #endif
 
-	force_line_buffering_if_no_tty(stdout);
-	force_line_buffering_if_no_tty(stderr);
+	force_line_buffering(stdout);
+	force_line_buffering(stderr);
 
 	setlocale(LC_ALL, "en_US.UTF-8");
 #ifdef NMRPFLASH_WINDOWS
