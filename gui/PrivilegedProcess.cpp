@@ -82,7 +82,7 @@ fs::path CmdToAbsolutePath(const std::string& cmd)
 	return which(cmd);
 }
 
-#ifndef _WIN32
+#ifndef NMRPFLASH_WINDOWS
 fs::path mkdtemp()
 {
 	auto tmp = (fs::temp_directory_path() / "nmrpflashXXXXXX").string();
