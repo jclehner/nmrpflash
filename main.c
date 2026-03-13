@@ -517,7 +517,9 @@ int main(int argc, char **argv)
 
 #ifdef NMRPFLASH_GUI
 		if (args.is_gui_subprocess) {
-			start_control_thread();
+			if (start_control_thread() != 0) {
+				return 1;
+			}
 		}
 #endif
 
