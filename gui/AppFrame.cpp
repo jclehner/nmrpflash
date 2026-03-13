@@ -1,7 +1,5 @@
 #include "AppFrame.h"
 #include "Util.h"
-#include "boost/algorithm/string/classification.hpp"
-#include "boost/algorithm/string/constants.hpp"
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
