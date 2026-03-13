@@ -229,7 +229,8 @@ static void msg_mkconfack(struct nmrp_msg *msg, uint32_t ipaddr, uint32_t ipmask
 
 
 #ifdef NMRPFLASH_FUZZ
-#define NMRP_ADVERTISE_TIMEOUT 0
+#undef NMRP_ADVERTISE_TIMEOUT_S
+#define NMRP_ADVERTISE_TIMEOUT_S 0
 #define ethsock_create(a, b) ((struct ethsock*)1)
 #define ethsock_get_hwaddr(a) ethsock_get_hwaddr_fake(a)
 #define ethsock_recv(sock, buf, len) read(STDIN_FILENO, buf, len)
@@ -251,8 +252,6 @@ static uint8_t *ethsock_get_hwaddr_fake(struct ethsock* sock)
 	static uint8_t hwaddr[6] = { 0xfa, 0xfa, 0xfa, 0xfa, 0xfa, 0xfa };
 	return hwaddr;
 }
-#else
-#define NMRP_ADVERTISE_TIMEOUT 60
 #endif
 
 static int pkt_send(struct ethsock *sock, struct nmrp_pkt *pkt)
@@ -579,7 +578,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 	i = 0;
 	upload_ok = 0;
-	timeout = args->blind_timeout ? args->blind_timeout : NMRP_ADVERTISE_TIMEOUT;
+	timeout = args->blind_timeout ? args->blind_timeout : NMRP_ADVERTISE_TIMEOUT_S;
 	beg = time_monotonic();
 
 	printf("Advertising NMRP server on %s ... ", args->intf);

@@ -83,6 +83,7 @@
 #define NMRP_DEFAULT_SUBNET          "255.255.255.0"
 #define NMRP_DEFAULT_TFTP_PORT       69
 
+#define NMRP_ADVERTISE_TIMEOUT_S     60
 #define NMRP_ETH_TIMEOUT_S           60
 #define NMRP_MAX_UL_REQS             3
 
