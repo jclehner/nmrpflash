@@ -917,7 +917,7 @@ ssize_t ethsock_recv(struct ethsock *sock, void *buf, size_t len)
 	}
 #else
 	if (sock->timeout) {
-		status = select_fd(sock->fd, sock->timeout);
+		status = select_readfd(sock->fd, sock->timeout);
 		if (status < 0) {
 			return -1;
 		} else if (status == 0) {

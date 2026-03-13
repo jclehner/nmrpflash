@@ -187,7 +187,7 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 	int alen;
 #endif
 
-	len = select_fd(sock, timeout);
+	len = select_readfd(sock, timeout);
 	if (len < 0) {
 		return -1;
 	} else if (!len) {

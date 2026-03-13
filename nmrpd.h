@@ -139,7 +139,7 @@ bool tftp_is_valid_filename(const char *filename);
 int nmrp_do(struct nmrpd_args *args);
 bool nmrp_discard(struct ethsock *sock);
 
-int select_fd(int fd, unsigned timeout);
+int select_readfd(int fd, unsigned timeout);
 const char *mac_to_str(const uint8_t *mac);
 
 #ifdef NMRPFLASH_WINDOWS
