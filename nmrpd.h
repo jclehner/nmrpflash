@@ -150,6 +150,7 @@ const char *mac_to_str(const uint8_t *mac);
 
 #ifdef NMRPFLASH_WINDOWS
 void win_perror2(const char *msg, DWORD err);
+void win_perror(const char *msg);
 void sock_perror(const char *msg);
 #else
 #define sock_perror(x) xperror(x)

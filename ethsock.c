@@ -410,6 +410,11 @@ static bool intf_get_hwaddr_and_bridge(const char *intf, uint8_t *hwaddr, bool *
 
 #else
 
+void win_perror(const char* msg)
+{
+	win_perror2(msg, GetLastError());
+}
+
 void win_perror2(const char *msg, DWORD err)
 {
 	char *buf = NULL;
