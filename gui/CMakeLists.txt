@@ -40,9 +40,15 @@ if(wxWidgets_FOUND)
 else()
 	set(wxBUILD_SHARED OFF)
 	set(wxUSE_STL ON)
+
+	# speed up builds, and shrink library a bit
 	set(wxUSE_WEBVIEW OFF)
 	set(wxUSE_REGEX OFF)
 	set(wxUSE_OPENGL OFF)
+	set(wxUSE_LIBJPEG OFF)
+	set(wxUSE_LIBWEBP OFF)
+	set(wxUSE_LIBTIFF OFF)
+	set(wxUSE_ZLIB OFF)
 
 	FetchContent_MakeAvailable(wxWidgets)
 	target_link_libraries(nmrpflash-gui PRIVATE wx::core wx::base wx::xrc)
@@ -51,7 +57,7 @@ else()
 endif()
 
 FetchContent_MakeAvailable(Boost)
-target_link_libraries(nmrpflash-gui PRIVATE Boost::boost)
+target_link_libraries(nmrpflash-gui PRIVATE Boost::algorithm)
 
 set(xrc_files ${CMAKE_CURRENT_SOURCE_DIR}/resources.xrc)
 set(resources_cpp ${CMAKE_CURRENT_BINARY_DIR}/Resources.cpp)
