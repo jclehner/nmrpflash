@@ -28,8 +28,11 @@
 #include "nmrpd.h"
 
 #ifndef NMRPFLASH_WINDOWS
+#define NMRPFLASH_ADMIN_USER "root"
 #include <signal.h>
 #include <sys/utsname.h>
+#else
+#define NMRPFLASH_ADMIN_USER "administrator"
 #endif
 
 int usage(FILE *fp)
@@ -55,18 +58,13 @@ int usage(FILE *fp)
 			" -p <port>       Port to use for TFTP upload [%d]\n"
 			" -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP, AU)\n"
 			" -S <n>          Skip <n> bytes of the firmware file\n"
+			" -U              Run \"-c <command>\" as " NMRPFLASH_ADMIN_USER "\n"
 			" -v              Be verbose\n"
 			" -V              Print version and exit\n"
 			" -L              List network interfaces\n"
 			" -h              Show this screen\n"
 			"\n"
-			"Example: (run as "
-#ifndef NMRPFLASH_WINDOWS
-			"root"
-#else
-			"administrator"
-#endif
-			")\n\n"
+			"Example: (run as " NMRPFLASH_ADMIN_USER ")\n\n"
 #ifndef NMRPFLASH_WINDOWS
 			"# nmrpflash"
 #else
@@ -272,10 +270,12 @@ int main(int argc, char **argv)
 		.region = NULL,
 		.blind_timeout = 0,
 		.offset = 0,
-		.is_gui_subprocess = false
+		.is_gui_subprocess = false,
+		.unprivileged_user = 0
 	};
 	// -1: auto, 0: off, 1: on
 	int gui_mode = -1;
+	bool tftpcmd_as_admin = false;
 
 #ifndef NMRPFLASH_WINDOWS
 	signal(SIGPIPE, SIG_IGN);
@@ -410,6 +410,9 @@ int main(int argc, char **argv)
 				}
 
 				break;
+			case 'U':
+				tftpcmd_as_admin = true;
+				break;
 			case 'V':
 				print_version();
 				return 0;
@@ -495,6 +498,22 @@ int main(int argc, char **argv)
 #endif
 	} else {
 		require_admin();
+
+		if (args.tftpcmd && !tftpcmd_as_admin) {
+#ifndef NMRPFLASH_WINDOWS
+			char* s = getenv("PKEXEC_UID");
+			if (!s) {
+				s = getenv("SUDO_UID");
+			}
+
+			if (!s || (args.unprivileged_user = atoi(s)) <= 0) {
+				fprintf(stderr, "Error: -U not specified; refusing to run \"-c <command>\" as root.\n");
+				return 1;
+			}
+#else
+			args.unprivileged_user = true;
+#endif
+		}
 
 #ifdef NMRPFLASH_GUI
 		if (args.is_gui_subprocess) {

@@ -727,7 +727,7 @@ int nmrp_do(struct nmrpd_args *args)
 					setenv("NETMASK", inet_ntoa(ipmask), 1);
 					//setenv("FILENAME", args->file_remote ? args->file_remote : "", 1);
 					setenv("INTERFACE", args->intf, 1);
-					status = system(args->tftpcmd);
+					status = run_as_user(args->tftpcmd, args->unprivileged_user);
 
 					if (status != 0) {
 						fprintf(stderr, "Command failed: status %d.\n", status);

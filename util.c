@@ -20,11 +20,18 @@
 #include <stdio.h>
 #include <errno.h>
 #include <time.h>
-#include <math.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include "nmrpd.h"
 
 #ifdef NMRPFLASH_MACOS
 #include <mach/mach_time.h>
+#endif
+
+#ifndef NMRPFLASH_WINDOWS
+#include <sys/wait.h>
+#include <pwd.h>
+#include <grp.h>
 #endif
 
 volatile sig_atomic_t g_interrupted = 0;
@@ -76,7 +83,7 @@ uint32_t netmask(uint32_t count)
 	return htonl(count <= 32 ? 0xffffffff << (32 - count) : 0);
 }
 
-int select_fd(int fd, unsigned timeout)
+int select_readfd(int fd, unsigned timeout)
 {
 	struct timeval tv;
 	int status;
@@ -117,3 +124,102 @@ bool console_window_is_ours()
 	return GetCurrentProcessId() == pid;
 }
 #endif
+
+#ifndef NMRPFLASH_WINDOWS
+int run_as_user(const char* cmd, uid_t user)
+#else
+int run_as_user(const char* cmd, bool user)
+#endif
+{
+	if (!user) {
+		return system(cmd);
+	}
+
+#ifdef NMRPFLASH_WINDOWS
+	HANDLE token = NULL;
+	HANDLE restrictedToken = NULL;
+	DWORD ret = -1;
+
+	DWORD access = TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY | TOKEN_QUERY | TOKEN_ADJUST_DEFAULT;
+	if (!OpenProcessToken(GetCurrentProcess(), access, &token)) {
+		win_perror2("OpenProcessToken", GetLastError());
+		return -1;
+	}
+
+	if (CreateRestrictedToken(&token, DISABLE_MAX_PRIVILEGE, 0, NULL, 0, NULL, 0, NULL, &restrictedToken)) {
+		SID_IDENTIFIER_AUTHORITY auth = SECURITY_MANDATORY_LABEL_AUTHORITY;
+		PSID sid = NULL;
+
+		if (AllocateAndInitializeSid(&auth, 1, SECURITY_MANDATORY_MEDIUM_RID, 0, 0, 0, 0, 0, 0, 0, &sid)) {
+			TOKEN_MANDATORY_LABEL tml = { 0 };
+			tml.Label.Attributes = SE_GROUP_INTEGRITY;
+			tml.Label.Sid = sid;
+
+			if (SetTokenInformation(&restrictedToken, TokenIntegrityLevel, &tml, sizeof(tml))) {
+				STARTUPINFOA si = { sizeof(si) };
+				PROCESS_INFORMATION pi = { 0 };
+
+				char* cmdCopy = _strdup(cmd);
+				if (!cmdCopy) {
+					perror("strdup");
+					return -1;
+				}
+
+				if (CreateProcessAsUserA(restrictedToken, NULL, cmdCopy, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+					WaitForSingleObject(pi.hProcess, INFINITE);
+					GetExitCodeProcess(pi.hProcess, &ret);
+					CloseHandle(pi.hProcess);
+					CloseHandle(pi.hThread);
+				} else {
+					win_perror2("CreateProcessAsUserA", GetLastError());
+				}
+				free(cmdCopy);
+			}
+			FreeSid(sid);
+		} else {
+			win_perror2("AllocateAndInitializeSid", GetLastError());
+		}
+		CloseHandle(restrictedToken);
+	} else {
+		win_perror2("CreateRestrictedToken", GetLastError());
+	}
+	CloseHandle(token);
+	return ret;
+#else
+	pid_t pid = fork();
+	if (!pid) {
+		struct passwd* pw = getpwuid(user);
+		if (!pw) {
+			perror("getpwuid");
+			_exit(1);
+		}
+
+		if (initgroups(pw->pw_name, pw->pw_gid) != 0) {
+			perror("initgroups");
+			_exit(1);
+		}
+
+		if (setgid(pw->pw_gid) != 0) {
+			perror("setgid");
+			_exit(1);
+		}
+
+		if (setuid(pw->pw_uid) != 0) {
+			perror("setuid");
+			_exit(1);
+		}
+
+		// we don't care about the extra fork() here
+		_exit(system(cmd));
+	} else if (pid > 0) {
+		int ret = -1;
+		if (waitpid(pid, &ret, 0) == -1) {
+			perror("waitpid");
+		}
+		return ret;
+	} else {
+		perror("fork");
+	}
+	return -1;
+#endif
+}

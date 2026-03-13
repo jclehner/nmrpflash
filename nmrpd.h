@@ -131,6 +131,11 @@ struct nmrpd_args {
 	int hints;
 	struct ethsock *sock;
 	bool is_gui_subprocess;
+#ifndef NMRPFLASH_WINDOWS
+	uid_t unprivileged_user;
+#else
+	bool unprivileged_user;
+#endif
 };
 
 const char *leafname(const char *path);
@@ -210,6 +215,14 @@ int start_gui(char* argv0, struct nmrpd_args* args);
 int start_control_thread();
 
 extern volatile sig_atomic_t g_interrupted;
+
+// like system(), but with restricted privileges
+#ifndef NMRPFLASH_WINDOWS
+int run_as_user(const char* cmd, uid_t user);
+#else
+// user: false means admin, true means restricted user
+int run_as_user(const char* cmd, bool user);
+#endif
 
 #ifdef __cplusplus
 }
