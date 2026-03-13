@@ -14,7 +14,8 @@ set(FETCHCONTENT_QUIET FALSE)
 
 FetchContent_Declare(
 	wxWidgets
-	URL https://github.com/wxWidgets/wxWidgets/releases/download/v3.3.2/wxWidgets-3.3.2.7z
+	URL https://github.com/wxWidgets/wxWidgets/releases/download/v3.2.10/wxWidgets-3.2.10.7z
+	URL_HASH SHA256=62bd697e202ea013526b70dc57cb1dbe53e6b09af9294c2018e6d62625f42160
 	USES_TERMINAL_DOWNLOAD TRUE
 	DOWNLOAD_NO_EXTRACT FALSE
 	EXCLUDE_FROM_ALL
@@ -26,6 +27,7 @@ set(BOOST_ENABLE_CMAKE ON)
 FetchContent_Declare(
 	Boost
 	URL https://github.com/boostorg/boost/releases/download/boost-1.90.0/boost-1.90.0-cmake.7z
+	URL_HASH SHA256=218e74c4aa362a994b7b7a23b2920f455a00205c656405fcf262cf60b8871921
 	USES_TERMINAL_DOWNLOAD TRUE
 	DOWNLOAD_NO_EXTRACT FALSE
 	EXCLUDE_FROM_ALL
