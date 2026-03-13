@@ -243,7 +243,7 @@ void AppFrame::OnSubtitleClicked(wxHyperlinkEvent& event)
 {
 	wxAboutDialogInfo info;
 	info.SetName("nmrpflash");
-	info.SetVersion("1.0");
+	info.SetVersion(NMRPFLASH_VERSION);
 	info.SetCopyright("(C) 2016-2026");
 	info.SetWebSite("https://github.com/jclehner/nmrpflash");
 	info.AddDeveloper("Joseph C. Lehner");
