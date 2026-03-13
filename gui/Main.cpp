@@ -58,6 +58,50 @@ std::string MyApp::filename;
 
 wxIMPLEMENT_APP_NO_MAIN(nmrpflash::MyApp);
 
+static bool getchar_nonblocking(char& c)
+{
+#ifdef NMRPFLASH_WINDOWS
+	OVERLAPPED ov = {};
+
+	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+
+	if (!ReadFile(hStdin, &c, sizeof(c), nullptr, &ov)) {
+		if (GetLastError() == ERROR_IO_PENDING) {
+			win_perror("ReadFile");
+		}
+		return false;
+	} else {
+		return true;
+	}
+
+	DWORD bytes = 0;
+	if (!GetOverlappedResultEx(hStdin, &ov, &bytes, 0, false)) {
+		if (GetLastError() != ERROR_IO_INCOMPLETE) {
+			win_perror("GetOverlappedResultEx");
+		}
+	} else if (bytes == sizeof(c)) {
+		return true;
+	}
+
+	return false;
+#else
+	int s = select_readfd(STDIN_FILENO, 0);
+	if (s < 0) {
+		throw errno_error("select");
+	} else if (!s) {
+		return false;
+	}
+
+	int i = getchar();
+	if (i == EOF) {
+		return false;
+	}
+
+	c = i;
+	return true;
+#endif
+}
+
 // the functions below are called from C code
 
 int start_gui(char* argv0, nmrpd_args* args)
@@ -88,32 +132,22 @@ int start_control_thread()
 	try {
 		std::thread ctrl([] () {
 			if (verbosity > 1) {
-				std::cout << "Control thread reading from stdin..." << std::endl;
+				printf("Control thread listening on stdin...\n");
 			}
 
 			while (!g_interrupted) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+				char c = 0;
+
 				// if we just called getchar() without checking if there's actually any
 				// data, the control thread could block even after main() has returned
-#ifdef NMRPFLASH_WINDOWS
-				if (!kbhit()) {
-					continue;
-				}
-#else
-				int s = select_readfd(STDIN_FILENO, 0);
-				if (s < 0) {
-					break;
-				} else if (!s) {
-					continue;
-				}
-#endif
-				int c = getchar();
-				if (c == 'i') {
-					g_interrupted = 1;
-				} else if (c == 't') {
-					raise(SIGTERM);
-				} else if (c == EOF) {
-					break;
+				if (getchar_nonblocking(c)) {
+					if (c == 'i') {
+						g_interrupted = 1;
+					} else if (c == 't') {
+						raise(SIGTERM);
+					}
 				}
 			}
 		});
@@ -121,9 +155,9 @@ int start_control_thread()
 		ctrl.detach();
 		return 0;
 	} catch (const std::exception& e) {
-		std::cerr <<  __func__ << ": " << e.what() << "\n";
+		fprintf(stderr, "Error: %s: %s\n", __func__, e.what());
 	} catch (...) {
-		std::cerr <<  __func__ << ": unknown exception\n";
+		fprintf(stderr, "Error: %s: unknown exception\n", __func__);
 	}
 
 	return -1;
