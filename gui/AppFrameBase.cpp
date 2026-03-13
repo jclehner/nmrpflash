@@ -24,6 +24,8 @@ AppFrameBase::AppFrameBase()
 {
 	CreateFromXml();
 
+	SetIcon(m_iconBitmap->GetIcon());
+
 	//m_iconBitmap->SetScaleMode(wxStaticBitmap::Scale_Fill);
 
 	auto fpBtn = m_filePicker->GetPickerCtrl();

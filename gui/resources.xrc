@@ -5,7 +5,6 @@
 	<object class="wxFrame" name="AppFrameBase">
 		<title>nmrpflash</title>
 		<centered>1</centered>
-		<icon>../nmrpflash.png</icon>
 		<object class="wxBoxSizer" name="rootSizer">
 			<orient>wxVERTICAL</orient>
 			<object class="sizeritem">
@@ -27,9 +26,8 @@
 								<object class="sizeritem">
 									<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
 									<border>5</border>
-									<minsize>48,48</minsize>
 									<object class="wxStaticBitmap" name="icon">
-										<bitmap>../nmrpflash.png</bitmap>
+										<bitmap default_size="48,48">../nmrpflash.svg</bitmap>
 										<!-- scale mode cannot be be set in the XRC file. -->
 										<!-- maximum size cannot be be set in the XRC file. -->
 									</object>
