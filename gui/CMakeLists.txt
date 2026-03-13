@@ -12,10 +12,9 @@ set(FETCHCONTENT_QUIET FALSE)
 
 FetchContent_Declare(
 	wxWidgets
-	GIT_REPOSITORY https://github.com/wxWidgets/wxWidgets
-	GIT_TAG v3.2.10
-	GIT_PROGRESS TRUE
-	GIT_SHALLOW TRUE
+	URL https://github.com/wxWidgets/wxWidgets/releases/download/v3.3.2/wxWidgets-3.3.2.7z
+	USES_TERMINAL_DOWNLOAD TRUE
+	DOWNLOAD_NO_EXTRACT FALSE
 	EXCLUDE_FROM_ALL
 )
 
@@ -33,7 +32,7 @@ FetchContent_Declare(
 
 find_package(wxWidgets COMPONENTS core base xrc)
 if(wxWidgets_FOUND)
-	target_link_libraries(nmrpflash-gui PUBLIC wxWidgets::wxWidgets)
+	target_link_libraries(nmrpflash-gui PRIVATE wxWidgets::wxWidgets)
 	set(wxrc ${wxWidgets_wxrc_EXECUTABLE})
 	set(wxrc_depends "")
 else()
@@ -41,8 +40,10 @@ else()
 	set(wxUSE_STL ON)
 	set(wxUSE_WEBVIEW OFF)
 	set(wxUSE_REGEX OFF)
+	set(wxUSE_OPENGL OFF)
+
 	FetchContent_MakeAvailable(wxWidgets)
-	target_link_libraries(nmrpflash-gui PUBLIC wx::core wx::base wx::xrc)
+	target_link_libraries(nmrpflash-gui PRIVATE wx::core wx::base wx::xrc)
 	set(wxrc $<TARGET_FILE:wxrc>)
 	set(wxrc_depends "wxrc")
 endif()
