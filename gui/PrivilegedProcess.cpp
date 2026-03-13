@@ -18,7 +18,7 @@ using namespace std::literals::string_literals;
 namespace nmrpflash {
 namespace {
 
-std::string EscapeAndQuote(std::string s, char quote, bool quoteIfSpace, bool quoteAlways)
+std::string EscapeAndQuote(std::string s, const std::string& quotes, bool quoteIfSpace, bool quoteAlways)
 {
 	bool doQuote = quoteAlways;
 #ifndef NMRPFLASH_WINDOWS
@@ -27,7 +27,7 @@ std::string EscapeAndQuote(std::string s, char quote, bool quoteIfSpace, bool qu
 	std::string delims = "";
 #endif
 
-	delims += quote + std::string(quoteIfSpace ? " " : "");
+	delims += quotes + (quoteIfSpace ? " " : "");
 
 	size_t i = 0;
 	while ((i = s.find_first_of(delims, i)) != s.npos) {
@@ -42,7 +42,7 @@ std::string EscapeAndQuote(std::string s, char quote, bool quoteIfSpace, bool qu
 	}
 
 	if (doQuote) {
-		s = quote + s + quote;
+		s = quotes.at(0) + s + quotes[0];
 	}
 
 	return s;
@@ -51,16 +51,16 @@ std::string EscapeAndQuote(std::string s, char quote, bool quoteIfSpace, bool qu
 std::string EscapeArgvElement(const std::string& s)
 {
 #ifdef NMRPFLASH_WINDOWS
-	char quote = '\"';
+	auto quotes = "\"";
 #else
-	char quote = '\'';
+	auto quotes = "'\"";
 #endif
-	return EscapeAndQuote(s, quote, true, false);
+	return EscapeAndQuote(s, quotes, true, false);
 }
 
 std::string EscapeAndDoubleQuote(const std::string& s)
 {
-	return EscapeAndQuote(s, '\"', false, true);
+	return EscapeAndQuote(s, "\"", false, true);
 }
 
 fs::path which(const std::string& cmd)

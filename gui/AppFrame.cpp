@@ -129,11 +129,6 @@ m_timer(new wxTimer(this))
 
 	UpdateNetAdapterList(false);
 #endif
-
-	// FIXME this prevents using -c <command> at the moment!
-	auto v = wxTextValidator(wxFILTER_INCLUDE_LIST | wxFILTER_ALPHANUMERIC);
-	v.AddCharIncludes("-_ ");
-	m_textCmdlineAdd->SetValidator(v);
 }
 
 AppFrame::~AppFrame()
