@@ -91,19 +91,30 @@ int start_control_thread()
 				std::cout << "Control thread reading from stdin..." << std::endl;
 			}
 
-			while (true) {
-				char c = getchar();
-				if (verbosity > 2) {
-					std::cout << "ctrl: c=" << int(c) << std::endl;
+			while (!g_interrupted) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				// if we just called getchar() without checking if there's actually any
+				// data, the control thread could block even after main() has returned
+#ifdef NMRPFLASH_WINDOWS
+				if (!kbhit()) {
+					continue;
 				}
-
+#else
+				int s = select_readfd(STDIN_FILENO, 0);
+				if (s < 0) {
+					break;
+				} else if (!s) {
+					continue;
+				}
+#endif
+				int c = getchar();
 				if (c == 'i') {
 					g_interrupted = 1;
 				} else if (c == 't') {
 					raise(SIGTERM);
+				} else if (c == EOF) {
+					break;
 				}
-
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		});
 
