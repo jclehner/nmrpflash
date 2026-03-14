@@ -233,10 +233,12 @@ static bool list_callback(const struct ethsock_list_item* item, void* arg)
 	return true;
 }
 
-void force_line_buffering(FILE* stream)
+#ifdef NMRPFLASH_GUI
+void disable_buffering(FILE* stream)
 {
-	setvbuf(stream, NULL, _IOLBF, BUFSIZ);
+	setvbuf(stream, NULL, _IONBF, BUFSIZ);
 }
+#endif
 
 int main(int argc, char **argv)
 {
@@ -268,9 +270,6 @@ int main(int argc, char **argv)
 #ifndef NMRPFLASH_WINDOWS
 	signal(SIGPIPE, SIG_IGN);
 #endif
-
-	force_line_buffering(stdout);
-	force_line_buffering(stderr);
 
 	setlocale(LC_ALL, "en_US.UTF-8");
 #ifdef NMRPFLASH_WINDOWS
@@ -505,6 +504,8 @@ int main(int argc, char **argv)
 
 #ifdef NMRPFLASH_GUI
 		if (args.is_gui_subprocess) {
+			disable_buffering(stdout);
+			disable_buffering(stderr);
 			if (start_control_thread() != 0) {
 				return 1;
 			}
