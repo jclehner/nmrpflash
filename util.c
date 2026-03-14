@@ -32,6 +32,8 @@
 #include <sys/wait.h>
 #include <pwd.h>
 #include <grp.h>
+#else
+#include <winsafer.h>
 #endif
 
 volatile sig_atomic_t g_interrupted = 0;
@@ -136,54 +138,38 @@ int run_as_user(const char* cmd, bool user)
 	}
 
 #ifdef NMRPFLASH_WINDOWS
+	SAFER_LEVEL_HANDLE level;
 	HANDLE token = NULL;
-	HANDLE restrictedToken = NULL;
-	DWORD ret = -1;
 
-	DWORD access = TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY | TOKEN_QUERY | TOKEN_ADJUST_DEFAULT;
-	if (!OpenProcessToken(GetCurrentProcess(), access, &token)) {
-		win_perror2("OpenProcessToken", GetLastError());
+	if (!SaferCreateLevel(SAFER_SCOPEID_USER, SAFER_LEVELID_NORMALUSER, SAFER_LEVEL_OPEN, &level, NULL)) {
+		win_perror("SaferCreateLevel");
 		return -1;
 	}
 
-	if (CreateRestrictedToken(&token, DISABLE_MAX_PRIVILEGE, 0, NULL, 0, NULL, 0, NULL, &restrictedToken)) {
-		SID_IDENTIFIER_AUTHORITY auth = SECURITY_MANDATORY_LABEL_AUTHORITY;
-		PSID sid = NULL;
-
-		if (AllocateAndInitializeSid(&auth, 1, SECURITY_MANDATORY_MEDIUM_RID, 0, 0, 0, 0, 0, 0, 0, &sid)) {
-			TOKEN_MANDATORY_LABEL tml = { 0 };
-			tml.Label.Attributes = SE_GROUP_INTEGRITY;
-			tml.Label.Sid = sid;
-
-			if (SetTokenInformation(&restrictedToken, TokenIntegrityLevel, &tml, sizeof(tml))) {
-				STARTUPINFOA si = { sizeof(si) };
-				PROCESS_INFORMATION pi = { 0 };
-
-				char* cmdCopy = _strdup(cmd);
-				if (!cmdCopy) {
-					perror("strdup");
-					return -1;
-				}
-
-				if (CreateProcessAsUserA(restrictedToken, NULL, cmdCopy, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-					WaitForSingleObject(pi.hProcess, INFINITE);
-					GetExitCodeProcess(pi.hProcess, &ret);
-					CloseHandle(pi.hProcess);
-					CloseHandle(pi.hThread);
-				} else {
-					win_perror2("CreateProcessAsUserA", GetLastError());
-				}
-				free(cmdCopy);
-			}
-			FreeSid(sid);
-		} else {
-			win_perror2("AllocateAndInitializeSid", GetLastError());
-		}
-		CloseHandle(restrictedToken);
-	} else {
-		win_perror2("CreateRestrictedToken", GetLastError());
+	if (!SaferComputeTokenFromLevel(level, NULL, &token, 0, NULL)) {
+		win_perror("SaferComputeTokenFromLevel");
+		return -1;
 	}
-	CloseHandle(token);
+
+	STARTUPINFOA si = { sizeof(si) };
+	PROCESS_INFORMATION pi = { 0 };
+
+	size_t bufsize = strlen(cmd) + 32;
+	char* buf = malloc(bufsize);
+	snprintf(buf, bufsize, "cmd /c \"%s\"", cmd);
+
+	DWORD ret = -1;
+
+	if (CreateProcessAsUserA(token, NULL, buf, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+		WaitForSingleObject(pi.hProcess, INFINITE);
+		GetExitCodeProcess(pi.hProcess, &ret);
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+	} else {
+		win_perror("CreateProcessAsUserA");
+	}
+	free(buf);
+
 	return ret;
 #else
 	pid_t pid = fork();
