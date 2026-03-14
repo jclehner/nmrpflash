@@ -86,9 +86,7 @@ static bool getchar_nonblocking(char& c)
 	return false;
 #else
 	int s = select_readfd(STDIN_FILENO, 0);
-	if (s < 0) {
-		throw errno_error("select");
-	} else if (!s) {
+	if (s <= 0) {
 		return false;
 	}
 
