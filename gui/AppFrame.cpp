@@ -279,7 +279,6 @@ void AppFrame::WriteProcessInput(const string& str)
 bool AppFrame::ReadProcessOutputLine()
 {
 	wxTextAttr style = m_textLog->GetDefaultStyle();
-	auto font = m_textLog->GetFont();
 
 	auto out = m_process->GetStdout();
 	auto err = m_process->GetStderr();
@@ -302,7 +301,6 @@ bool AppFrame::ReadProcessOutputLine()
 		m_textLog->WriteText(buf);
 		style.SetFontWeight(wxFONTWEIGHT_NORMAL);
 		m_textLog->SetDefaultStyle(style);
-		m_textLog->SetFont(font);
 		return true;
 	}
 

@@ -46,16 +46,21 @@ AppFrameBase::AppFrameBase()
 
 	SetIcon(m_iconBitmap->GetIcon());
 
-	//m_iconBitmap->SetScaleMode(wxStaticBitmap::Scale_Fill);
+	m_iconBitmap->SetScaleMode(wxStaticBitmap::Scale_Fill);
 
 	auto fpBtn = m_filePicker->GetPickerCtrl();
 	fpBtn->SetToolTip("Browse");
 	MakeSameWidth(fpBtn, m_adapterListBtn);
 
 #ifdef __WXMSW__
-	auto font = wxFontInfo(7).FaceName("Consolas");
+	auto font = wxFontInfo(8).FaceName("Consolas");
 	m_textLog->SetFont(font);
 #endif
+
+	// since we'll modify the default style later
+	auto style = m_textLog->GetDefaultStyle();
+	style.SetFont(m_textLog->GetFont());
+	m_textLog->SetDefaultStyle(style);
 
 	// resize log window to 60 columns x 16 lines
 	const int logCols = 60;
