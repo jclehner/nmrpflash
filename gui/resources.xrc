@@ -165,7 +165,7 @@
 							<border>5</border>
 							<option>1</option>
 							<object class="wxTextCtrl" subclass="nmrpflash::DumbConsoleTextCtrl" name="textLog">
-								<style>wxTE_MULTILINE|wxTE_READONLY|wxTE_DONTWRAP</style>
+								<style>wxTE_MULTILINE|wxTE_READONLY|wxTE_DONTWRAP|wxTE_RICH</style>
 								<font>
 									<size>8</size>
 									<family>teletype</family>
