@@ -123,7 +123,7 @@ void require_admin()
 
 void show_exit_prompt()
 {
-	if (console_window_is_ours()) {
+	if (isatty(STDIN_FILENO) && console_window_is_ours()) {
 		printf("Press any key to exit\n");
 		getch();
 	}
