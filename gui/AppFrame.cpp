@@ -35,11 +35,13 @@ struct AdapterData : public wxClientData
 	{
 		this->native_name = p->native_name;
 		this->pcap_name = p->pcap_name;
+		this->device_name = p->device_name;
 		memcpy(hwaddr, p->hwaddr, sizeof(hwaddr));
 	}
 
 	string native_name;
 	string pcap_name;
+	string device_name;
 	uint8_t hwaddr[6];
 	bool wifi = false;
 };
@@ -306,7 +308,7 @@ long AppFrame::ExecuteProcess()
 	boost::algorithm::split(args, m_textCmdlineAdd->GetValue(), boost::is_any_of(" "), boost::algorithm::token_compress_on);
 	args.insert(args.end(), {
 		"-g", "sub",
-		"-i", adapter->native_name,
+		"-i", adapter->device_name,
 		"-f", m_filePicker->GetPath().ToStdString()
 	});
 
