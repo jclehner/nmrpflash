@@ -409,7 +409,6 @@ static bool intf_get_hwaddr_and_bridge(const char *intf, uint8_t *hwaddr, bool *
 }
 
 #else
-
 void win_perror(const char* msg)
 {
 	win_perror2(msg, GetLastError());
@@ -430,6 +429,19 @@ void win_perror2(const char *msg, DWORD err)
 	} else {
 		fprintf(stderr, "%s: error %d\n", msg, (int)err);
 	}
+}
+
+static void guid_to_string(char* buf, size_t bufsize, const char* prefix, const GUID* guid, const char* suffix)
+{
+	snprintf(buf, bufsize,
+		"%s%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X%s",
+		prefix,
+		guid->Data1, guid->Data2, guid->Data3,
+		guid->Data4[0], guid->Data4[1], guid->Data4[2],
+		guid->Data4[3], guid->Data4[4], guid->Data4[5],
+		guid->Data4[6], guid->Data4[7],
+		suffix
+	);
 }
 
 static bool intf_get_if_row(NET_IFINDEX index, MIB_IF_ROW2* row)
@@ -542,12 +554,7 @@ static const char *intf_name_to_wpcap(const char *intf)
 			break;
 		}
 
-		snprintf(buf, sizeof(buf),
-			"\\Device\\NPF_{%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
-			guid.Data1, guid.Data2, guid.Data3,
-			guid.Data4[0], guid.Data4[1], guid.Data4[2],
-			guid.Data4[3], guid.Data4[4], guid.Data4[5],
-			guid.Data4[6], guid.Data4[7]);
+		guid_to_string(buf, sizeof(buf), "\\Device\\NPF_{", &guid, "}");
 
 		return buf;
 
@@ -1146,22 +1153,23 @@ int ethsock_list_all(bool (*cb)(const struct ethsock_list_item*, void*), void* c
 #if defined(NMRPFLASH_WINDOWS)
 		index = intf_get_index(dev->name);
 
-		if (intf_get_if_row(index, &row)) {
-			if (!row.InterfaceAndOperStatusFlags.HardwareInterface) {
-				if (verbosity) {
-					printf("%-15s  (virtual interface)\n", dev->name);
-				}
-				continue;
-			}
-
-			if (row.Alias[0]) {
-				item.pretty_name = wcs_to_utf8(row.Alias);
-			}
+		if (!intf_get_if_row(index, &row)) {
+			continue;
 		}
 
-		if (strstr(item.pcap_name, "NPF_{") == item.pcap_name) {
-			item.native_name = item.pcap_name + 4;
+		if (!row.InterfaceAndOperStatusFlags.HardwareInterface) {
+			if (verbosity) {
+				printf("%-15s  (virtual interface)\n", dev->name);
+			}
+			continue;
 		}
+
+		if (row.Alias[0]) {
+			item.pretty_name = wcs_to_utf8(row.Alias);
+		}
+
+		char native_name_buf[64];
+		guid_to_string(native_name_buf, sizeof(native_name_buf), "{", &row.InterfaceGuid, "}");
 
 		char device_name_buf[32];
 		if (index) {
