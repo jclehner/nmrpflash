@@ -234,9 +234,23 @@ static bool list_callback(const struct ethsock_list_item* item, void* arg)
 }
 
 #ifdef NMRPFLASH_GUI
-void disable_buffering(FILE* stream)
+void disable_buffering_if_not_a_tty(FILE* stream)
 {
-	setvbuf(stream, NULL, _IONBF, BUFSIZ);
+	int fd;
+
+	if (stream == stdin) {
+		fd = STDIN_FILENO;
+	} else if (stream == stdout) {
+		fd = STDOUT_FILENO;
+	} else if (stream == stderr) {
+		fd = STDERR_FILENO;
+	} else {
+		return;
+	}
+
+	if (!isatty(fd)) {
+		setvbuf(stream, NULL, _IONBF, BUFSIZ);
+	}
 }
 #endif
 
@@ -266,6 +280,9 @@ int main(int argc, char **argv)
 	// -1: auto, 0: off, 1: on
 	int gui_mode = -1;
 	bool tftpcmd_as_admin = false;
+
+	disable_buffering_if_not_a_tty(stdout);
+	disable_buffering_if_not_a_tty(stderr);
 
 #ifndef NMRPFLASH_WINDOWS
 	signal(SIGPIPE, SIG_IGN);
@@ -504,8 +521,6 @@ int main(int argc, char **argv)
 
 #ifdef NMRPFLASH_GUI
 		if (args.is_gui_subprocess) {
-			disable_buffering(stdout);
-			disable_buffering(stderr);
 			if (start_control_thread() != 0) {
 				return 1;
 			}
