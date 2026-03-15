@@ -77,7 +77,7 @@ target_sources(nmrpflash-gui PRIVATE
 	AppFrameBase.cpp
 	DumbConsoleTextCtrl.cpp
 	PrivilegedProcess.cpp
-	Main.cpp
+	App.cpp
 	Util.cpp
 	${resources_cpp}
 )
