@@ -41,6 +41,8 @@ void MakeSameWidth(wxWindow* a, wxWindow* b)
 AppFrameBase::AppFrameBase()
 {
 	CreateFromXml();
+	// FIXME
+	m_startStopBtn->SetId(wxID_EXECUTE);
 
 	SetIcon(m_iconBitmap->GetIcon());
 
