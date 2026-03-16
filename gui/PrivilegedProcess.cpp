@@ -249,9 +249,6 @@ public:
 			m_isRedirected = true;
 		} else {
 			m_isRedirected = false;
-			if (UsesTwoStageRedirection()) {
-				m_wxprocess->Redirect();
-			}
 		}
 
 		std::string redirection;
@@ -262,8 +259,6 @@ public:
 		auto cmdstr = ToCmdString(cmd, args, redirection);
 
 		std::cout << "[gui] cmdstr:" << cmdstr << std::endl;
-
-		OnPreExecute();
 
 		long ret = wxExecute(cmdstr, wxEXEC_ASYNC | wxEXEC_MAKE_GROUP_LEADER, m_wxprocess.get());
 		if (!ret) {
@@ -292,14 +287,11 @@ protected:
 	virtual void OnInit() {}
 	virtual void AdjustCommand(std::string& cmd, Args& args, std::string& redirection) {}
 
-	virtual void OnPreExecute() {}
 	virtual void OnPostExecute() {}
 	virtual void OnRedirect() {}
 	virtual void OnTerminate() {}
 
 	virtual bool UsesCustomRedirection() const { return false; }
-	virtual bool UsesTwoStageRedirection() const { return false; }
-
 	virtual bool RedirectStreams() { return false; }
 
 	static std::string ToCmdString(const std::string& cmd, const Args& args, const std::string& redirection)
@@ -330,11 +322,11 @@ private:
 	void OnTerminate(wxProcessEvent& event)
 	{
 		m_timer.Stop();
-		m_isExecuting = false;
 		if (m_parent) {
 			m_parent->ProcessEvent(event);
 		}
 		m_isRedirected = false;
+		m_isExecuting = false;
 		m_wxprocess.reset();
 		OnTerminate();
 	}
@@ -398,25 +390,20 @@ public:
 
 	wxOutputStream* GetStdin() const override
 	{
-		return GetStream(m_stdin, ProcessBase::GetStdin());
+		return m_stdin ? m_stdin.get() : ProcessBase::GetStdin();
 	}
 
 	wxInputStream* GetStdout() const override
 	{
-		return GetStream(m_stdout, ProcessBase::GetStdout());
+		return m_stdout ? m_stdout.get() : ProcessBase::GetStdout();
 	}
 
 	wxInputStream* GetStderr() const override
 	{
-		return GetStream(m_stderr, ProcessBase::GetStderr());
+		return m_stderr ? m_stderr.get() : ProcessBase::GetStderr();
 	}
 
 protected:
-	template<class T> T* GetStream(const std::unique_ptr<T>& ptr, T* alt) const
-	{
-		return (IsRedirected() && ptr) ? ptr.get() : alt;
-	}
-
 	void OnInit() override
 	{
 		m_tmpDir = mkdtemp();
@@ -442,11 +429,6 @@ protected:
 	}
 
 	bool UsesCustomRedirection() const override
-	{
-		return true;
-	}
-
-	bool UsesTwoStageRedirection() const override
 	{
 		return true;
 	}
