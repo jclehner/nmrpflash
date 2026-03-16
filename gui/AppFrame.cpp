@@ -209,7 +209,7 @@ void AppFrame::OnStartStopPressed(wxCommandEvent&)
 
 void AppFrame::OnTerminate(wxProcessEvent& event)
 {
-	while (ReadProcessOutputLine());
+	while (ReadProcessOutputLine(true));
 
 	string text;
 	string color;
@@ -269,7 +269,7 @@ void AppFrame::WriteProcessInput(const string& str)
 	}
 }
 
-bool AppFrame::ReadProcessOutputLine()
+bool AppFrame::ReadProcessOutputLine(bool terminated)
 {
 	wxTextAttr style = m_textLog->GetDefaultStyle();
 
@@ -303,7 +303,7 @@ bool AppFrame::ReadProcessOutputLine()
 		}
 	}
 
-	return m_process->IsExecuting();
+	return !terminated;
 }
 
 void AppFrame::EndProcess()

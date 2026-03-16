@@ -49,7 +49,7 @@ protected:
 private:
 	void CreateFromXml(wxWindow* parent);
 
-	bool ReadProcessOutputLine();
+	bool ReadProcessOutputLine(bool terminated=false);
 	void WriteProcessInput(const std::string& str);
 	void EndProcess();
 	long ExecuteProcess();
