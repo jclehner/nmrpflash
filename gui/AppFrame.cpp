@@ -236,13 +236,6 @@ void AppFrame::OnTimer(wxTimerEvent&)
 	ReadProcessOutputLine();
 }
 
-void AppFrame::OnIdle(wxIdleEvent& event)
-{
-	if (ReadProcessOutputLine()) {
-		event.RequestMore();
-	}
-}
-
 void AppFrame::OnUpdateUI(wxUpdateUIEvent& event)
 {
 	if (event.GetId() != wxID_EXECUTE || m_process->IsExecuting()) {
@@ -282,29 +275,35 @@ bool AppFrame::ReadProcessOutputLine()
 
 	auto out = m_process->GetStdout();
 	auto err = m_process->GetStderr();
-	decltype(out) stream;
+	decltype(out) stream = nullptr;
 
-	if (out && out->CanRead() && !out->Eof()) {
+	if (out && !out->Eof()) {
 		stream = out;
-		style.SetFontWeight(wxFONTWEIGHT_NORMAL);
-	} else if (err && err->CanRead() && !err->Eof()) {
+	} else if (err && !err->Eof()) {
 		stream = err;
-		style.SetFontWeight(wxFONTWEIGHT_BOLD);
 	} else {
 		return false;
 	}
 
-	string buf;
+	if (stream->CanRead()) {
+		if (stream == out) {
+			style.SetFontWeight(wxFONTWEIGHT_NORMAL);
+		} else if (stream == err) {
+			style.SetFontWeight(wxFONTWEIGHT_BOLD);
+		}
 
-	if (ReadLine(stream, buf, true)) {
-		m_textLog->SetDefaultStyle(style);
-		m_textLog->WriteText(buf);
-		style.SetFontWeight(wxFONTWEIGHT_NORMAL);
-		m_textLog->SetDefaultStyle(style);
-		return true;
+		string buf;
+
+		if (ReadLine(stream, buf, true)) {
+			m_textLog->SetDefaultStyle(style);
+			m_textLog->WriteText(buf);
+			style.SetFontWeight(wxFONTWEIGHT_NORMAL);
+			m_textLog->SetDefaultStyle(style);
+			return true;
+		}
 	}
 
-	return false;
+	return m_process->IsExecuting();
 }
 
 void AppFrame::EndProcess()

@@ -40,7 +40,6 @@ protected:
 	void OnTimer(wxTimerEvent& event);
 	void OnTerminate(wxProcessEvent& event);
 	void OnUpdateUI(wxUpdateUIEvent& event);
-	void OnIdle(wxIdleEvent& event);
 	void OnCloseWindow(wxCloseEvent& event);
 
 	void OnAdapterListBtnPressed(wxCommandEvent& event);
