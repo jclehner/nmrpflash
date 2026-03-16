@@ -70,10 +70,10 @@ std::string GetMyExecutableFilename()
 	uint32_t bufsize = 0;
 
 	_NSGetExecutablePath(nullptr, &bufsize);
-	auto buf = std::make_unique<char>(bufsize);
+	auto buf = std::make_unique<char[]>(bufsize);
 
 	if (_NSGetExecutablePath(buf.get(), &bufsize) == 0) {
-		return { buf.get(), bufsize };
+		return buf.get();
 	}
 #elif defined(NMRPFLASH_WINDOWS)
 	char buf[MAX_PATH];
