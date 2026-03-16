@@ -29,6 +29,7 @@ Options (-i, and -f or -c are mandatory):
  -c <command>    Command to run before (or instead of) TFTP upload
  -f <firmware>   Firmware file
  -F <filename>   Remote filename to use during TFTP upload
+ -g [<setting>]  GUI mode: 0: off, 1: on, a: auto [auto]
  -i <interface>  Network interface directly connected to device
  -m <mac>        MAC address of target device (xx:xx:xx:xx:xx:xx)
  -M <netmask>    Subnet mask to assign to target device [255.255.255.0]
@@ -230,17 +231,31 @@ On Linux, developer packages for `libpcap`, `libnl` and `libnl-route` must be in
 $ sudo apt install libpcap-dev libnl-3-dev libnl-route-3-dev
 ```
 
+nmrpflash uses CMake. A separate build directory is preferred:
+
+```
+$ mkdir build
+$ cd build
+$ cmake ..
+```
+
+In order to build the GUI too, run `cmake .. -DNMRPFLASH_GUI=1` instead. Additional
+dependencies (wxWidgets, boost) will be downloaded automatically if they can't be
+found.
+
 Then, it's as easy as
 
 ```
-$ make
+$ cmake --build .
 ```
 
 ###### Windows
 
-The repository includes a [CodeBlocks](https://www.codeblocks.org/) project
-file (`nmrpflash.cbp`). Download the latest [Npcap SDK](https://nmap.org/npcap/)
-and extract it into the a folder named `Npcap` in the source's root directory.
+Download the latest [Npcap SDK](https://nmap.org/npcap/) and extract it into the a folder
+named `Npcap` in the source's root directory.
+
+Then use CMake as above, running it with `-G "MinGW Makefiles"`. The MSVC compiler isn't
+supported at the moment.
 
 ### Donate
 
