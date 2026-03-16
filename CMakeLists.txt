@@ -9,6 +9,7 @@ option(NMRPFLASH_BUILD_GUI "Enable GUI" OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
+#set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "" FORCE)
 
 project(nmrpflash)
 enable_language(C)
@@ -40,6 +41,7 @@ endif()
 add_compile_definitions(NMRPFLASH_VERSION=\"${NMRPFLASH_VERSION}\")
 add_compile_options(-Wall -g)
 
+#add_executable(nmrpflash MACOSX_BUNDLE
 add_executable(nmrpflash
 	main.c
 	nmrp.c
@@ -72,6 +74,16 @@ endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	target_link_libraries(nmrpflash PRIVATE -lpcap "-framework CoreFoundation -framework SystemConfiguration")
+	if (FALSE)
+		set_target_properties(nmrpflash PROPERTIES
+			MACOSX_BUNDLE_NAME "nmrpflash"
+			MACOSX_BUNDLE_VERSION ${NMRPFLASH_VERSION}
+			MACOSX_BUNDLE_SHORT_VERSION_STRING ${NMRPFLASH_VERSION}
+			MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.jclehner.nmrpflash"
+		)
+		set(CPACK_GENERATOR "DRAGNDROP")
+		include(CPack)
+	endif()
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_include_directories(nmrpflash PRIVATE ./Npcap/Include)
 	if (CMAKE_SIZEOF_VOID_P EQUAL 8)
