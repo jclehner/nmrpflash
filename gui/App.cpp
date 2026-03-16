@@ -63,7 +63,7 @@ public:
 	void MacOpenFiles(const wxArrayString& filenames) override
 	{
 		if (!filenames.IsEmpty()) {
-			filename = fileNames.Last().ToStdString();
+			filename = filenames.Last().ToStdString();
 		}
 	}
 #endif
