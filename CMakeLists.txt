@@ -38,7 +38,7 @@ endif()
 
 # for all targets
 add_compile_definitions(NMRPFLASH_VERSION=\"${NMRPFLASH_VERSION}\")
-add_compile_options(-Wall)
+add_compile_options(-Wall -g)
 
 add_executable(nmrpflash
 	main.c
