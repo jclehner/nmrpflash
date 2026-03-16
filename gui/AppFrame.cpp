@@ -87,7 +87,7 @@ std::string GetMyExecutableFilename()
 	int name[] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
 
 	if (sysctl(name, std::size(name), buf, &bufsize, nullptr, 0) == 0 && bufsize > 0) {
-		return { buf, bufsize };
+		return buf;
 	}
 #else
 	fs::path paths[] = {
