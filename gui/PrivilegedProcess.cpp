@@ -254,11 +254,16 @@ public:
 		std::string redirection;
 
 		cmd = CmdToAbsolutePath(cmd).string();
-		AdjustCommand(cmd, args, redirection);
 
+		auto cmdstrOrig = ToCmdString(cmd, args, redirection);
+		std::cout << "[gui] " << cmdstrOrig << std::endl;
+
+		AdjustCommand(cmd, args, redirection);
 		auto cmdstr = ToCmdString(cmd, args, redirection);
 
-		std::cout << "[gui] cmdstr:" << cmdstr << std::endl;
+		if (cmdstr != cmdstrOrig) {
+			std::cout << "[gui] => " << cmdstr << std::endl;
+		}
 
 		long ret = wxExecute(cmdstr, wxEXEC_ASYNC | wxEXEC_MAKE_GROUP_LEADER, m_wxprocess.get());
 		if (!ret) {
