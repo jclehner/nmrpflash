@@ -22,6 +22,7 @@
 #include <cstring>
 #include <filesystem>
 #include <stdexcept>
+#include <wx/collpane.h>
 #include <wx/event.h>
 #include <wx/log.h>
 #include <wx/menu.h>
@@ -127,8 +128,9 @@ m_timer(new wxTimer(this))
 	Bind(wxEVT_CLOSE_WINDOW, &AppFrame::OnCloseWindow, this);
 
 	m_startStopBtn->Bind(wxEVT_BUTTON, &AppFrame::OnStartStopPressed, this);
-	m_adapterListBtn->Bind(wxEVT_BUTTON, &AppFrame::OnAdapterListBtnPressed, this);
 	m_linkCopyright->Bind(wxEVT_HYPERLINK, &AppFrame::OnSubtitleClicked, this);
+	m_adapterListBtn->Bind(wxEVT_BUTTON, &AppFrame::OnAdapterListBtnPressed, this);
+	m_advancedPane->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED, &AppFrame::OnCollapsibleEvent, this);
 
 #if 1
 	// clear values from mockup
@@ -259,6 +261,11 @@ void AppFrame::OnSubtitleClicked(wxHyperlinkEvent& event)
 	info.SetIcon(m_iconBitmap->GetIcon());
 
 	wxAboutBox(info, this);
+}
+
+void AppFrame::OnCollapsibleEvent(wxCollapsiblePaneEvent& event)
+{
+
 }
 
 void AppFrame::WriteProcessInput(const string& str)

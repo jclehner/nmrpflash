@@ -18,6 +18,7 @@
  */
 #ifndef NMRPFLASH_GUI_APP_FRAME_H
 #define NMRPFLASH_GUI_APP_FRAME_H
+#include <wx/collpane.h>
 #include <wx/timer.h>
 #include <wx/process.h>
 #include <string>
@@ -45,6 +46,7 @@ protected:
 	void OnAdapterListBtnPressed(wxCommandEvent& event);
 	void OnStartStopPressed(wxCommandEvent& event);
 	void OnSubtitleClicked(wxHyperlinkEvent& event);
+	void OnCollapsibleEvent(wxCollapsiblePaneEvent& event);
 
 private:
 	void CreateFromXml(wxWindow* parent);

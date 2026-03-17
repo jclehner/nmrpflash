@@ -28,8 +28,6 @@
 									<border>5</border>
 									<object class="wxStaticBitmap" name="icon">
 										<bitmap default_size="48,48">../nmrpflash.svg</bitmap>
-										<!-- scale mode cannot be be set in the XRC file. -->
-										<!-- maximum size cannot be be set in the XRC file. -->
 									</object>
 								</object>
 								<object class="sizeritem">
@@ -135,19 +133,73 @@
 										<style>wxFLP_USE_TEXTCTRL|wxFLP_OPEN|wxFLP_FILE_MUST_EXIST|wxFLP_SMALL</style>
 									</object>
 								</object>
-								<object class="sizeritem">
-									<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
-									<border>5</border>
-									<object class="wxStaticText" name="staticText3">
-										<label>Additional Options</label>
-										<wrap>-1</wrap>
-									</object>
-								</object>
-								<object class="sizeritem">
-									<flag>wxALL|wxEXPAND</flag>
-									<border>5</border>
-									<object class="wxTextCtrl" name="textCmdlineAdd">
-										<hint>For advanced users</hint>
+							</object>
+						</object>
+						<object class="sizeritem">
+							<flag>wxALL|wxEXPAND</flag>
+							<border>5</border>
+							<object class="wxCollapsiblePane" name="advancedPane">
+								<label>Advanced</label>
+								<collapsed>1</collapsed>
+								<style>wxCP_DEFAULT_STYLE</style>
+								<object class="panewindow">
+									<object class="wxFlexGridSizer" name="flex_grid_sizer">
+										<rows>0</rows>
+										<cols>2</cols>
+										<vgap>0</vgap>
+										<hgap>0</hgap>
+										<growablecols>1</growablecols>
+										<flexibledirection>wxHORIZONTAL</flexibledirection>
+										<nonflexiblegrowmode>wxFLEX_GROWMODE_SPECIFIED</nonflexiblegrowmode>
+										<object class="sizeritem">
+											<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<object class="wxStaticText" name="staticText3">
+												<label>Verbosity</label>
+												<wrap>-1</wrap>
+											</object>
+										</object>
+										<object class="sizeritem">
+											<flag>wxALL|wxEXPAND</flag>
+											<border>5</border>
+											<object class="wxChoice" name="verbositySelector">
+												<content>
+													<item>info</item>
+													<item>verbose</item>
+													<item>debug</item>
+													<item>trace</item>
+												</content>
+												<selection>0</selection>
+											</object>
+										</object>
+										<object class="sizeritem">
+											<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<object class="wxStaticText" name="staticText4">
+												<label>Custom Command</label>
+												<wrap>-1</wrap>
+											</object>
+										</object>
+										<object class="sizeritem">
+											<flag>wxALL|wxEXPAND</flag>
+											<border>5</border>
+											<object class="wxTextCtrl" name="textCustomCmd">
+												<tooltip>Executed before (or instead of) TFTP upload</tooltip>
+											</object>
+										</object>
+										<object class="sizeritem">
+											<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+											<border>5</border>
+											<object class="wxStaticText" name="staticText">
+												<label>Additional Arguments</label>
+												<wrap>-1</wrap>
+											</object>
+										</object>
+										<object class="sizeritem">
+											<flag>wxALL|wxEXPAND</flag>
+											<border>5</border>
+											<object class="wxTextCtrl" name="textCmdlineAdd" />
+										</object>
 									</object>
 								</object>
 							</object>
@@ -165,7 +217,7 @@
 							<border>5</border>
 							<option>1</option>
 							<object class="wxTextCtrl" subclass="nmrpflash::DumbConsoleTextCtrl" name="textLog">
-								<style>wxTE_MULTILINE|wxTE_READONLY|wxTE_DONTWRAP|wxTE_RICH</style>
+								<style>wxTE_MULTILINE|wxTE_READONLY|wxTE_RICH|wxTE_DONTWRAP</style>
 								<font>
 									<size>8</size>
 									<family>teletype</family>
@@ -197,7 +249,7 @@
 								<object class="sizeritem">
 									<flag>wxALL</flag>
 									<border>5</border>
-									<object class="wxButton" name="startStopBtn">
+									<object class="wxButton" name="wxID_EXECUTE">
 										<label>⏵ Start </label>
 									</object>
 								</object>

@@ -27,6 +27,7 @@
 #include <wx/frame.h>
 #include <wx/hyperlink.h>
 #include <wx/textctrl.h>
+#include <wx/collpane.h>
 
 namespace nmrpflash {
 class AppFrameBase : public wxFrame
@@ -41,6 +42,7 @@ class AppFrameBase : public wxFrame
 	wxChoice* m_adapterList;
 	wxButton* m_adapterListBtn;
 	wxFilePickerCtrl* m_filePicker;
+	wxCollapsiblePane* m_advancedPane;
 	wxTextCtrl* m_textCmdlineAdd;
 	wxTextCtrl* m_textLog;
 	wxStaticText* m_textCmdStatus;

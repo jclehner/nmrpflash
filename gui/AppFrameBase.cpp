@@ -69,12 +69,10 @@ AppFrameBase::AppFrameBase()
 	sz = m_textLog->GetSizeFromTextSize({ sz.x * logCols, sz.y * logRows});
 	m_textLog->SetMinSize(sz);
 
-	auto f = [this]() {
+	CallAfter([this] () {
 		auto sizer = XRCCTRL(*this, "panel", wxPanel)->GetContainingSizer();
 		sizer->SetSizeHints(this);
-	};
-
-	CallAfter(f);
+	});
 
 #ifdef __WXMAC__
 	// dummy menu bar for macOS
@@ -91,9 +89,10 @@ void AppFrameBase::CreateFromXml()
 	m_adapterList = XRCCTRL(*this, "adapterList", wxChoice);
 	m_adapterListBtn = XRCCTRL(*this, "adapterListBtn", wxButton);
 	m_filePicker = XRCCTRL(*this, "filePicker", wxFilePickerCtrl);
+	m_advancedPane = XRCCTRL(*this, "advancedPane", wxCollapsiblePane);
 	m_textCmdlineAdd = XRCCTRL(*this, "textCmdlineAdd", wxTextCtrl);
 	m_textLog = XRCCTRL(*this, "textLog", wxTextCtrl);
 	m_textCmdStatus = XRCCTRL(*this, "textCmdStatus", wxStaticText);
-	m_startStopBtn = XRCCTRL(*this, "startStopBtn", wxButton);
+	m_startStopBtn = XRCCTRL(*this, "wxID_EXECUTE", wxButton);
 }
 }
