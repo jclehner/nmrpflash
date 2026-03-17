@@ -265,7 +265,12 @@ void AppFrame::OnSubtitleClicked(wxHyperlinkEvent& event)
 
 void AppFrame::OnCollapsibleEvent(wxCollapsiblePaneEvent& event)
 {
-
+	//m_panel->Layout();
+	//m_panel->Fit();
+	if (event.GetCollapsed()) {
+		m_panel->Layout();
+		Fit();
+	}
 }
 
 void AppFrame::WriteProcessInput(const string& str)

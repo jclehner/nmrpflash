@@ -28,6 +28,7 @@
 #include <wx/hyperlink.h>
 #include <wx/textctrl.h>
 #include <wx/collpane.h>
+#include <wx/panel.h>
 
 namespace nmrpflash {
 class AppFrameBase : public wxFrame
@@ -36,6 +37,7 @@ class AppFrameBase : public wxFrame
 	AppFrameBase();
 
 	protected:
+	wxPanel* m_panel;
 	wxStaticBitmap* m_iconBitmap;
 	wxStaticText* m_textTitle;
 	wxHyperlinkCtrl* m_linkCopyright;

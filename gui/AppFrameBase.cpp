@@ -41,8 +41,6 @@ void MakeSameWidth(wxWindow* a, wxWindow* b)
 AppFrameBase::AppFrameBase()
 {
 	CreateFromXml();
-	// FIXME
-	m_startStopBtn->SetId(wxID_EXECUTE);
 
 	SetIcon(m_iconBitmap->GetIcon());
 
@@ -69,10 +67,19 @@ AppFrameBase::AppFrameBase()
 	sz = m_textLog->GetSizeFromTextSize({ sz.x * logCols, sz.y * logRows});
 	m_textLog->SetMinSize(sz);
 
+#if 1
 	CallAfter([this] () {
-		auto sizer = XRCCTRL(*this, "panel", wxPanel)->GetContainingSizer();
-		sizer->SetSizeHints(this);
+		GetSizer()->SetSizeHints(this);
+		Fit();
+		#if 0
+		auto sizer = m_panel->GetContainingSizer();
+		if (sizer) {
+			sizer->SetSizeHints(this);
+		}
+		#endif
+		//Fit();
 	});
+#endif
 
 #ifdef __WXMAC__
 	// dummy menu bar for macOS
@@ -83,6 +90,7 @@ AppFrameBase::AppFrameBase()
 void AppFrameBase::CreateFromXml()
 {
 	wxXmlResource::Get()->LoadFrame(this, nullptr, "AppFrameBase");
+	m_panel = XRCCTRL(*this, "panel", wxPanel);
 	m_iconBitmap = XRCCTRL(*this, "icon", wxStaticBitmap);
 	m_textTitle = XRCCTRL(*this, "textTitle", wxStaticText);
 	m_linkCopyright = XRCCTRL(*this, "linkCopyright", wxHyperlinkCtrl);
