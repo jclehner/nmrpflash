@@ -25,13 +25,14 @@
 #include <wx/colour.h>
 #include <wx/filepicker.h>
 #include <wx/frame.h>
+#include <wx/dialog.h>
 #include <wx/hyperlink.h>
 #include <wx/textctrl.h>
 #include <wx/collpane.h>
 #include <wx/panel.h>
 
 namespace nmrpflash {
-class AppFrameBase : public wxFrame
+class AppFrameBase : public wxDialog
 {
 	public:
 	AppFrameBase();
