@@ -15,7 +15,7 @@ FetchContent_Declare(
 	DOWNLOAD_NO_EXTRACT FALSE
 )
 
-option(NMRPFLASH_BUILD_GUI "Enable GUI" OFF)
+option(NMRPFLASH_GUI "Enable GUI" OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
@@ -77,7 +77,7 @@ add_executable(fuzz EXCLUDE_FROM_ALL
 )
 target_compile_definitions(fuzz PRIVATE NMRPFLASH_FUZZ)
 
-if (NMRPFLASH_BUILD_GUI)
+if (NMRPFLASH_GUI)
 	add_subdirectory(gui)
 	add_compile_definitions(NMRPFLASH_GUI=1)
 	target_link_libraries(nmrpflash PRIVATE nmrpflash-gui)
