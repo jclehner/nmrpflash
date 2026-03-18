@@ -461,7 +461,7 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	if (args->file_local && strcmp(args->file_local, "-") && is_readable(args->file_local)) {
+	if (args->file_local && strcmp(args->file_local, "-") && !is_readable(args->file_local)) {
 		fprintf(stderr, "Error accessing file '%s'.\n", args->file_local);
 		return 1;
 	}
