@@ -4,6 +4,17 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 	message(FATAL_ERROR "In-source builds are not allowed")
 endif()
 
+include(FetchContent)
+set(FETCHCONTENT_QUIET FALSE)
+
+FetchContent_Declare(
+	Npcap
+	URL https://npcap.com/dist/npcap-sdk-1.16.zip
+	URL_HASH SHA256=f0a8be7778ee3ae1b99bbbecb27a3ff0f6c111a4093f1c78c5c5a099607184db
+	USES_TERMINAL_DOWNLOAD TRUE
+	DOWNLOAD_NO_EXTRACT FALSE
+)
+
 option(NMRPFLASH_BUILD_GUI "Enable GUI" OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
@@ -85,11 +96,12 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 		include(CPack)
 	endif()
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	target_include_directories(nmrpflash PRIVATE ./Npcap/Include)
+	FetchContent_MakeAvailable(Npcap)
+	target_include_directories(nmrpflash PRIVATE ${npcap_SOURCE_DIR}/Include)
 	if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-		target_link_directories(nmrpflash PRIVATE ./Npcap/Lib/x64)
+		target_link_directories(nmrpflash PRIVATE ${npcap_SOURCE_DIR}/Lib/x64)
 	else()
-		target_link_directories(nmrpflash PRIVATE ./Npcap/Lib)
+		target_link_directories(nmrpflash PRIVATE ${npcap_SOURCE_DIR}/Lib)
 	endif()
 
 	target_sources(nmrpflash PRIVATE nmrpflash.rc)

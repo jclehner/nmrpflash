@@ -9,9 +9,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 add_library(nmrpflash-gui OBJECT)
 
-include(FetchContent)
-set(FETCHCONTENT_QUIET FALSE)
-
 FetchContent_Declare(
 	wxWidgets
 	URL https://github.com/wxWidgets/wxWidgets/releases/download/v3.2.10/wxWidgets-3.2.10.7z
