@@ -50,7 +50,12 @@ endif()
 
 # for all targets
 add_compile_definitions(NMRPFLASH_VERSION=\"${NMRPFLASH_VERSION}\")
-add_compile_options(-Wall -g)
+
+if (MSVC)
+	add_compile_options(/W3)
+else()
+	add_compile_options(-Wall)
+endif()
 
 #add_executable(nmrpflash MACOSX_BUNDLE
 add_executable(nmrpflash
@@ -84,9 +89,12 @@ if (NMRPFLASH_GUI)
 endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-	target_link_libraries(nmrpflash PRIVATE -lpcap "-framework CoreFoundation -framework SystemConfiguration")
-	if (FALSE)
+	target_link_libraries(nmrpflash PRIVATE pcap)
+	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,CoreFoundation>")
+	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,SystemConfiguration>")
+	if (FALSE) #if(CMAKE_BUILD_TYPE STREQUAL "Release")
 		set_target_properties(nmrpflash PROPERTIES
+			MACOSX_BUNDLE TRUE
 			MACOSX_BUNDLE_NAME "nmrpflash"
 			MACOSX_BUNDLE_VERSION ${NMRPFLASH_VERSION}
 			MACOSX_BUNDLE_SHORT_VERSION_STRING ${NMRPFLASH_VERSION}
@@ -105,7 +113,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	endif()
 
 	target_sources(nmrpflash PRIVATE nmrpflash.rc)
-	target_link_libraries(nmrpflash PRIVATE -lwpcap -lPacket -liphlpapi -lws2_32 -ladvapi32)
+	target_link_libraries(nmrpflash PRIVATE wpcap Packet iphlpapi ws2_32 advapi32)
 	add_compile_definitions(_WIN32_WINNT=0x0600 WIN32_LEAN_AND_MEAN __USE_MINGW_ANSI_STDIO)
 else()
 	find_package(PkgConfig)
