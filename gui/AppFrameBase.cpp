@@ -16,6 +16,7 @@
  * along with nmrpflash.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#include <wx/collpane.h>
 #include <wx/menu.h>
 #include <wx/panel.h>
 #include <wx/sizer.h>
@@ -66,6 +67,22 @@ AppFrameBase::AppFrameBase()
 	auto sz = m_textLog->GetTextExtent("X");
 	sz = m_textLog->GetSizeFromTextSize({ sz.x * logCols, sz.y * logRows});
 	m_textLog->SetMinSize(sz);
+
+#ifdef __WXGTK__
+	// on wxGTK, the frame doesn't shrink as expected when collapsing the pane
+	// again. this hack works around that issue...
+	m_advancedPane->SetWindowStyle(m_advancedPane->GetWindowStyle() | wxCP_NO_TLW_RESIZE);
+	m_advancedPane->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED,
+		[this] (wxCollapsiblePaneEvent&) {
+		SetSizeHints(wxDefaultSize, wxDefaultSize);
+
+		Layout();
+		Fit();
+
+		auto size = GetSize();
+		SetSizeHints(size, size);
+	});
+#endif
 
 #if 0
 	CallAfter([this] () {

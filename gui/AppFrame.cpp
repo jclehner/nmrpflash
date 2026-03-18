@@ -130,7 +130,6 @@ m_timer(new wxTimer(this))
 	m_startStopBtn->Bind(wxEVT_BUTTON, &AppFrame::OnStartStopPressed, this);
 	m_linkCopyright->Bind(wxEVT_HYPERLINK, &AppFrame::OnSubtitleClicked, this);
 	m_adapterListBtn->Bind(wxEVT_BUTTON, &AppFrame::OnAdapterListBtnPressed, this);
-	m_advancedPane->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED, &AppFrame::OnCollapsibleEvent, this);
 
 	m_advancedPane->SetWindowStyle(m_advancedPane->GetWindowStyle() | wxCP_NO_TLW_RESIZE);
 
@@ -263,17 +262,6 @@ void AppFrame::OnSubtitleClicked(wxHyperlinkEvent& event)
 	info.SetIcon(m_iconBitmap->GetIcon());
 
 	wxAboutBox(info, this);
-}
-
-void AppFrame::OnCollapsibleEvent(wxCollapsiblePaneEvent& event)
-{
-	SetSizeHints(wxDefaultSize, wxDefaultSize);
-
-	Layout();
-	Fit();
-	
-	auto size = GetSize();
-	SetSizeHints(size, size);
 }
 
 void AppFrame::WriteProcessInput(const string& str)

@@ -46,7 +46,6 @@ protected:
 	void OnAdapterListBtnPressed(wxCommandEvent& event);
 	void OnStartStopPressed(wxCommandEvent& event);
 	void OnSubtitleClicked(wxHyperlinkEvent& event);
-	void OnCollapsibleEvent(wxCollapsiblePaneEvent& event);
 
 private:
 	void CreateFromXml(wxWindow* parent);
