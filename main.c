@@ -281,8 +281,10 @@ int main(int argc, char **argv)
 	int gui_mode = -1;
 	bool tftpcmd_as_admin = false;
 
+#ifdef NMRPFLASH_GUI
 	disable_buffering_if_not_a_tty(stdout);
 	disable_buffering_if_not_a_tty(stderr);
+#endif
 
 #ifndef NMRPFLASH_WINDOWS
 	signal(SIGPIPE, SIG_IGN);
