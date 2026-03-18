@@ -77,7 +77,6 @@
                   font="extra small"
                   alignment="wxALIGN_CENTER_HORIZONTAL"
                   borders=""
-                  wxEVT_HYPERLINK="OnHyperlink[python:on_hyperlink][ruby:on_hyperlink]" />
               </node>
               <node
                 class="spacer"
@@ -118,7 +117,6 @@
                   minimum_size="-1,-1"
                   tooltip="Refresh"
                   flags="wxEXPAND"
-                  wxEVT_BUTTON="OnUpdateNetAdapterList[python:on_update_net_adapter_list][ruby:on_button]" />
               </node>
               <node
                 class="wxStaticText"
@@ -213,7 +211,6 @@
                 label="⏵ Start "
                 var_name="startStopBtn"
                 id="wxID_EXECUTE"
-                wxEVT_BUTTON="OnStartStopPressed[python:on_start_stop_pressed][ruby:on_button]" />
             </node>
           </node>
         </node>
