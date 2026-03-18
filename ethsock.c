@@ -258,7 +258,7 @@ static bool intf_add_del_ip(const char *intf, uint32_t ipaddr, uint32_t ipmask, 
 	if ((err = (add ? rtnl_addr_add(sk, ra, 0) : rtnl_addr_delete(sk, ra, 0))) < 0) {
 		if (add && err == -NLE_EXIST) {
 			err = 0;
-		} else if (add || verbosity > 1) {
+		} else if (add || g_verbosity > 1) {
 			nl_perror(err, add ? "rtnl_addr_add" : "rtnl_addr_delete");
 		}
 	}
@@ -453,7 +453,7 @@ static bool intf_get_if_row(NET_IFINDEX index, MIB_IF_ROW2* row)
 
 	err = GetIfEntry2(row);
 	if (err != NO_ERROR) {
-	    if (verbosity > 1) {
+	    if (g_verbosity > 1) {
 			win_perror2("GetIfEntry2", err);
 	    }
 		return false;
@@ -487,7 +487,7 @@ static bool intf_get_hwaddr_and_index(const char *intf, uint8_t *hwaddr, DWORD *
 	ret = GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapters, &bufLen);
 	if (ret == NO_ERROR) {
 		for (adapter = adapters; adapter; adapter = adapter->Next) {
-			if (verbosity > 2) {
+			if (g_verbosity > 2) {
 				printf("  %s: Type=%lu, Name=%ls\n", adapter->AdapterName, adapter->IfType, adapter->FriendlyName);
 			}
 			if (adapter->IfType != IF_TYPE_ETHERNET_CSMACD && adapter->IfType != IF_TYPE_IEEE80211) {
@@ -540,7 +540,7 @@ static const char *intf_name_to_wpcap(const char *intf)
 
 		err = ConvertInterfaceIndexToLuid(index, &luid);
 		if (err != NO_ERROR) {
-			if (verbosity) {
+			if (g_verbosity) {
 				win_perror2("ConvertInterfaceIndexToLuid", err);
 			}
 			break;
@@ -548,7 +548,7 @@ static const char *intf_name_to_wpcap(const char *intf)
 
 		err = ConvertInterfaceLuidToGuid(&luid, &guid);
 		if (err != NO_ERROR) {
-			if (verbosity) {
+			if (g_verbosity) {
 				win_perror2("ConvertInterfaceLuidToGuid", err);
 			}
 			break;
@@ -627,7 +627,7 @@ static char* wcs_to_utf8(const wchar_t* src)
 #ifdef NMRPFLASH_MACOS
 void cf_perror(const char* function)
 {
-	if (verbosity > 1) {
+	if (g_verbosity > 1) {
 		fprintf(stderr, "Warning: %s failed\n", function);
 	}
 }
@@ -694,7 +694,7 @@ char* get_pretty_name(const char* interface)
 			CFIndex len = CFStringGetMaximumSizeForEncoding(CFStringGetLength(s) + 1, kCFStringEncodingUTF8);
 			pretty = (char*)malloc(len);
 			if (!pretty) {
-				if (verbosity > 1) {
+				if (g_verbosity > 1) {
 					perror("malloc");
 				}
 			} else if (!CFStringGetCString(s, pretty, len, kCFStringEncodingUTF8)) {
@@ -889,7 +889,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 			err = systemf("nmcli device set ifname %s managed no", sock->intf);
 			if (err) {
 				printf("Warning: failed to temporarily disable NetworkManager\n");
-			} else if (verbosity > 1) {
+			} else if (g_verbosity > 1) {
 				printf("Temporarily disabling NetworkManager on interface.\n");
 			}
 		}
@@ -963,7 +963,7 @@ int ethsock_send(struct ethsock *sock, void *buf, size_t len)
 		// ignore errors if unplugged (and let all other through
 		// as well, just printing a debug line).
 
-		if (!ethsock_is_unplugged(sock) && verbosity > 1) {
+		if (!ethsock_is_unplugged(sock) && g_verbosity > 1) {
 			pcap_perror(sock->pcap, "pcap_inject");
 		}
 
@@ -1093,7 +1093,7 @@ static bool get_hwaddr_from_pcap(const pcap_if_t *dev, uint8_t *hwaddr)
 	int i;
 
 	for (addr = dev->addresses; addr; addr = addr->next) {
-		if (verbosity > 1) {
+		if (g_verbosity > 1) {
 			printf("%s: sa_family=%d, sa_data={ ", dev->name,
 					addr->addr->sa_family);
 			for (i = 0; i != sizeof(addr->addr->sa_data); ++i) {
@@ -1132,14 +1132,14 @@ int ethsock_list_all(bool (*cb)(const struct ethsock_list_item*, void*), void* c
 		memset(&item, 0, sizeof(item));
 
 		if (dev->flags & PCAP_IF_LOOPBACK) {
-			if (verbosity) {
+			if (g_verbosity) {
 				printf("%-15s  (loopback device)\n", dev->name);
 			}
 			continue;
 		}
 
 		if (!get_hwaddr_from_pcap(dev, item.hwaddr)) {
-			if (verbosity) {
+			if (g_verbosity) {
 				printf("%-15s  (not an ethernet device)\n",
 						dev->name);
 			}
@@ -1158,7 +1158,7 @@ int ethsock_list_all(bool (*cb)(const struct ethsock_list_item*, void*), void* c
 		}
 
 		if (!row.InterfaceAndOperStatusFlags.HardwareInterface) {
-			if (verbosity) {
+			if (g_verbosity) {
 				printf("%-15s  (virtual interface)\n", dev->name);
 			}
 			continue;

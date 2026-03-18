@@ -387,7 +387,7 @@ bool nmrp_discard(struct ethsock *sock)
 	if (ret == 0) {
 		if (rx.msg.code != NMRP_C_CONF_REQ && rx.msg.code != NMRP_C_TFTP_UL_REQ) {
 			printf("Discarding unexpected %s packet.\n", msg_code_str(rx.msg.code));
-		} else if (verbosity > 1) {
+		} else if (g_verbosity > 1) {
 			printf("Discarding late %s packet.\n", msg_code_str(rx.msg.code));
 		}
 	}
@@ -552,7 +552,7 @@ int nmrp_do(struct nmrpd_args *args)
 			goto out;
 		}
 	} else {
-		if (verbosity) {
+		if (g_verbosity) {
 			printf("Adding %s to interface %s.\n", args->ipaddr_intf, args->intf);
 		}
 
@@ -602,7 +602,7 @@ int nmrp_do(struct nmrpd_args *args)
 				// don't continue in blind mode if we've received a response
 				args->blind_timeout = 0;
 				break;
-			} else if (verbosity) {
+			} else if (g_verbosity) {
 				printf("\nIgnoring bogus response: %s -> %s.\n",
 						mac_to_str(rx.eh.ether_shost),
 						mac_to_str(rx.eh.ether_dhost));
@@ -750,7 +750,7 @@ int nmrp_do(struct nmrpd_args *args)
 						}
 					}
 
-					if (verbosity) {
+					if (g_verbosity) {
 						printf("Using remote filename '%s'.\n",
 								args->file_remote);
 					}

@@ -148,7 +148,7 @@ void print_version()
 {
 	printf("nmrpflash %s", NMRPFLASH_VERSION);
 
-	if (!verbosity) {
+	if (!g_verbosity) {
 		printf("\n");
 		return;
 	}
@@ -423,7 +423,7 @@ int main(int argc, char **argv)
 				print_version();
 				return 0;
 			case 'v':
-				++verbosity;
+				++g_verbosity;
 				break;
 			case 'L':
 				list = true;
@@ -470,7 +470,7 @@ int main(int argc, char **argv)
 #endif
 	}
 
-	if (verbosity) {
+	if (g_verbosity) {
 		print_version();
 	}
 

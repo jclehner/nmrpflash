@@ -14,7 +14,7 @@ int main(int argc, char** argv)
 	WSAStartup(MAKEWORD(2, 2), &wsa);
 #endif
 
-	verbosity = 2;
+	g_verbosity = 2;
 
 	struct nmrpd_args args = {
 		.rx_timeout = NMRP_DEFAULT_RX_TIMEOUT_MS,

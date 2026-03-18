@@ -37,7 +37,7 @@
 #endif
 
 volatile sig_atomic_t g_interrupted = 0;
-int verbosity = 0;
+int g_verbosity = 0;
 
 long long millis()
 {

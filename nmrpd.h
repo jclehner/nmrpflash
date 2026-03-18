@@ -158,8 +158,6 @@ void sock_perror(const char *msg);
 
 int systemf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 
-extern int verbosity;
-
 struct ethsock_arp_undo;
 struct ethsock_ip_undo;
 
@@ -216,6 +214,7 @@ int start_gui(char* argv0, struct nmrpd_args* args);
 int start_control_thread();
 
 extern volatile sig_atomic_t g_interrupted;
+extern int g_verbosity;
 
 // like system(), but with restricted privileges
 #ifndef NMRPFLASH_WINDOWS

@@ -230,7 +230,7 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 		return -1;
 	}
 
-	if (verbosity > 2) {
+	if (g_verbosity > 2) {
 		printf(">> ");
 		pkt_print(pkt, stdout);
 		printf("\n");
@@ -269,7 +269,7 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 			return -1;
 	}
 
-	if (verbosity > 2) {
+	if (g_verbosity > 2) {
 		printf("<< ");
 		pkt_print(pkt, stdout);
 		printf("\n");
@@ -349,12 +349,12 @@ void add_tftp_firewall_rule(struct sockaddr_in* addr)
 
 	del_tftp_firewall_rule(addr);
 
-	if (verbosity > 1) {
+	if (g_verbosity > 1) {
 		printf("Adding firewall rule for TFTP... ");
 	}
 
 	err = systemf("netsh advfirewall firewall add rule name=\"%s\" dir=in remoteip=%s protocol=udp action=allow %s",
-			fw_rule_name, inet_ntoa(addr->sin_addr), (verbosity > 1 ? "" : "> NUL 2>&1"));
+			fw_rule_name, inet_ntoa(addr->sin_addr), (g_verbosity > 1 ? "" : "> NUL 2>&1"));
 	if (err) {
 		fprintf(stderr, "Warning: failed to add firewall rule for TFTP\n");
 	}
@@ -485,7 +485,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 						goto cleanup;
 					}
 
-					if (verbosity) {
+					if (g_verbosity) {
 						printf("Remote accepted blksize option: %d b\n", blksize);
 					}
 				}
@@ -533,7 +533,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				goto cleanup;
 			}
 		} else if ((op != OACK && op != ACK) || ackblock > block) {
-			if (verbosity) {
+			if (g_verbosity) {
 				fprintf(stderr, "Expected ACK(%d), got ", block);
 				pkt_print(rx, stderr);
 				fprintf(stderr, ".\n");
@@ -579,7 +579,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 
 #ifndef NMRPFLASH_FUZZ
 			if (!block && port != args->port) {
-				if (verbosity > 1) {
+				if (g_verbosity > 1) {
 					printf("Switching to port %d\n", port);
 					fflush(stdout);
 				}

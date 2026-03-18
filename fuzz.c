@@ -4,7 +4,7 @@
 
 int main(int argc, char** argv)
 {
-	verbosity = 2;
+	g_verbosity = 2;
 
 	struct nmrpd_args args = {
 		.rx_timeout = 60,

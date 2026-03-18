@@ -147,7 +147,7 @@ int start_control_thread()
 {
 	try {
 		std::thread ctrl([] () {
-			if (verbosity > 1) {
+			if (g_verbosity > 1) {
 				printf("Control thread listening on stdin...\n");
 			}
 
