@@ -152,9 +152,10 @@ m_timer(new wxTimer(this))
 #endif
 	UpdateNetAdapterList(false);
 
-	int filter = wxFILTER_ASCII|wxFILTER_EXCLUDE_LIST;
-	static wxString filterStr = "\"'";
-	m_textCmdlineAdd->SetValidator(wxTextValidator(filter, &filterStr));
+	// filter out quotes, so we can split the string more easily
+	wxTextValidator v(wxFILTER_ASCII | wxFILTER_EXCLUDE_CHAR_LIST);
+	v.SetCharExcludes("\"'");
+	m_textCmdlineAdd->SetValidator(v);
 }
 
 AppFrame::~AppFrame()
@@ -332,6 +333,15 @@ long AppFrame::ExecuteProcess()
 		"-i", adapter->device_name,
 		"-f", m_filePicker->GetPath().ToStdString()
 	});
+
+	if (!m_textCustomCmd->IsEmpty()) {
+		args.insert(args.end(), { "-c", m_textCustomCmd->GetValue().ToStdString() });
+	}
+
+	string verbosityArg(m_verbosityChoice->GetSelection(), 'v');
+	if (!verbosityArg.empty()) {
+		args.push_back("-" + verbosityArg);
+	}
 
 	long ret = m_process->Execute(GetMyExecutableFilename(), args);
 
