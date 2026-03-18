@@ -85,18 +85,12 @@ AppFrameBase::AppFrameBase()
 	});
 #endif
 
-#if 0
+#ifdef __WXOSX__
 	CallAfter([this] () {
-		GetSizer()->SetSizeHints(this);
-		#if 0
-		auto sizer = m_panel->GetContainingSizer();
+		auto sizer = GetSizer();
 		if (sizer) {
 			sizer->SetSizeHints(this);
 		}
-		#endif
-		//GetSizer()->Set
-		Fit();
-		//Fit();
 	});
 #endif
 
