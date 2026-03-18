@@ -1,0 +1,223 @@
+<?xml version="1.0"?>
+<wxUiEditorData
+  data_version="16">
+  <node
+    class="Project"
+    art_directory="res"
+    code_preference="XRC"
+    generate_languages="C++|XRC"
+    base_directory="."
+    generate_cmake="1"
+    src_preamble="// Imported from /home/jclehner/Coding/nmrpflash/gui/./gui1.wxui"
+    python_output_folder="."
+    wxRuby_version="1.2.1"
+    combined_xrc_file="resources.xrc"
+    xrc_indent_attributes="0"
+    xrc_indent_with_spaces="1">
+    <node
+      class="wxDialog"
+      class_name="AppFrameBase"
+      style="wxCAPTION|wxCLOSE_BOX|wxMINIMIZE_BOX|wxSYSTEM_MENU"
+      title="nmrpflash"
+      minimum_size="-1,-1"
+      size="-1,-1"
+      base_file="AppFrameBase"
+      name_space="nmrpflash"
+      derived_class_name="AppFrame"
+      pure_virtual_functions="1">
+      <node
+        class="wxBoxSizer"
+        orientation="wxVERTICAL"
+        var_name="rootSizer">
+        <node
+          class="wxPanel"
+          minimum_size="-1,-1"
+          window_style="wxTAB_TRAVERSAL"
+          border_size="0"
+          borders="">
+          <node
+            class="wxBoxSizer"
+            orientation="wxVERTICAL"
+            var_name="panelSizer"
+            flags="wxEXPAND">
+            <node
+              class="wxBoxSizer"
+              var_name="titleSizer"
+              minimum_size="-1,-1"
+              border_size="0"
+              borders=""
+              flags="wxEXPAND">
+              <node
+                class="spacer"
+                proportion="1" />
+              <node
+                class="wxStaticBitmap"
+                bitmap="SVG;../nmrpflash.svg;[48,48]"
+                var_name="icon"
+                maximum_size="-1,-1"
+                minimum_size="-1,-1"
+                size="-1,-1"
+                alignment="wxALIGN_CENTER_VERTICAL" />
+              <node
+                class="wxBoxSizer"
+                orientation="wxVERTICAL"
+                var_name="titleTextSizer"
+                flags="wxEXPAND">
+                <node
+                  class="wxStaticText"
+                  label="nmrpflash 1.0"
+                  var_name="textTitle"
+                  font="default family,16,,bold"
+                  alignment="wxALIGN_CENTER_HORIZONTAL"
+                  borders="" />
+                <node
+                  class="wxHyperlinkCtrl"
+                  label="© 2016-2026 Joseph C. Lehner"
+                  var_name="linkCopyright"
+                  font="extra small"
+                  alignment="wxALIGN_CENTER_HORIZONTAL"
+                  borders=""
+                  wxEVT_HYPERLINK="OnHyperlink[python:on_hyperlink][ruby:on_hyperlink]" />
+              </node>
+              <node
+                class="spacer"
+                proportion="1" />
+            </node>
+            <node
+              class="wxFlexGridSizer"
+              var_name="optionGridSizer"
+              flexible_direction="wxHORIZONTAL"
+              growablecols="1"
+              border_size="0"
+              flags="wxEXPAND">
+              <node
+                class="wxStaticText"
+                label="Network Adapter"
+                var_name="staticText1"
+                alignment="wxALIGN_CENTER_VERTICAL" />
+              <node
+                class="wxBoxSizer"
+                var_name="adapterListSizer"
+                border_size="0"
+                borders=""
+                flags="wxEXPAND">
+                <node
+                  class="wxChoice"
+                  contents="&quot;Ethernet 1 - 192.168.3.55&quot; &quot;Ethernet 4 - 0.0.0.0&quot; &quot;Wi-Fi - 10.10.30.40&quot; &quot;enp42s3 - 192.168.10.20&quot;"
+                  selection_int="1"
+                  var_name="adapterList"
+                  size="-1,-1"
+                  borders="wxTOP|wxBOTTOM|wxLEFT"
+                  flags="wxEXPAND"
+                  proportion="1" />
+                <node
+                  class="wxButton"
+                  label="↺"
+                  style="wxBU_EXACTFIT"
+                  var_name="adapterListBtn"
+                  minimum_size="-1,-1"
+                  tooltip="Refresh"
+                  flags="wxEXPAND"
+                  wxEVT_BUTTON="OnUpdateNetAdapterList[python:on_update_net_adapter_list][ruby:on_button]" />
+              </node>
+              <node
+                class="wxStaticText"
+                label="Firmware Image"
+                var_name="staticText2"
+                alignment="wxALIGN_CENTER_VERTICAL" />
+              <node
+                class="wxFilePickerCtrl"
+                message="Select a file"
+                style="wxFLP_USE_TEXTCTRL|wxFLP_OPEN|wxFLP_FILE_MUST_EXIST|wxFLP_SMALL"
+                var_name="filePicker"
+                wildcard="*.*"
+                flags="wxEXPAND"
+                proportion="1" />
+            </node>
+            <node
+              class="wxCollapsiblePane"
+              label="Advanced"
+              var_name="advancedPane"
+              borders=""
+              flags="wxEXPAND"
+              scale_border_size="0">
+              <node
+                class="wxFlexGridSizer"
+                flexible_direction="wxHORIZONTAL"
+                growablecols="1"
+                flags="wxEXPAND">
+                <node
+                  class="wxStaticText"
+                  label="Verbosity"
+                  var_name="staticText3"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxChoice"
+                  contents="&quot;info&quot; &quot;verbose&quot; &quot;debug&quot; &quot;trace&quot;"
+                  selection_int="0"
+                  var_name="verbositySelector"
+                  flags="wxEXPAND" />
+                <node
+                  class="wxStaticText"
+                  label="Custom Command"
+                  var_name="staticText4"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxTextCtrl"
+                  var_name="textCustomCmd"
+                  tooltip="Executed before (or instead of) TFTP upload"
+                  flags="wxEXPAND" />
+                <node
+                  class="wxStaticText"
+                  label="Additional Arguments"
+                  var_name="staticText"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxTextCtrl"
+                  var_name="textCmdlineAdd"
+                  flags="wxEXPAND" />
+              </node>
+            </node>
+            <node
+              class="wxStaticLine"
+              var_name="staticLine"
+              size="40,-1"
+              flags="wxEXPAND" />
+            <node
+              class="wxTextCtrl"
+              style="wxTE_MULTILINE|wxTE_READONLY|wxTE_RICH|wxTE_DONTWRAP"
+              var_name="textLog"
+              font="teletype,8"
+              subclass="nmrpflash::DumbConsoleTextCtrl"
+              subclass_header="DumbConsoleTextCtrl.h"
+              flags="wxEXPAND" />
+            <node
+              class="wxBoxSizer"
+              var_name="bottomRowSizer"
+              borders=""
+              flags="wxEXPAND">
+              <node
+                class="wxStaticText"
+                label="Command finished successfully."
+                var_name="textCmdStatus"
+                font="normal size,,bold"
+                foreground_colour="#2EC27E"
+                alignment="wxALIGN_CENTER_VERTICAL" />
+              <node
+                class="spacer"
+                borders=""
+                flags="wxEXPAND"
+                proportion="1" />
+              <node
+                class="wxButton"
+                label="⏵ Start "
+                var_name="startStopBtn"
+                id="wxID_EXECUTE"
+                wxEVT_BUTTON="OnStartStopPressed[python:on_start_stop_pressed][ruby:on_button]" />
+            </node>
+          </node>
+        </node>
+      </node>
+    </node>
+  </node>
+</wxUiEditorData>
