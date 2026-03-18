@@ -357,7 +357,7 @@ void AppFrame::UpdateNetAdapterList(bool userInitiated)
 	m_adapterList->Clear();
 
 	ethsock_list_all([](const ethsock_list_item* p, void* adapterListRaw) -> bool {
-		auto name = p->pretty_name ?: p->native_name;
+		auto name = p->pretty_name ? p->pretty_name : p->native_name;
 		auto choice = static_cast<decltype(m_adapterList)>(adapterListRaw);
 		choice->Append(name, new AdapterData(p));
 		return true;

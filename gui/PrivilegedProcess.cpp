@@ -22,7 +22,6 @@
 #include <memory>
 #include <fstream>
 #include <stdexcept>
-#include <unistd.h>
 #include <wx/event.h>
 #include <wx/process.h>
 #include <wx/stream.h>

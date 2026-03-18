@@ -63,6 +63,8 @@
 #define __attribute__(a)
 #define strcasecmp(a, b) _stricmp(a, b)
 #define STDIN_FILENO 0
+#define STDOUT_FILENO 1
+#define STDERR_FILENO 2
 typedef ptrdiff_t ssize_t;
 typedef SOCKET sock_type;
 #else
