@@ -30,25 +30,12 @@ class DumbConsoleTextCtrl : public wxTextCtrl
 public:
 	DumbConsoleTextCtrl() = default;
 
-	bool Create(
-		wxWindow* parent,
-		wxWindowID id,
-		const wxString& value=wxEmptyString,
-		const wxPoint& pos=wxDefaultPosition,
-		const wxSize& size=wxDefaultSize,
-		long style=wxTE_MULTILINE,
-		const wxValidator& validator=wxDefaultValidator,
-		const wxString& name=wxTextCtrlNameStr
-	);
-
 	virtual void WriteText(const wxString& text) override;
 	virtual void Clear() override;
 
 	virtual long GetCursorPosition() const;
 	virtual void SetCursorPosition(long pos, bool relative=false);
 	virtual void SetCursorPositionEnd();
-
-
 
 private:
 	std::string m_currentLine;
