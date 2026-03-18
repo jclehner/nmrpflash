@@ -20,7 +20,6 @@
 #include "Util.h"
 #include <cstdint>
 #include <cstring>
-#include <filesystem>
 #include <stdexcept>
 #include <wx/collpane.h>
 #include <wx/event.h>
@@ -279,35 +278,32 @@ void AppFrame::WriteProcessInput(const string& str)
 
 bool AppFrame::ReadProcessOutputLine(bool terminated)
 {
-	auto out = m_process->GetStdout();
 	auto err = m_process->GetStderr();
-	decltype(out) stream = nullptr;
 
-	if (out && !out->Eof()) {
-		stream = out;
-	} else if (err && !err->Eof()) {
-		stream = err;
-	} else {
-		return false;
-	}
+	auto streams = { m_process->GetStdout(), err };
+	bool haveValidStream = false;
 
-	if (stream->CanRead()) {
-		wxTextAttr style = m_textLog->GetDefaultStyle();
-		if (stream == out) {
-			style.SetFontWeight(wxFONTWEIGHT_NORMAL);
-		} else if (stream == err) {
-			style.SetFontWeight(wxFONTWEIGHT_BOLD);
+	for (auto s : streams) {
+		if (!s || s->Eof()) {
+			continue;
 		}
 
-		string buf;
+		haveValidStream = true;
 
-		if (ReadLine(stream, buf, true)) {
+		string buf;
+		if (ReadLine(s, buf, true)) {
+			wxTextAttr style = m_textLog->GetDefaultStyle();
+			style.SetFontWeight(s == err ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);
 			m_textLog->SetDefaultStyle(style);
 			m_textLog->WriteText(buf);
 			style.SetFontWeight(wxFONTWEIGHT_NORMAL);
 			m_textLog->SetDefaultStyle(style);
 			return true;
 		}
+	}
+
+	if (!haveValidStream) {
+		return false;
 	}
 
 	return !terminated;
