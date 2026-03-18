@@ -28,7 +28,6 @@ if [[ $1 != "tftp" && $1 != "nmrp" ]]; then
 	exit 1
 fi
 
-make fuzz
 ! tmux kill-session -t "$session:"
 
 ! rm -rf $fuzz_out
