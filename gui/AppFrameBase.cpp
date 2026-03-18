@@ -90,7 +90,7 @@ AppFrameBase::AppFrameBase()
 
 void AppFrameBase::CreateFromXml()
 {
-	wxXmlResource::Get()->LoadDialog(this, nullptr, "AppFrameBase");
+	wxXmlResource::Get()->LoadFrame(this, nullptr, "AppFrameBase");
 	m_panel = XRCCTRL(*this, "panel", wxPanel);
 	m_iconBitmap = XRCCTRL(*this, "icon", wxStaticBitmap);
 	m_textTitle = XRCCTRL(*this, "textTitle", wxStaticText);

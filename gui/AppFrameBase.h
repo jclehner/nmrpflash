@@ -32,7 +32,7 @@
 #include <wx/panel.h>
 
 namespace nmrpflash {
-class AppFrameBase : public wxDialog
+class AppFrameBase : public wxFrame
 {
 	public:
 	AppFrameBase();
