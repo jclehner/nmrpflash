@@ -249,7 +249,8 @@ void AppFrame::OnUpdateUI(wxUpdateUIEvent& event)
 		return;
 	}
 
-	event.Enable(m_filePicker->GetPath() != ""
+	event.Enable(
+		(!m_filePicker->GetPath().IsEmpty() || !m_textCustomCmd->IsEmpty())
 		&& m_adapterList->IsEnabled()
 		&& m_adapterList->GetSelection() != wxNOT_FOUND);
 }
