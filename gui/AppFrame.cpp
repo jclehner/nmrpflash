@@ -132,6 +132,8 @@ m_timer(new wxTimer(this))
 	m_adapterListBtn->Bind(wxEVT_BUTTON, &AppFrame::OnAdapterListBtnPressed, this);
 	m_advancedPane->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED, &AppFrame::OnCollapsibleEvent, this);
 
+	m_advancedPane->SetWindowStyle(m_advancedPane->GetWindowStyle() | wxCP_NO_TLW_RESIZE);
+
 #if 1
 	// clear values from mockup
 	m_textCmdStatus->SetLabelText("");
@@ -265,12 +267,13 @@ void AppFrame::OnSubtitleClicked(wxHyperlinkEvent& event)
 
 void AppFrame::OnCollapsibleEvent(wxCollapsiblePaneEvent& event)
 {
-	//m_panel->Layout();
-	//m_panel->Fit();
-	if (event.GetCollapsed()) {
-		m_panel->Layout();
-		Fit();
-	}
+	SetSizeHints(wxDefaultSize, wxDefaultSize);
+
+	Layout();
+	Fit();
+	
+	auto size = GetSize();
+	SetSizeHints(size, size);
 }
 
 void AppFrame::WriteProcessInput(const string& str)

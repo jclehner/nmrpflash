@@ -67,16 +67,17 @@ AppFrameBase::AppFrameBase()
 	sz = m_textLog->GetSizeFromTextSize({ sz.x * logCols, sz.y * logRows});
 	m_textLog->SetMinSize(sz);
 
-#if 1
+#if 0
 	CallAfter([this] () {
 		GetSizer()->SetSizeHints(this);
-		Fit();
 		#if 0
 		auto sizer = m_panel->GetContainingSizer();
 		if (sizer) {
 			sizer->SetSizeHints(this);
 		}
 		#endif
+		//GetSizer()->Set
+		Fit();
 		//Fit();
 	});
 #endif
