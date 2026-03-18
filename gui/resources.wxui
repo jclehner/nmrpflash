@@ -76,7 +76,7 @@
                   var_name="linkCopyright"
                   font="extra small"
                   alignment="wxALIGN_CENTER_HORIZONTAL"
-                  borders=""
+				          borders="" />
               </node>
               <node
                 class="spacer"
@@ -116,7 +116,7 @@
                   var_name="adapterListBtn"
                   minimum_size="-1,-1"
                   tooltip="Refresh"
-                  flags="wxEXPAND"
+                  flags="wxEXPAND" />
               </node>
               <node
                 class="wxStaticText"
@@ -210,7 +210,7 @@
                 class="wxButton"
                 label="⏵ Start "
                 var_name="startStopBtn"
-                id="wxID_EXECUTE"
+                id="wxID_EXECUTE" />
             </node>
           </node>
         </node>
