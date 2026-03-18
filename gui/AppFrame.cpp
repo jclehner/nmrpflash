@@ -132,8 +132,6 @@ m_timer(new wxTimer(this))
 	m_linkCopyright->Bind(wxEVT_HYPERLINK, &AppFrame::OnSubtitleClicked, this);
 	m_adapterListBtn->Bind(wxEVT_BUTTON, &AppFrame::OnAdapterListBtnPressed, this);
 
-	m_advancedPane->SetWindowStyle(m_advancedPane->GetWindowStyle() | wxCP_NO_TLW_RESIZE);
-
 	// clear values from mockup
 	m_textCmdStatus->SetLabelText("");
 #if 1
