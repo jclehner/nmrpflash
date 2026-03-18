@@ -163,7 +163,7 @@
 										<object class="sizeritem">
 											<flag>wxALL|wxEXPAND</flag>
 											<border>5</border>
-											<object class="wxChoice" name="verbositySelector">
+											<object class="wxChoice" name="verbosityChoice">
 												<content>
 													<item>info</item>
 													<item>verbose</item>

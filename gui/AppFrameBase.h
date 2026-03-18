@@ -46,6 +46,8 @@ class AppFrameBase : public wxFrame
 	wxButton* m_adapterListBtn;
 	wxFilePickerCtrl* m_filePicker;
 	wxCollapsiblePane* m_advancedPane;
+	wxChoice* m_verbosityChoice;
+	wxTextCtrl* m_textCustomCmd;
 	wxTextCtrl* m_textCmdlineAdd;
 	wxTextCtrl* m_textLog;
 	wxStaticText* m_textCmdStatus;

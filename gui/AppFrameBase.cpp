@@ -20,6 +20,7 @@
 #include <wx/menu.h>
 #include <wx/panel.h>
 #include <wx/sizer.h>
+#include <wx/toplevel.h>
 #include <wx/xrc/xmlres.h>
 
 #include "AppFrameBase.h"
@@ -116,6 +117,8 @@ void AppFrameBase::CreateFromXml()
 	m_adapterListBtn = XRCCTRL(*this, "adapterListBtn", wxButton);
 	m_filePicker = XRCCTRL(*this, "filePicker", wxFilePickerCtrl);
 	m_advancedPane = XRCCTRL(*this, "advancedPane", wxCollapsiblePane);
+	m_verbosityChoice = XRCCTRL(*this, "verbosityChoice", wxChoice);
+	m_textCustomCmd = XRCCTRL(*this, "textCustomCmd", wxTextCtrl);
 	m_textCmdlineAdd = XRCCTRL(*this, "textCmdlineAdd", wxTextCtrl);
 	m_textLog = XRCCTRL(*this, "textLog", wxTextCtrl);
 	m_textCmdStatus = XRCCTRL(*this, "textCmdStatus", wxStaticText);
