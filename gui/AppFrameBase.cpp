@@ -85,7 +85,7 @@ AppFrameBase::AppFrameBase()
 	});
 #endif
 
-#ifdef __WXOSX__
+#if defined(__WXOSX__) || defined(__WXMSW__)
 	CallAfter([this] () {
 		auto sizer = GetSizer();
 		if (sizer) {
