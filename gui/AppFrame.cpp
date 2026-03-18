@@ -29,6 +29,7 @@
 #include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/utils.h>
+#include <wx/valtext.h>
 #include <wx/version.h>
 #include <wx/aboutdlg.h>
 #include <wx/msgdlg.h>
@@ -133,9 +134,9 @@ m_timer(new wxTimer(this))
 
 	m_advancedPane->SetWindowStyle(m_advancedPane->GetWindowStyle() | wxCP_NO_TLW_RESIZE);
 
-#if 1
 	// clear values from mockup
 	m_textCmdStatus->SetLabelText("");
+#if 1
 
 	// FIXME
 	auto dummy = "0" + string(60-3, '.') + "60" + string(20-2, '.') + "80";
@@ -150,8 +151,12 @@ m_timer(new wxTimer(this))
 	auto vi = wxGetLibraryVersionInfo();
 	m_textLog->AppendText(vi.ToString());
 
-	UpdateNetAdapterList(false);
 #endif
+	UpdateNetAdapterList(false);
+
+	int filter = wxFILTER_ASCII|wxFILTER_EXCLUDE_LIST;
+	static wxString filterStr = "\"'";
+	m_textCmdlineAdd->SetValidator(wxTextValidator(filter, &filterStr));
 }
 
 AppFrame::~AppFrame()
