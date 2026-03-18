@@ -38,6 +38,7 @@ Options (-i, and -f or -c are mandatory):
  -p <port>       Port to use for TFTP upload [69]
  -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP, AU)
  -S <n>          Skip <n> bytes of the firmware file
+ -U              Run `-c <command>` as root/administrator
  -v              Be verbose
  -V              Print version and exit
  -L              List network interfaces

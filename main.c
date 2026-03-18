@@ -58,7 +58,7 @@ int usage(FILE *fp)
 			" -p <port>       Port to use for TFTP upload [%d]\n"
 			" -R <region>     Set device region (NA, WW, GR, PR, RU, BZ, IN, KO, JP, AU)\n"
 			" -S <n>          Skip <n> bytes of the firmware file\n"
-			" -U              Run \"-c <command>\" as " NMRPFLASH_ADMIN_USER "\n"
+			" -U              Run `-c <command>` as " NMRPFLASH_ADMIN_USER "\n"
 			" -v              Be verbose\n"
 			" -V              Print version and exit\n"
 			" -L              List network interfaces\n"
