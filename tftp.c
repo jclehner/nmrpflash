@@ -19,7 +19,6 @@
 
 #include <sys/stat.h>
 #include <string.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -132,7 +131,7 @@ static size_t pkt_xrqlen(char *pkt)
 	return 514 - rem;
 }
 
-static void pkt_mkwrq(char *pkt, const char *filename, unsigned blksize)
+static void pkt_mkwrq(char *pkt, const char *filename, unsigned long blksize)
 {
 	filename = leafname(filename);
 	if (!tftp_is_valid_filename(filename)) {
@@ -176,21 +175,22 @@ static inline void pkt_print(char *pkt, FILE *fp)
 	}
 }
 
-static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
+static ssize_t tftp_recvfrom(sock_type sock, char *pkt, uint16_t* port,
 		unsigned timeout, size_t pktlen)
 {
 	ssize_t len;
 	struct sockaddr_in src;
+	int s;
 #ifndef NMRPFLASH_WINDOWS
 	socklen_t alen;
 #else
 	int alen;
 #endif
 
-	len = select_readfd(sock, timeout);
-	if (len < 0) {
+	s = select_readfd(sock, timeout);
+	if (s < 0) {
 		return -1;
-	} else if (!len) {
+	} else if (!s) {
 		return 0;
 	}
 
@@ -239,7 +239,7 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 	return len;
 }
 
-static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
+static ssize_t tftp_sendto(sock_type sock, char *pkt, size_t len,
 		struct sockaddr_in *dst, struct nmrpd_args* args, bool* p_connected)
 {
 	ssize_t sent;
@@ -371,9 +371,11 @@ static const char *spinner = "\\|/-";
 ssize_t tftp_put(struct nmrpd_args *args)
 {
 	struct sockaddr_in addr;
-	uint16_t block, port, op, blksize;
+	uint16_t block, port, op;
+	unsigned long blksize;
 	ssize_t len, last_len, bytes, fsize;
-	int fd, sock, ret, timeouts, errors, ackblock;
+	int fd, ret, timeouts, errors, ackblock;
+	sock_type sock;
 	char rx[2048], tx[2048];
 	const char *file_remote = args->file_remote;
 	char *val, *end;
@@ -478,7 +480,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 			} else if (op == OACK) {
 				ackblock = 0;
 				if ((val = pkt_optval(rx, "blksize"))) {
-					blksize = strtol(val, &end, 10);
+					blksize = strtoul(val, &end, 10);
 					if (*end != '\0' || blksize < 8 || blksize > TFTP_BLKSIZE) {
 						fprintf(stderr, "Error: invalid blksize in OACK: %s\n", val);
 						ret = -1;
@@ -486,7 +488,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 					}
 
 					if (g_verbosity) {
-						printf("Remote accepted blksize option: %d b\n", blksize);
+						printf("Remote accepted blksize option: %lu b\n", blksize);
 					}
 				}
 			}
@@ -516,7 +518,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				len = read(fd, tx + 4, blksize);
 				if (len < 0) {
 					xperror("read");
-					ret = len;
+					ret = -1;
 					goto cleanup;
 				} else if (!len) {
 					if (last_len != blksize && last_len != -1) {

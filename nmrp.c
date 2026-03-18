@@ -20,7 +20,6 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
 #include <time.h>
@@ -61,11 +60,12 @@ enum nmrp_opt_type {
 	NMRP_O_FILE_NAME = 0x0181
 };
 
+#pragma pack(push, 1)
 struct nmrp_opt {
 	uint16_t type;
 	uint16_t len;
 	char val[1];
-} PACKED;
+};
 
 struct nmrp_msg {
 	uint16_t reserved;
@@ -73,12 +73,13 @@ struct nmrp_msg {
 	uint8_t id;
 	uint16_t len;
 	char opts[44];
-} PACKED;
+};
 
 struct nmrp_pkt {
 	struct eth_hdr eh;
 	struct nmrp_msg msg;
-} PACKED;
+};
+#pragma pack(pop)
 
 static const char *msg_code_str(uint16_t code)
 {
@@ -460,7 +461,7 @@ int nmrp_do(struct nmrpd_args *args)
 		return 1;
 	}
 
-	if (args->file_local && strcmp(args->file_local, "-") && access(args->file_local, R_OK) == -1) {
+	if (args->file_local && strcmp(args->file_local, "-") && is_readable(args->file_local)) {
 		fprintf(stderr, "Error accessing file '%s'.\n", args->file_local);
 		return 1;
 	}

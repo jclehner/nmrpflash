@@ -135,7 +135,7 @@ int systemf(const char *fmt, ...)
 }
 
 #ifndef NMRPFLASH_WINDOWS
-static inline bool sockaddr_get_hwaddr(struct sockaddr *sa, uint8_t *hwaddr)
+static bool sockaddr_get_hwaddr(struct sockaddr *sa, uint8_t *hwaddr)
 {
 	void *src;
 
@@ -715,7 +715,7 @@ out:
 }
 #endif
 
-inline uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
+uint8_t *ethsock_get_hwaddr(struct ethsock *sock)
 {
 	return sock->hwaddr;
 }
@@ -999,7 +999,7 @@ int ethsock_close(struct ethsock *sock)
 	return 0;
 }
 
-inline int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
+int ethsock_set_timeout(struct ethsock *sock, unsigned msec)
 {
 	sock->timeout = msec;
 	return 0;
@@ -1250,7 +1250,7 @@ int ethsock_for_each_ip(struct ethsock *sock, ethsock_ip_callback_t callback,
 	return status <= 0 ? status : 0;
 }
 
-static inline void set_addr(void *p, uint32_t addr)
+static void set_addr(void *p, uint32_t addr)
 {
 	struct sockaddr_in* sin = p;
 	sin->sin_family = AF_INET;

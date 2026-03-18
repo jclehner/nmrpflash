@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <sys/types.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #  define NMRPFLASH_WINDOWS
@@ -44,7 +45,6 @@
 
 #ifndef NMRPFLASH_WINDOWS
 #  include <arpa/inet.h>
-#  include <sys/types.h>
 #  include <sys/socket.h>
 #  include <netinet/in.h>
 #  include <net/if.h>
@@ -56,6 +56,18 @@
 #  include <ws2tcpip.h>
 #  include <windows.h>
 #  include <conio.h>
+#  include <io.h>
+#endif
+
+#ifdef _MSC_VER
+#define __attribute__(a)
+#define strcasecmp(a, b) _stricmp(a, b)
+#define STDIN_FILENO 0
+typedef ptrdiff_t ssize_t;
+typedef SOCKET sock_type;
+#else
+#include <unistd.h>
+typedef int sock_type;
 #endif
 
 #ifndef MIN
@@ -64,10 +76,6 @@
 
 #ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
-#endif
-
-#ifndef PACKED
-#define PACKED __attribute__((packed))
 #endif
 
 #define NMRP_DEFAULT_UL_TIMEOUT_S    (30 * 60)
@@ -96,11 +104,13 @@
 extern "C" {
 #endif
 
+#pragma pack(push, 1)
 struct eth_hdr {
 	uint8_t ether_dhost[6];
 	uint8_t ether_shost[6];
 	uint16_t ether_type;
-} PACKED;
+};
+#pragma pack(pop)
 
 enum nmrp_op {
 	NMRP_UPLOAD_FW = 0,
@@ -139,13 +149,15 @@ struct nmrpd_args {
 };
 
 const char *leafname(const char *path);
+bool is_readable(const char *path);
+
 ssize_t tftp_put(struct nmrpd_args *args);
 bool tftp_is_valid_filename(const char *filename);
 
 int nmrp_do(struct nmrpd_args *args);
 bool nmrp_discard(struct ethsock *sock);
 
-int select_readfd(int fd, unsigned timeout);
+int select_readfd(sock_type fd, unsigned timeout);
 const char *mac_to_str(const uint8_t *mac);
 
 #ifdef NMRPFLASH_WINDOWS

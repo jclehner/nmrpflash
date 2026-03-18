@@ -21,7 +21,6 @@
 #include <errno.h>
 #include <time.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include "nmrpd.h"
 
 #ifdef NMRPFLASH_MACOS
@@ -34,6 +33,10 @@
 #include <grp.h>
 #else
 #include <winsafer.h>
+#endif
+
+#ifdef _MSC_VER
+#include <corecrt_io.h>
 #endif
 
 volatile sig_atomic_t g_interrupted = 0;
@@ -85,7 +88,16 @@ uint32_t netmask(uint32_t count)
 	return htonl(count <= 32 ? 0xffffffff << (32 - count) : 0);
 }
 
-int select_readfd(int fd, unsigned timeout)
+bool is_readable(const char *path)
+{
+#ifndef _MSC_VER
+	return access(path, R_OK) != -1;
+#else
+	return _access(path, 04) != -1;
+#endif
+}
+
+int select_readfd(sock_type fd, unsigned timeout)
 {
 	struct timeval tv;
 	int status;

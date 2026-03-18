@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
+cmake_policy(SET CMP0167 NEW)
 
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 	message(FATAL_ERROR "In-source builds are not allowed")
@@ -48,11 +49,14 @@ else()
 	project(${CMAKE_PROJECT_NAME} VERSION ${NMRPFLASH_VERSION})
 endif()
 
-# for all targets
+	add_compile_options(/W3)
+
+# for all targets - these must come BEFORE add_executable!
 add_compile_definitions(NMRPFLASH_VERSION=\"${NMRPFLASH_VERSION}\")
 
 if (MSVC)
 	add_compile_options(/W3)
+	add_compile_definitions(_CRT_NONSTDC_NO_WARNINGS)
 else()
 	add_compile_options(-Wall)
 endif()
@@ -81,6 +85,14 @@ add_executable(fuzz EXCLUDE_FROM_ALL
 	fuzz.c
 )
 target_compile_definitions(fuzz PRIVATE NMRPFLASH_FUZZ)
+
+# for all targets
+if (MSVC)
+	target_include_directories(nmrpflash PRIVATE 3rdparty/getopt/)
+	target_sources(nmrpflash PRIVATE 3rdparty/getopt/getopt.c)
+	# since we're providing our own
+	target_link_options(nmrpflash PRIVATE /MANIFEST:NO)
+endif()
 
 if (NMRPFLASH_GUI)
 	add_subdirectory(gui)

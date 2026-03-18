@@ -17,7 +17,6 @@
  *
  */
 
-#include <unistd.h>
 #include <getopt.h>
 #include <locale.h>
 #include <stdlib.h>
@@ -121,7 +120,7 @@ void require_admin()
 	fprintf(stderr, "Warning: failed to check administrator privileges\n");
 }
 
-void show_exit_prompt()
+void show_exit_prompt(void)
 {
 	if (isatty(STDIN_FILENO) && console_window_is_ours()) {
 		printf("Press any key to exit\n");
@@ -130,7 +129,7 @@ void show_exit_prompt()
 }
 
 // this is needed because atexit() expects cdecl, while WSACleanup() uses stdcall
-void wsa_cleanup()
+void wsa_cleanup(void)
 {
 	WSACleanup();
 }
