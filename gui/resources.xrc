@@ -5,7 +5,7 @@
 	<object class="wxFrame" name="AppFrameBase">
 		<title>nmrpflash</title>
 		<centered>1</centered>
-		<style>wxCAPTION|wxCLOSE_BOX|wxMINIMIZE_BOX|wxSYSTEM_MENU</style>
+		<style>wxCAPTION|wxCLOSE_BOX|wxMINIMIZE_BOX|wxSYSTEM_MENU|wxCLIP_CHILDREN</style>
 		<object class="wxBoxSizer" name="rootSizer">
 			<orient>wxVERTICAL</orient>
 			<object class="sizeritem">
