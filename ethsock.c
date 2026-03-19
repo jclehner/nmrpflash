@@ -1294,7 +1294,7 @@ static bool intf_up(int fd, const char *intf, bool up)
 
 static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo, bool add)
 {
-	int ret, fd;
+	int ret;
 
 	if (add && undo) {
 		if (!(*undo = malloc(sizeof(struct ethsock_ip_undo)))) {
@@ -1323,13 +1323,16 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 	set_addr(&ifra.ifra_mask, ipmask);
 	//set_addr(&ifra.ifra_broadaddr, (ipaddr & ipmask) | ~ipmask);
 
-	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (fd < 0) {
 		sock_perror("socket");
 		goto out;
 	}
 
-	if (ioctl(fd, add ? SIOCAIFADDR : SIOCDIFADDR, &ifra) != 0) {
+	ret = ioctl(fd, add ? SIOCAIFADDR : SIOCDIFADDR, &ifra);
+	close(fd);
+
+	if (ret != 0) {
 		if (add) {
 			xperror("ioctl(SIOCAIFADDR");
 		}
@@ -1405,14 +1408,10 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 // TODO fall back to SIOCSIFADDR; use undo struct to store current address/netmask config
 #  error "Function is not implemented on this platform."
 #endif
+
 	ret = 0;
 
 out:
-#ifndef NMRPFLASH_WINDOWS
-	close(fd);
-#else
-	closesocket(fd);
-#endif
 	if (ret != 0 && undo) {
 		free(*undo);
 		*undo = NULL;
