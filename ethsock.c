@@ -1250,6 +1250,7 @@ int ethsock_for_each_ip(struct ethsock *sock, ethsock_ip_callback_t callback,
 	return status <= 0 ? status : 0;
 }
 
+#ifndef NMRPFLASH_LINUX
 static void set_addr(void *p, uint32_t addr)
 {
 	struct sockaddr_in* sin = p;
@@ -1259,6 +1260,7 @@ static void set_addr(void *p, uint32_t addr)
 	((struct sockaddr*)p)->sa_len = sizeof(struct sockaddr_in);
 #endif
 }
+#endif
 
 #if !defined(NMRPFLASH_WINDOWS) && !defined(NMRPFLASH_LINUX)
 static bool intf_up(int fd, const char *intf, bool up)
@@ -1307,18 +1309,12 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 	}
 
 	ret = -1;
-	fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (fd < 0) {
-		sock_perror("socket");
-		goto out;
-	}
 
-#ifndef NMRPFLASH_WINDOWS
-#ifdef NMRPFLASH_LINUX
+#if defined(NMRPFLASH_LINUX)
 	if (!intf_add_del_ip(sock->intf, (*undo)->ip[0], (*undo)->ip[1], add)) {
 		goto out;
 	}
-#else // NMRPFLASH_MACOS (or any other BSD)
+#elif defined(NMRPFLASH_BSD) // this includes macOS
 	struct ifaliasreq ifra;
 	memset(&ifra, 0, sizeof(ifra));
 	strncpy(ifra.ifra_name, sock->intf, IFNAMSIZ);
@@ -1326,6 +1322,12 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 	set_addr(&ifra.ifra_addr, ipaddr);
 	set_addr(&ifra.ifra_mask, ipmask);
 	//set_addr(&ifra.ifra_broadaddr, (ipaddr & ipmask) | ~ipmask);
+
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (fd < 0) {
+		sock_perror("socket");
+		goto out;
+	}
 
 	if (ioctl(fd, add ? SIOCAIFADDR : SIOCDIFADDR, &ifra) != 0) {
 		if (add) {
@@ -1340,8 +1342,7 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 		intf_up(fd, ifra.ifra_name, true);
 	}
 
-#endif
-#else // NMRPFLASH_WINDOWS
+#elif defined(NMRPFLASH_WINDOWS)
 	MIB_UNICASTIPADDRESS_ROW row;
 	DWORD err;
 	int i;
@@ -1400,6 +1401,9 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 			goto out;
 		}
 	}
+#else
+// TODO fall back to SIOCSIFADDR; use undo struct to store current address/netmask config
+#  error "Function is not implemented on this platform."
 #endif
 	ret = 0;
 
