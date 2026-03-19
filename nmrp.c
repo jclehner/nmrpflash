@@ -31,10 +31,6 @@
 
 #define ETH_P_NMRP 0x0912
 
-#ifndef PACKED
-#define PACKED __attribute__((__packed__))
-#endif
-
 #ifdef NMRPFLASH_WINDOWS
 #define setenv(name, value, overwrite) SetEnvironmentVariableA(name, value)
 #endif
@@ -80,6 +76,10 @@ struct nmrp_pkt {
 	struct nmrp_msg msg;
 };
 #pragma pack(pop)
+
+STATIC_ASSERT(sizeof(struct nmrp_opt) == 5);
+STATIC_ASSERT(sizeof(struct nmrp_msg) == 50);
+STATIC_ASSERT(sizeof(struct nmrp_pkt) == 64);
 
 static const char *msg_code_str(uint16_t code)
 {

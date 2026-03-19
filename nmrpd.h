@@ -80,6 +80,11 @@ typedef int sock_type;
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
+#define STATIC_ASSERT3(cond, name) typedef char name##_failed[(!!(cond)) ? 1 : -1]
+#define STATIC_ASSERT2(cond, line) STATIC_ASSERT3(cond, static_assertion_at_line_##line)
+#define STATIC_ASSERT1(cond, line) STATIC_ASSERT2(cond, line)
+#define STATIC_ASSERT(cond)        STATIC_ASSERT1(cond, __LINE__)
+
 #define NMRP_DEFAULT_UL_TIMEOUT_S    (30 * 60)
 #define NMRP_DEFAULT_RX_TIMEOUT_MS   (10000)
 #define NMRP_DEFAULT_BLIND_TIMEOUT_S 5
@@ -113,6 +118,8 @@ struct eth_hdr {
 	uint16_t ether_type;
 };
 #pragma pack(pop)
+
+STATIC_ASSERT(sizeof(struct eth_hdr) == 14);
 
 enum nmrp_op {
 	NMRP_UPLOAD_FW = 0,
