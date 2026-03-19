@@ -49,8 +49,6 @@ else()
 	project(${CMAKE_PROJECT_NAME} VERSION ${NMRPFLASH_VERSION})
 endif()
 
-	add_compile_options(/W3)
-
 # for all targets - these must come BEFORE add_executable!
 add_compile_definitions(NMRPFLASH_VERSION=\"${NMRPFLASH_VERSION}\")
 
