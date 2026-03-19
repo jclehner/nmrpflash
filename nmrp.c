@@ -290,22 +290,22 @@ static int pkt_recv(struct ethsock *sock, struct nmrp_pkt *pkt)
 
 static int mac_parse(const char *str, uint8_t *hwaddr)
 {
-	int i;
+	int n;
 	unsigned data[6];
 
 	sscanf(str, "%02x:%02x:%02x:%02x:%02x:%02x%n",
-			data, data + 1, data + 2, data + 3, data + 4, data + 5, &i);
+			&data[0], &data[1], &data[2], &data[3], &data[4], &data[5], &n);
 
-	if (i == strlen(str)) {
-		for (i = 0; i != 6; ++i) {
-			if (data[i] > 255) {
+	if (n == strlen(str)) {
+		for (n = 0; n != 6; ++n) {
+			if (data[n] > 255) {
 				break;
 			}
 
-			hwaddr[i] = data[i] & 0xff;
+			hwaddr[n] = data[n] & 0xff;
 		}
 
-		if (i == 6) {
+		if (n == 6) {
 			return 1;
 		}
 	}
@@ -361,6 +361,28 @@ static int is_valid_ip(struct ethsock *sock, struct in_addr *ipaddr,
 #endif
 }
 
+static bool parse_ip(struct in_addr* dest, const char* str, bool is_subnet_mask)
+{
+	do {
+		if (!inet_pton(AF_INET, str, dest)) {
+			break;
+		}
+
+		if (dest->s_addr == INADDR_NONE || dest->s_addr == INADDR_ANY) {
+			break;
+		}
+
+		if (is_subnet_mask && netmask(bitcount(dest->s_addr)) != dest->s_addr) {
+			break;
+		}
+
+		return true;
+	} while (0);
+
+	fprintf(stderr, "Error: invalid %s: %s.\n", is_subnet_mask ? "subnet mask" : "IP address", str);
+	return false;
+}
+
 static void sigh(int sig)
 {
 	g_interrupted = 1;
@@ -413,10 +435,10 @@ int nmrp_do(struct nmrpd_args *args)
 	struct ethsock *sock;
 	struct ethsock_ip_undo *ip_undo = NULL;
 	struct ethsock_arp_undo *arp_undo = NULL;
-	uint32_t intf_addr = 0;
 	void (*sigh_orig)(int);
 	struct in_addr ipaddr;
 	struct in_addr ipmask;
+	struct in_addr ipaddr_intf;
 	uint8_t* arp_mac = NULL;
 
 	args->hints = 0;
@@ -427,14 +449,11 @@ int nmrp_do(struct nmrpd_args *args)
 	}
 
 	if (!mac_parse(args->mac, dest)) {
-		fprintf(stderr, "Invalid MAC address '%s'.\n", args->mac);
+		fprintf(stderr, "Error: invalid MAC address '%s'.\n", args->mac);
 		return 1;
 	}
 
-	ipmask.s_addr = inet_addr(args->ipmask);
-	if (ipmask.s_addr == INADDR_NONE
-			|| netmask(bitcount(ipmask.s_addr)) != ipmask.s_addr) {
-		fprintf(stderr, "Invalid subnet mask '%s'.\n", args->ipmask);
+	if (!parse_ip(&ipmask, args->ipmask, true)) {
 		return 1;
 	}
 
@@ -451,13 +470,11 @@ int nmrp_do(struct nmrpd_args *args)
 		autoip = false;
 	}
 
-	if ((ipaddr.s_addr = inet_addr(args->ipaddr)) == INADDR_NONE) {
-		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr);
+	if (!parse_ip(&ipaddr, args->ipaddr, false)) {
 		return 1;
 	}
 
-	if (args->ipaddr_intf && (intf_addr = inet_addr(args->ipaddr_intf)) == INADDR_NONE) {
-		fprintf(stderr, "Invalid IP address '%s'.\n", args->ipaddr_intf);
+	if (args->ipaddr_intf && !parse_ip(&ipaddr_intf, args->ipaddr_intf, false)) {
 		return 1;
 	}
 
@@ -557,7 +574,7 @@ int nmrp_do(struct nmrpd_args *args)
 			printf("Adding %s to interface %s.\n", args->ipaddr_intf, args->intf);
 		}
 
-		if (ethsock_ip_add(sock, intf_addr, ipmask.s_addr, &ip_undo) != 0) {
+		if (ethsock_ip_add(sock, ipaddr_intf.s_addr, ipmask.s_addr, &ip_undo) != 0) {
 			goto out;
 		}
 	}
