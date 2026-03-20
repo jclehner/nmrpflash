@@ -5,10 +5,8 @@
     class="Project"
     art_directory="res"
     code_preference="XRC"
-    generate_languages="C++|XRC"
-    base_directory="."
-    generate_cmake="1"
-    src_preamble="// Imported from /home/jclehner/Coding/nmrpflash/gui/./gui1.wxui"
+    generate_languages="XRC"
+    base_directory="../build"
     python_output_folder="."
     wxRuby_version="1.2.1"
     combined_xrc_file="resources.xrc"
@@ -19,12 +17,13 @@
       class_name="AppFrameBase"
       style="wxCAPTION|wxCLOSE_BOX|wxMINIMIZE_BOX|wxSYSTEM_MENU"
       title="nmrpflash"
-      minimum_size="-1,-1"
-      size="-1,-1"
       base_file="AppFrameBase"
       name_space="nmrpflash"
       derived_class_name="AppFrame"
-      pure_virtual_functions="1">
+      pure_virtual_functions="1"
+      disable_language="C++"
+      minimum_size="-1,-1"
+      size="-1,-1">
       <node
         class="wxBoxSizer"
         orientation="wxVERTICAL"
@@ -76,7 +75,7 @@
                   var_name="linkCopyright"
                   font="extra small"
                   alignment="wxALIGN_CENTER_HORIZONTAL"
-				          borders="" />
+                  borders="" />
               </node>
               <node
                 class="spacer"
@@ -85,7 +84,6 @@
             <node
               class="wxFlexGridSizer"
               var_name="optionGridSizer"
-              flexible_direction="wxHORIZONTAL"
               growablecols="1"
               border_size="0"
               flags="wxEXPAND">
@@ -134,9 +132,9 @@
             </node>
             <node
               class="wxCollapsiblePane"
+              collapsed="1"
               label="Advanced"
               var_name="advancedPane"
-              borders=""
               flags="wxEXPAND"
               scale_border_size="0">
               <node
@@ -153,7 +151,7 @@
                   class="wxChoice"
                   contents="&quot;info&quot; &quot;verbose&quot; &quot;debug&quot; &quot;trace&quot;"
                   selection_int="0"
-                  var_name="verbositySelector"
+                  var_name="verbosityChoice"
                   flags="wxEXPAND" />
                 <node
                   class="wxStaticText"
