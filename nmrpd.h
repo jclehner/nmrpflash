@@ -235,7 +235,7 @@ int start_gui(char* argv0, struct nmrpd_args* args);
 int start_control_thread();
 
 extern volatile sig_atomic_t g_interrupted;
-extern int g_verbosity;
+extern unsigned g_verbosity;
 
 // like system(), but with restricted privileges
 #ifndef NMRPFLASH_WINDOWS
