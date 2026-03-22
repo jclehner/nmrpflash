@@ -341,12 +341,17 @@ long AppFrame::ExecuteProcess()
 	args.insert(args.end(), {
 		"-g", "sub",
 		"-i", adapter->device_name,
-		"-f", m_filePicker->GetPath().ToStdString()
 	});
 
-	if (!m_textCustomCmd->IsEmpty()) {
-		args.insert(args.end(), { "-c", m_textCustomCmd->GetValue().ToStdString() });
-	}
+	auto f = [&args](const std::string& flag, const wxString& s) {
+		if (!s.IsEmpty()) {
+			args.push_back(flag);
+			args.push_back(s.ToStdString());
+		}
+	};
+
+	f("-f", m_filePicker->GetPath());
+	f("-c", m_textCustomCmd->GetValue());
 
 	string verbosityArg(m_verbosityChoice->GetSelection(), 'v');
 	if (!verbosityArg.empty()) {
