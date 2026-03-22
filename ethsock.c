@@ -1295,6 +1295,7 @@ static bool intf_up(int fd, const char *intf, bool up)
 static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo, bool add)
 {
 	int ret;
+	int fd = -1;
 
 	if (add && undo) {
 		if (!(*undo = malloc(sizeof(struct ethsock_ip_undo)))) {
@@ -1323,14 +1324,13 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 	set_addr(&ifra.ifra_mask, ipmask);
 	//set_addr(&ifra.ifra_broadaddr, (ipaddr & ipmask) | ~ipmask);
 
-	int fd = socket(AF_INET, SOCK_DGRAM, 0);
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (fd < 0) {
 		sock_perror("socket");
 		goto out;
 	}
 
 	ret = ioctl(fd, add ? SIOCAIFADDR : SIOCDIFADDR, &ifra);
-	close(fd);
 
 	if (ret != 0) {
 		if (add) {
@@ -1342,7 +1342,9 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 	if (add) {
 		(*undo)->ip[0] = ipaddr;
 		(*undo)->ip[1] = ipmask;
-		intf_up(fd, ifra.ifra_name, true);
+		if (!intf_up(fd, ifra.ifra_name, true)) {
+			goto out;
+		}
 	}
 
 #elif defined(NMRPFLASH_WINDOWS)
@@ -1412,6 +1414,10 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 	ret = 0;
 
 out:
+#ifndef NMRPFLASH_WINDOWS
+	close(fd);
+#endif
+
 	if (ret != 0 && undo) {
 		free(*undo);
 		*undo = NULL;
