@@ -213,7 +213,7 @@
             <object class="sizeritem">
               <flag>wxALL|wxEXPAND</flag>
               <border>5</border>
-              <object class="wxTextCtrl" name="textLog">
+              <object class="wxTextCtrl" subclass="nmrpflash::DumbConsoleTextCtrl" name="textLog">
                 <style>wxTE_MULTILINE|wxTE_READONLY|wxTE_RICH|wxTE_DONTWRAP</style>
                 <font>
                   <size>8</size>
