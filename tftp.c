@@ -250,6 +250,7 @@ static ssize_t tftp_sendto(sock_type sock, char *pkt, size_t len,
 		case RRQ:
 		case WRQ:
 			is_xrq = true;
+			// fallthrough
 		case OACK:
 			len = pkt_xrqlen(pkt);
 			break;
