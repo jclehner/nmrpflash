@@ -28,6 +28,7 @@
 
 #ifndef NMRPFLASH_WINDOWS
 #define NMRPFLASH_ADMIN_USER "root"
+#include <pwd.h>
 #include <signal.h>
 #include <sys/utsname.h>
 #else
@@ -511,8 +512,16 @@ int main(int argc, char **argv)
 				s = getenv("SUDO_UID");
 			}
 
-			if (!s || (args.unprivileged_user = atoi(s)) <= 0) {
-				fprintf(stderr, "Error: -U not specified; refusing to run \"-c <command>\" as root.\n");
+			if (!s) {
+				s = getenv("LOGNAME");
+				struct passwd* pw = s ? getpwnam(s) : NULL;
+				args.unprivileged_user = pw ? pw->pw_uid : 0;
+			} else {
+				args.unprivileged_user = atoi(s);
+			}
+
+			if (!s || args.unprivileged_user <= 0) {
+				fprintf(stderr, "Error: -U not specified; refusing to run `-c <command>` as root.\n");
 				return 1;
 			}
 #else
