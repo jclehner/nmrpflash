@@ -66,9 +66,7 @@ void DumbConsoleTextCtrl::WriteTextPart(const std::string_view& text, bool commi
 	size_t pos;
 
 	while ((pos = text.find_first_of("\r\n\b", beg)) != string::npos) {
-		// XXX add inner loop to handle sequential control characters,
-		// instead of recursive calls?
-		WriteTextPart(text.substr(beg, pos - beg), false);
+		DoWriteText(text.substr(beg, pos - beg), false);
 
 		if (text[pos] == '\n') {
 			DoWriteText("\n", true);
