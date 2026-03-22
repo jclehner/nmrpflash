@@ -163,6 +163,16 @@ m_timer(new wxTimer(this))
 	wxTextValidator v(wxFILTER_ASCII | wxFILTER_EXCLUDE_CHAR_LIST);
 	v.SetCharExcludes("\"'");
 	m_textCmdlineAdd->SetValidator(v);
+
+	m_verbosityChoice->SetSelection(std::min(g_verbosity, m_verbosityChoice->GetCount()-1));
+	m_verbosityChoice->Bind(wxEVT_CHOICE, [](wxCommandEvent& event) {
+		int n = event.GetSelection();
+		if (event.IsSelection() && n >= 0 && n != wxNO) {
+			if (n >= 0) {
+				g_verbosity = n;
+			}
+		}
+	});
 }
 
 AppFrame::~AppFrame()
