@@ -512,15 +512,15 @@ int main(int argc, char **argv)
 				s = getenv("SUDO_UID");
 			}
 
-			if (!s) {
+			if (s) {
+				args.unprivileged_user = atoi(s);
+			} else {
 				s = getenv("LOGNAME");
 				struct passwd* pw = s ? getpwnam(s) : NULL;
 				args.unprivileged_user = pw ? pw->pw_uid : 0;
-			} else {
-				args.unprivileged_user = atoi(s);
 			}
 
-			if (!s || args.unprivileged_user <= 0) {
+			if (!args.unprivileged_user) {
 				fprintf(stderr, "Error: -U not specified; refusing to run `-c <command>` as root.\n");
 				return 1;
 			}
