@@ -16,6 +16,7 @@
  * along with nmrpflash.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#include <utility>
 #include "DumbConsoleTextCtrl.h"
 using namespace std;
 
@@ -32,7 +33,7 @@ void DumbConsoleTextCtrl::SetCursorPosition(long pos, bool relative)
 	if (relative) {
 		SetCursorPosition(m_cursorPos + pos, false);
 	} else {
-		if (pos < 0 || pos > m_currentLine.length()) {
+		if (pos < 0 || std::cmp_greater(pos, m_currentLine.length())) {
 			pos = m_currentLine.length();
 		}
 
@@ -85,7 +86,7 @@ void DumbConsoleTextCtrl::WriteTextPart(const std::string_view& text, bool commi
 void DumbConsoleTextCtrl::DoWriteText(const std::string_view& text, bool commit)
 {
 	// always append "\n" to the end. Otherwise wxTextCtrl would split the line!
-	if (m_cursorPos >= m_currentLine.length() || text == "\n") {
+	if (std::cmp_greater_equal(m_cursorPos, m_currentLine.length()) || text == "\n") {
 		m_currentLine += text;
 		SetCursorPositionEnd();
 	} else {
