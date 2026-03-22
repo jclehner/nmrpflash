@@ -55,7 +55,13 @@ struct AdapterData : public wxClientData
 		this->native_name = p->native_name;
 		this->pcap_name = p->pcap_name;
 		this->device_name = p->device_name;
+		this->ip4addr = p->ip4addr;
 		memcpy(hwaddr, p->hwaddr, sizeof(hwaddr));
+	}
+
+	static AdapterData* Get(wxChoice* choice)
+	{
+		return dynamic_cast<AdapterData*>(choice->GetClientObject(choice->GetSelection()));
 	}
 
 	string native_name;
@@ -63,6 +69,7 @@ struct AdapterData : public wxClientData
 	string device_name;
 	uint8_t hwaddr[6];
 	bool wifi = false;
+	string ip4addr;
 };
 
 std::string GetMyExecutableFilename()
@@ -130,6 +137,7 @@ m_timer(new wxTimer(this))
 	m_startStopBtn->Bind(wxEVT_BUTTON, &AppFrame::OnStartStopPressed, this);
 	m_linkCopyright->Bind(wxEVT_HYPERLINK, &AppFrame::OnSubtitleClicked, this);
 	m_adapterListBtn->Bind(wxEVT_BUTTON, &AppFrame::OnAdapterListBtnPressed, this);
+	m_adapterList->Bind(wxEVT_CHOICE, &AppFrame::OnAdapterSelected, this);
 
 	// clear values from mockup
 	m_textCmdStatus->SetLabelText("");
@@ -192,6 +200,12 @@ void AppFrame::OnCloseWindow(wxCloseEvent& event)
 void AppFrame::OnAdapterListBtnPressed(wxCommandEvent&)
 {
 	UpdateNetAdapterList(true);
+}
+
+void AppFrame::OnAdapterSelected(wxCommandEvent&)
+{
+	auto adapter = AdapterData::Get(m_adapterList);
+	m_adapterList->SetToolTip("MAC: "s + mac_to_str(adapter->hwaddr));
 }
 
 void AppFrame::OnStartStopPressed(wxCommandEvent&)
@@ -320,7 +334,7 @@ void AppFrame::EndProcess()
 
 long AppFrame::ExecuteProcess()
 {
-	auto adapter = dynamic_cast<AdapterData*>(m_adapterList->GetClientObject(m_adapterList->GetSelection()));
+	auto adapter = AdapterData::Get(m_adapterList);
 
 	list<string> args;
 	boost::algorithm::split(args, m_textCmdlineAdd->GetValue(), boost::is_any_of(" "), boost::algorithm::token_compress_on);
@@ -356,16 +370,19 @@ void AppFrame::UpdateNetAdapterList(bool userInitiated)
 {
 	m_adapterList->Clear();
 
-	ethsock_list_all([](const ethsock_list_item* p, void* adapterListRaw) -> bool {
-		auto name = p->pretty_name ? p->pretty_name : p->native_name;
-		auto choice = static_cast<decltype(m_adapterList)>(adapterListRaw);
-		choice->Append(name, new AdapterData(p));
+	ethsock_list_all([](const ethsock_list_item* p, void* adapterListRaw) {
+		std::string item = p->pretty_name ? p->pretty_name : p->native_name;
+		if (p->ip4addr) {
+			item += " - "s + p->ip4addr;
+		}
+
+		static_cast<decltype(m_adapterList)>(adapterListRaw)->Append(item, new AdapterData(p));
 		return true;
 	}, m_adapterList);
 
 	if (m_adapterList->IsEmpty()) {
 		m_adapterList->Append("No suitable network interfaces found!");
-		m_adapterList->Enable(false);
+		m_adapterList->Disable();
 	} else {
 		m_adapterList->Enable();
 	}
