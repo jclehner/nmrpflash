@@ -167,7 +167,7 @@ m_timer(new wxTimer(this))
 	m_verbosityChoice->SetSelection(std::min(g_verbosity, m_verbosityChoice->GetCount()-1));
 	m_verbosityChoice->Bind(wxEVT_CHOICE, [](wxCommandEvent& event) {
 		int n = event.GetSelection();
-		if (event.IsSelection() && n >= 0 && n != wxNO) {
+		if (event.IsSelection() && n >= 0) {
 			if (n >= 0) {
 				g_verbosity = n;
 			}
