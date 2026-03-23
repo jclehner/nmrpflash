@@ -19,7 +19,6 @@
 #ifndef NMRPFLASH_GUI_UTIL_H
 #define NMRPFLASH_GUI_UTIL_H
 #include <filesystem>
-#include <utility>
 #include <string>
 #include <cerrno>
 #include <system_error>
