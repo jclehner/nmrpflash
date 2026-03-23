@@ -20,7 +20,9 @@ option(NMRPFLASH_GUI "Enable GUI" OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
-set(CMAKE_OSX_ARCHITECTURES $<$<CONFIG:Release>:arm64;x86_64>)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+       set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
+endif()
 
 project(nmrpflash)
 enable_language(C)
