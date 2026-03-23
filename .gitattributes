@@ -1,4 +1,4 @@
-* text eol=lf
+* text=auto eol=lf
 nmrpflash.cbp text eol=crlf
 nmrpflash.manifest text eol=crlf
 nmrpflash.rc text eol=crlf
