@@ -104,12 +104,15 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,CoreFoundation>")
 	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,SystemConfiguration>")
 	if(NMRPFLASH_GUI AND CMAKE_BUILD_TYPE STREQUAL "Release")
+		target_sources(nmrpflash PRIVATE nmrpflash.icns)
+		set_source_files_properties(nmrpflash.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 		set_target_properties(nmrpflash PROPERTIES
 			MACOSX_BUNDLE TRUE
 			MACOSX_BUNDLE_NAME "nmrpflash"
 			MACOSX_BUNDLE_VERSION ${NMRPFLASH_VERSION}
 			MACOSX_BUNDLE_SHORT_VERSION_STRING ${NMRPFLASH_VERSION}
 			MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.jclehner.nmrpflash"
+			MACOSX_BUNDLE_ICON_FILE "nmrpflash.icns"
 		)
 		set(CPACK_GENERATOR "DragNDrop")
 		include(CPack)
