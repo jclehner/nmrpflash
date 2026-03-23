@@ -336,9 +336,14 @@ bool AppFrame::ReadProcessOutputLine(bool terminated)
 void AppFrame::EndProcess()
 {
 	if (m_process->IsExecuting()) {
-		// write to nmrpflash's control thread
-		WriteProcessInput("i\n");
-		wxMicroSleep(100);
+		// write to the control thread of the nmrpflash subprocess. unless that
+		// thread is malfunctioning, this should have the same effect as sending
+		// SIGINT to the process.
+		WriteProcessInput("\x1b\n");
+
+		// Linux/BSD: terminates `sudo` only. doesn't work with `pkexec`
+		// macOS: terminates `osascript` only (which should have already exited at this point)
+		// Windows: actually terminates the subprocess
 		wxKill(m_process->GetPid());
 	}
 }

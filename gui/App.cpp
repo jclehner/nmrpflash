@@ -143,6 +143,10 @@ int start_gui(char* argv0, nmrpd_args* args)
 	return wxEntry(argc, argv);
 }
 
+// listens on stdin. two commands available:
+// ESC    (0x1b): simulate SIGINT (by setting g_interrupted); then after a grace period, send SIGTERM
+// CTRL-x (0x18): send SIGTERM
+
 int start_control_thread()
 {
 	try {
@@ -152,20 +156,28 @@ int start_control_thread()
 			}
 
 			while (!g_interrupted) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
 				char c = 0;
 
 				// if we just called getchar() without checking if there's actually any
 				// data, the control thread could block even after main() has returned
+
 				if (getchar_nonblocking(c)) {
-					if (c == 'i') {
+					if (c == 0x1b) {
 						g_interrupted = 1;
-					} else if (c == 't') {
+						// grace time before sending SIGTERM
+						std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					}
+
+					if (c == 0x1b || c == 0x18) {
 						raise(SIGTERM);
+						break;
 					}
 				}
 			}
+
+			// if we've arrived at this point, g_interrupted has been set by an actual SIGINT, not ESC.
 		});
 
 		ctrl.detach();
