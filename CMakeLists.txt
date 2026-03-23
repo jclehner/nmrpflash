@@ -114,8 +114,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 			MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.jclehner.nmrpflash"
 			MACOSX_BUNDLE_ICON_FILE "nmrpflash.icns"
 		)
-		set(CPACK_GENERATOR "DragNDrop")
-		include(CPack)
+		set(CPACK_GENERATOR DragNDrop)
 	endif()
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	FetchContent_MakeAvailable(Npcap)
@@ -151,3 +150,15 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_sources(nmrpflash PRIVATE nmrpflash.rc)
 endif()
+
+# CPack stuff
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+	set(CPACK_SYSTEM_NAME "macOS")
+else()
+	string(TOLOWER "${CMAKE_SYSTEM_NAME}" CPACK_SYSTEM_NAME)
+endif()
+
+set(CPACK_GENERATOR ZIP ${CPACK_GENERATOR})
+set(CPACK_PACKAGE_VERSION ${NMRPFLASH_VERSION})
+include(CPack)
