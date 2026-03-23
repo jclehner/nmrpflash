@@ -19,11 +19,8 @@ FetchContent_Declare(
 option(NMRPFLASH_GUI "Enable GUI" OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
-set(CMAKE_CONFGURATION_TYPES Debug Release RelWithDebInfo)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
-	#set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
-endif()
+set(CMAKE_OSX_ARCHITECTURES $<$<CONFIG:Release>:arm64;x86_64>)
 
 project(nmrpflash)
 enable_language(C)
@@ -154,7 +151,7 @@ endif()
 # CPack stuff
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-	set(CPACK_SYSTEM_NAME "macOS")
+	set(CPACK_SYSTEM_NAME "macos")
 else()
 	string(TOLOWER "${CMAKE_SYSTEM_NAME}" CPACK_SYSTEM_NAME)
 endif()
