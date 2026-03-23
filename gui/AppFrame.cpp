@@ -335,9 +335,10 @@ bool AppFrame::ReadProcessOutputLine(bool terminated)
 
 void AppFrame::EndProcess()
 {
-	// write to nmrpflash's control thread
 	if (m_process->IsExecuting()) {
+		// write to nmrpflash's control thread
 		WriteProcessInput("i\n");
+		wxMicroSleep(100);
 		wxKill(m_process->GetPid());
 	}
 }
