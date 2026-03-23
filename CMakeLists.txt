@@ -22,7 +22,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 set(CMAKE_CONFGURATION_TYPES Debug Release RelWithDebInfo)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-	set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
+	#set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
 endif()
 
 project(nmrpflash)
@@ -103,7 +103,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	target_link_libraries(nmrpflash PRIVATE pcap)
 	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,CoreFoundation>")
 	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,SystemConfiguration>")
-	if(AND(NMRPFLASH_GUI, CMAKE_BUILD_TYPE STREQUAL "Release"))
+	if(NMRPFLASH_GUI AND CMAKE_BUILD_TYPE STREQUAL "Release")
 		set_target_properties(nmrpflash PROPERTIES
 			MACOSX_BUNDLE TRUE
 			MACOSX_BUNDLE_NAME "nmrpflash"
@@ -111,7 +111,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 			MACOSX_BUNDLE_SHORT_VERSION_STRING ${NMRPFLASH_VERSION}
 			MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.jclehner.nmrpflash"
 		)
-		set(CPACK_GENERATOR "DRAGNDROP")
+		set(CPACK_GENERATOR "DragNDrop")
 		include(CPack)
 	endif()
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
