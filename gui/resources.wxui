@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <wxUiEditorData
-  data_version="16">
+  data_version="15">
   <node
     class="Project"
     art_directory="res"
@@ -61,7 +61,7 @@
                 class="wxBoxSizer"
                 orientation="wxVERTICAL"
                 var_name="titleTextSizer"
-                flags="wxEXPAND">
+                alignment="wxALIGN_CENTER_VERTICAL">
                 <node
                   class="wxStaticText"
                   label="nmrpflash 1.0"

@@ -3,6 +3,7 @@
   <object class="wxFrame" name="AppFrameBase">
     <title>nmrpflash</title>
     <centered>1</centered>
+    <style>wxCAPTION|wxCLOSE_BOX|wxMINIMIZE_BOX|wxSYSTEM_MENU</style>
     <object class="wxBoxSizer" name="rootSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
@@ -29,7 +30,7 @@
                   </object>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxALL|wxEXPAND</flag>
+                  <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
                   <border>5</border>
                   <object class="wxBoxSizer" name="titleTextSizer">
                     <orient>wxVERTICAL</orient>
