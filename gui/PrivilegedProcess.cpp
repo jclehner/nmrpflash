@@ -75,7 +75,7 @@ std::string EscapeArgvElement(const std::string& s)
 	return EscapeAndQuote(s, quotes, true, false);
 }
 
-std::string EscapeAndDoubleQuote(const std::string& s)
+[[maybe_unused]] std::string EscapeAndDoubleQuote(const std::string& s)
 {
 	return EscapeAndQuote(s, "\"", false, true);
 }

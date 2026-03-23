@@ -1295,7 +1295,9 @@ static bool intf_up(int fd, const char *intf, bool up)
 static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ipmask, struct ethsock_ip_undo **undo, bool add)
 {
 	int ret;
+#ifndef NMRPFLASH_WINDOWS
 	int fd = -1;
+#endif
 
 	if (add && undo) {
 		if (!(*undo = malloc(sizeof(struct ethsock_ip_undo)))) {
