@@ -19,9 +19,11 @@ FetchContent_Declare(
 option(NMRPFLASH_GUI "Enable GUI" OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
+set(CMAKE_CONFGURATION_TYPES Debug Release RelWithDebInfo)
 
-set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
-#set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "" FORCE)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+	set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
+endif()
 
 project(nmrpflash)
 enable_language(C)
@@ -59,7 +61,6 @@ else()
 	add_compile_options(-Wall)
 endif()
 
-#add_executable(nmrpflash MACOSX_BUNDLE
 add_executable(nmrpflash
 	main.c
 	nmrp.c
@@ -102,7 +103,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	target_link_libraries(nmrpflash PRIVATE pcap)
 	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,CoreFoundation>")
 	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,SystemConfiguration>")
-	if (FALSE) #if(CMAKE_BUILD_TYPE STREQUAL "Release")
+	if(AND(NMRPFLASH_GUI, CMAKE_BUILD_TYPE STREQUAL "Release"))
 		set_target_properties(nmrpflash PROPERTIES
 			MACOSX_BUNDLE TRUE
 			MACOSX_BUNDLE_NAME "nmrpflash"
