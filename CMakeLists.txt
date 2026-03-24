@@ -6,7 +6,6 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 endif()
 
 include(FetchContent)
-set(FETCHCONTENT_QUIET FALSE)
 
 FetchContent_Declare(
 	Npcap
@@ -114,6 +113,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 			MACOSX_BUNDLE_ICON_FILE "nmrpflash.icns"
 		)
 		set(CPACK_GENERATOR DragNDrop)
+		set(CPACK_BUNDLE_ICON "nmrpflash.icns")
 	endif()
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	FetchContent_MakeAvailable(Npcap)
@@ -150,14 +150,26 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_sources(nmrpflash PRIVATE nmrpflash.rc)
 endif()
 
-# CPack stuff
+
+# install / CPack stuff
+
+include(GNUInstallDirs)
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+	install(TARGETS nmrpflash RUNTIME DESTINATION .)
+else()
+	install(TARGETS nmrpflash RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
+
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+	install(TARGETS nmrpflash BUNDLE DESTINATION .)
 	set(CPACK_SYSTEM_NAME "macos")
 else()
 	string(TOLOWER "${CMAKE_SYSTEM_NAME}" CPACK_SYSTEM_NAME)
 endif()
 
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
 set(CPACK_GENERATOR ZIP ${CPACK_GENERATOR})
 set(CPACK_PACKAGE_VERSION ${NMRPFLASH_VERSION})
 include(CPack)
