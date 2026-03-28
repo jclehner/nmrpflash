@@ -99,7 +99,7 @@ Now reboot the device, and you're good to go.
 
 ### Common issues
 
-**In any case, run `nmrpflash` with `-vvv` before filing a bug report!**
+**In any case, run `nmrpflash` with `-vvv` / verbosity set to `debug` before filing a bug report!**
 
 ###### "Error while loading shared libraries: ..." (Linux)
 
@@ -224,7 +224,7 @@ This could indicate that the device hasn't finished flashing, after the default 
 for example use `-T 1800` to specify a timeout of 30 minutes.
 
 ### Building
-###### Linux, Mac OS X, BSDs
+###### Linux, macOS, BSDs
 
 On Linux, developer packages for `libpcap`, `libnl` and `libnl-route` must be installed:
 
@@ -232,31 +232,24 @@ On Linux, developer packages for `libpcap`, `libnl` and `libnl-route` must be in
 $ sudo apt install libpcap-dev libnl-3-dev libnl-route-3-dev
 ```
 
-nmrpflash uses CMake. A separate build directory is preferred:
+As of version 1.0, nmrpflash uses CMake. A separate build directory is preferred:
 
 ```
-$ mkdir build
-$ cd build
-$ cmake ..
+$ cmake -S . -B build
 ```
 
-In order to build the GUI too, run `cmake .. -DNMRPFLASH_GUI=1` instead. Additional
-dependencies (wxWidgets, boost) will be downloaded automatically if they can't be
-found.
+In order to build the GUI , run `cmake` with  `-DNMRPFLASH_WITH_GUI=1` instead. Additional
+dependencies (wxWidgets, boost) will be downloaded automatically if they can't be found.
 
 Then, it's as easy as
 
 ```
-$ cmake --build .
+$ cmake --build build
 ```
 
 ###### Windows
 
-Download the latest [Npcap SDK](https://nmap.org/npcap/) and extract it into the a folder
-named `Npcap` in the source's root directory.
-
-Then use CMake as above, running it with `-G "MinGW Makefiles"`. The MSVC compiler isn't
-supported at the moment.
+Use CMake, as above. Building has been tested with `-G "MinGW Makefiles` and `-G "NMake Makefiles"`.
 
 ### Donate
 
