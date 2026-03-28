@@ -8,7 +8,6 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 endif()
 
 include(FetchContent)
-include(CMakeDependentOption)
 
 FetchContent_Declare(
 	Npcap
@@ -18,11 +17,8 @@ FetchContent_Declare(
 	DOWNLOAD_NO_EXTRACT FALSE
 )
 
-option(NMRPFLASH_WITH_GUI "Enable GUI" OFF)
-cmake_dependent_option(NMRPFLASH_BUILD_APP "Build .app bundle" OFF 
-	[[CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND NMRPFLASH_WITH_GUI]]
-	OFF
-)
+option(NMRPFLASH_WITH_GUI  "Enable GUI" OFF)
+option(NMRPFLASH_BUILD_APP "Build .app bundle (macOS)" OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
@@ -31,8 +27,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 else()
 	set(CMAKE_OSX_ARCHITECTURES "" CACHE STRING "" FORCE)
 endif()
-
-message("Build type: ${CMAKE_BUILD_TYPE}")
 
 if (NOT DEFINED NMRPFLASH_VERSION)
 	find_package(Git)
@@ -56,6 +50,16 @@ if (NOT DEFINED NMRPFLASH_VERSION)
 else()
 	project(${CMAKE_PROJECT_NAME} VERSION ${NMRPFLASH_VERSION})
 endif()
+
+message(
+	"------------------------------------\n"
+	"nmrpflash ${NMRPFLASH_VERSION}\n"
+	"Build     : ${CMAKE_BUILD_TYPE}\n"
+	"System    : ${CMAKE_SYSTEM_NAME}\n"
+	"GUI       : ${NMRPFLASH_WITH_GUI}\n"
+	"Build .app: ${NMRPFLASH_BUILD_APP}\n"
+	"------------------------------------\n"
+)
 
 # for all targets - these must come BEFORE add_executable!
 add_compile_definitions(NMRPFLASH_VERSION=\"${NMRPFLASH_VERSION}\")
@@ -110,6 +114,9 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,CoreFoundation>")
 	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,SystemConfiguration>")
 	if(NMRPFLASH_BUILD_APP)
+		if (NOT NMRPFLASH_GUI)
+			message(FATAL_ERROR "Cannot build .app bundle without GUI")
+		endif()
 		target_sources(nmrpflash PRIVATE nmrpflash.icns)
 		set_source_files_properties(nmrpflash.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 		set_target_properties(nmrpflash PROPERTIES
