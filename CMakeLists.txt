@@ -7,6 +7,7 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 	message(FATAL_ERROR "In-source builds are not allowed")
 endif()
 
+include(GNUInstallDirs)
 include(FetchContent)
 
 FetchContent_Declare(
@@ -17,8 +18,8 @@ FetchContent_Declare(
 	DOWNLOAD_NO_EXTRACT FALSE
 )
 
-option(NMRPFLASH_WITH_GUI  "Enable GUI" OFF)
-option(NMRPFLASH_BUILD_APP "Build .app bundle (macOS)" OFF)
+option(NMRPFLASH_WITH_GUI      "Enable GUI" OFF)
+option(NMRPFLASH_BUILD_APP     "Build .app bundle (macOS)" OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
@@ -54,10 +55,11 @@ endif()
 message(
 	"------------------------------------\n"
 	"nmrpflash ${NMRPFLASH_VERSION}\n"
-	"Build     : ${CMAKE_BUILD_TYPE}\n"
-	"System    : ${CMAKE_SYSTEM_NAME}\n"
-	"GUI       : ${NMRPFLASH_WITH_GUI}\n"
-	"Build .app: ${NMRPFLASH_BUILD_APP}\n"
+	"CMAKE_BUILD_TYPE   : ${CMAKE_BUILD_TYPE}\n"
+	"CMAKE_SYSTEM_NAME  : ${CMAKE_SYSTEM_NAME}\n"
+	"NMRPFLASH_WITH_GUI : ${NMRPFLASH_WITH_GUI}\n"
+	"NMRPFLASH_BUILD_APP: ${NMRPFLASH_BUILD_APP}\n"
+	"CPACK_GENERATOR    : ${CPACK_GENERATOR}\n"
 	"------------------------------------\n"
 )
 
@@ -117,7 +119,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 		if (NOT NMRPFLASH_GUI)
 			message(FATAL_ERROR "Cannot build .app bundle without GUI")
 		endif()
-		target_sources(nmrpflash PRIVATE nmrpflash.icns)
+		target_sources(nmrpflash PRIVATE art/nmrpflash.icns)
 		set_source_files_properties(nmrpflash.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 		set_target_properties(nmrpflash PROPERTIES
 			MACOSX_BUNDLE TRUE
@@ -127,8 +129,6 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 			MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.jclehner.nmrpflash"
 			MACOSX_BUNDLE_ICON_FILE "nmrpflash.icns"
 		)
-		set(CPACK_GENERATOR DragNDrop)
-		set(CPACK_BUNDLE_ICON "nmrpflash.icns")
 	endif()
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	FetchContent_MakeAvailable(Npcap)
@@ -168,21 +168,48 @@ endif()
 
 # install / CPack stuff
 
-include(GNUInstallDirs)
-
-if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	install(TARGETS nmrpflash RUNTIME DESTINATION .)
-else()
-	install(TARGETS nmrpflash RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} BUNDLE DESTINATION .)
-endif()
-
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	set(CPACK_SYSTEM_NAME "macos")
 else()
 	string(TOLOWER "${CMAKE_SYSTEM_NAME}" CPACK_SYSTEM_NAME)
 endif()
 
-set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
-set(CPACK_GENERATOR ZIP ${CPACK_GENERATOR})
-set(CPACK_PACKAGE_VERSION ${NMRPFLASH_VERSION})
-include(CPack)
+if (CPACK_GENERATOR STREQUAL "AppImage")
+	set(CPACK_PACKAGE_ICON nmrpflash.svg)
+	# taken from https://cmake.org/cmake/help/latest/cpack_gen/appimage.html
+	install(CODE [[
+		file(GET_RUNTIME_DEPENDENCIES
+			EXECUTABLES $<TARGET_FILE:nmrpflash>
+			RESOLVED_DEPENDENCIES_VAR resolved_deps
+		)
+
+		foreach(dep ${resolved_deps})
+			# copy the symlink
+			file(COPY ${dep} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+
+			# Resolve the real path of the dependency (follows symlinks)
+			file(REAL_PATH ${dep} resolved_dep_path)
+
+			# Copy the resolved file to the destination
+			file(COPY ${resolved_dep_path} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+		endforeach()
+	]])
+elseif(CPACK_GENERATOR STREQUAL "DragNDrop")
+	set(CPACK_BUNDLE_ICON "art/nmrpflash.icns")
+elseif(CPACK_GENERATOR STREQUAL "ZIP")
+	set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
+	# we just want the binary in the zip file, without any "bin" directory
+	set(CMAKE_INSTALL_BINDIR .)
+endif()
+
+install(TARGETS nmrpflash RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} BUNDLE DESTINATION .)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND (NOT CPACK_GENERATOR STREQUAL "ZIP") AND NMRPFLASH_WITH_GUI)
+	install(FILES art/nmrpflash.svg DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor)
+	install(FILES gui/nmrpflash.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
+endif()
+
+if(CPACK_GENERATOR)
+	set(CPACK_PACKAGE_VERSION ${NMRPFLASH_VERSION})
+	include(CPack)
+endif()
