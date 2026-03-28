@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.24)
 cmake_policy(SET CMP0167 NEW)
 
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED TRUE)
+
 project(nmrpflash)
 
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
