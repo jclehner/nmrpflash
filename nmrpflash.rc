@@ -1,5 +1,5 @@
 #include <winuser.h>
-IDI_ICON1 ICON "nmrpflash.ico"
+IDI_ICON1 ICON "art/nmrpflash.ico"
 
 #ifdef NMRPFLASH_WITH_GUI
 #include "gui/nmrpflash.rc"
