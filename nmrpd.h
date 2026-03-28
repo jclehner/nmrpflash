@@ -51,12 +51,14 @@
 #  ifndef NMRPFLASH_LINUX
 #    include <net/if_dl.h>
 #  endif
+typedef socklen_t socklen_type;
 #else
 #  include <winsock2.h>
 #  include <ws2tcpip.h>
 #  include <windows.h>
 #  include <conio.h>
 #  include <io.h>
+typedef int socklen_type;
 #endif
 
 #ifdef _MSC_VER

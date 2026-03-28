@@ -124,12 +124,13 @@ int systemf(const char *fmt, ...)
 	va_start(va, fmt);
 
 	ret = vsnprintf(cmd, sizeof(cmd) - 1, fmt, va);
+	va_end(va);
+
 	if (ret >= sizeof(cmd) - 1) {
 		return -1;
 	}
 
 	ret = system(cmd);
-	va_end(va);
 
 	return ret;
 }
@@ -768,7 +769,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 	}
 #endif
 
-	sock = malloc(sizeof(struct ethsock));
+	sock = calloc(1, sizeof(struct ethsock));
 	if (!sock) {
 		xperror("malloc");
 		return NULL;
@@ -1314,7 +1315,7 @@ static int ethsock_ip_add_del(struct ethsock *sock, uint32_t ipaddr, uint32_t ip
 	ret = -1;
 
 #if defined(NMRPFLASH_LINUX)
-	if (!intf_add_del_ip(sock->intf, (*undo)->ip[0], (*undo)->ip[1], add)) {
+	if (!intf_add_del_ip(sock->intf, ipaddr, ipmask, add)) {
 		goto out;
 	}
 #elif defined(NMRPFLASH_BSD) // this includes macOS

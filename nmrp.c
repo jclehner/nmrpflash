@@ -224,7 +224,7 @@ static void msg_mkconfack(struct nmrp_msg *msg, uint32_t ipaddr, uint32_t ipmask
 	p = msg_mkopt(msg, p, NMRP_O_FW_UP, NULL, 0);
 
 	if (region) {
-		p = msg_mkopt(msg, p, NMRP_O_DEV_REGION, &region, 2);
+		msg_mkopt(msg, p, NMRP_O_DEV_REGION, &region, 2);
 	}
 }
 
@@ -236,13 +236,13 @@ static void msg_mkconfack(struct nmrp_msg *msg, uint32_t ipaddr, uint32_t ipmask
 #define ethsock_get_hwaddr(a) ethsock_get_hwaddr_fake(a)
 #define ethsock_recv(sock, buf, len) read(STDIN_FILENO, buf, len)
 #define ethsock_send(a, b, c) (0)
-#define ethsock_set_timeout(a, b) (0)
-#define ethsock_arp_add(a, b, c, d) (0)
+#define ethsock_set_timeout(a, b) ((void)(b), 0)
+#define ethsock_arp_add(a, b, c, d) ((void)(d), 0)
 #define ethsock_arp_del(a, b) (0)
-#define ethsock_ip_add(a, b, c, d) (0)
+#define ethsock_ip_add(a, b, c, d) ((void)(d), 0)
 #define ethsock_ip_del(a, b) (0)
 #define ethsock_close(a) (0)
-#define ethsock_for_each_ip(a, b, c) (1)
+#define ethsock_for_each_ip(a, b, c) ((void)(c), 1)
 #define ethsock_is_wifi(a) (0)
 #define ethsock_is_unplugged(a) (0)
 #define ethsock_get_timeout(a) (1)
@@ -323,6 +323,7 @@ static bool mac_is_broadcast(uint8_t* hwaddr)
 	return true;
 }
 
+#ifndef NMRPFLASH_FUZZ
 struct is_valid_ip_arg
 {
 	struct in_addr *ipaddr;
@@ -342,6 +343,7 @@ static int is_valid_ip_cb(struct ethsock_ip_callback_args *args)
 	return 1;
 #undef SUBNET
 }
+#endif
 
 static int is_valid_ip(struct ethsock *sock, struct in_addr *ipaddr,
 		struct in_addr *ipmask)
@@ -654,6 +656,10 @@ int nmrp_do(struct nmrpd_args *args)
 	}
 
 	printf("\n");
+
+	if (g_interrupted) {
+		goto out;
+	}
 
 	memcpy(tx.eh.ether_dhost, rx.eh.ether_shost, 6);
 

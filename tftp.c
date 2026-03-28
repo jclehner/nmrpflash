@@ -145,7 +145,7 @@ static void pkt_mkwrq(char *pkt, const char *filename, unsigned long blksize)
 	pkt = pkt_mkopt(pkt, filename, "octet");
 
 	if (blksize && blksize != 512) {
-		pkt = pkt_mkopt(pkt, "blksize", xlltostr(blksize, 10));
+		pkt_mkopt(pkt, "blksize", xlltostr(blksize, 10));
 	}
 }
 
@@ -179,13 +179,7 @@ static ssize_t tftp_recvfrom(sock_type sock, char *pkt, uint16_t* port,
 		unsigned timeout, size_t pktlen)
 {
 	ssize_t len;
-	struct sockaddr_in src;
 	int s;
-#ifndef NMRPFLASH_WINDOWS
-	socklen_t alen;
-#else
-	int alen;
-#endif
 
 	s = select_readfd(sock, timeout);
 	if (s < 0) {
@@ -195,12 +189,16 @@ static ssize_t tftp_recvfrom(sock_type sock, char *pkt, uint16_t* port,
 	}
 
 #ifndef NMRPFLASH_FUZZ
-	alen = sizeof(src);
+	struct sockaddr_in src;
+	socklen_type alen = sizeof(src);
+
 	len = recvfrom(sock, pkt, pktlen, 0, (struct sockaddr*)&src, &alen);
 	if (len < 0) {
 		sock_perror("recvfrom");
 		return -1;
 	}
+
+	*port = ntohs(src.sin_port);
 #else
 	len = read(sock, pkt, pktlen);
 	if (len < 0) {
@@ -209,9 +207,7 @@ static ssize_t tftp_recvfrom(sock_type sock, char *pkt, uint16_t* port,
 	}
 #endif
 
-	*port = ntohs(src.sin_port);
-
-	uint16_t opcode = pkt_num(pkt);
+	uint16_t opcode = len ? pkt_num(pkt) : 0;
 
 	if (opcode == ERR) {
 		fprintf(stderr, "Error (%d): %.511s\n", pkt_num(pkt + 2), pkt + 4);
@@ -243,7 +239,6 @@ static ssize_t tftp_sendto(sock_type sock, char *pkt, size_t len,
 		struct sockaddr_in *dst, struct nmrpd_args* args, bool* p_connected)
 {
 	ssize_t sent;
-	socklen_t alen;
 	bool is_xrq = false;
 
 	switch (pkt_num(pkt)) {
@@ -277,6 +272,8 @@ static ssize_t tftp_sendto(sock_type sock, char *pkt, size_t len,
 	}
 
 #ifndef NMRPFLASH_FUZZ
+	socklen_type alen;
+
 	if (*p_connected) {
 		alen = 0;
 		dst = NULL;
@@ -293,6 +290,7 @@ static ssize_t tftp_sendto(sock_type sock, char *pkt, size_t len,
 	}
 #else
 	sent = len;
+	(void)is_xrq;
 #endif
 
 	return sent;
@@ -383,11 +381,6 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	bool rollover, discard, connected;
 	const unsigned rx_timeout = args->blind_timeout ? 10 : MAX(args->rx_timeout / 50, 200);
 	const unsigned max_timeouts = args->blind_timeout ? 3 : 5;
-#ifndef NMRPFLASH_WINDOWS
-	int enabled = 1;
-#else
-	char enabled = TRUE;
-#endif
 
 	sock = -1;
 	ret = -1;
@@ -434,6 +427,12 @@ ssize_t tftp_put(struct nmrpd_args *args)
 		goto cleanup;
 	}
 
+#ifndef NMRPFLASH_WINDOWS
+	int enabled = 1;
+#else
+	char enabled = TRUE;
+#endif
+
 	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(enabled)) != 0) {
 		sock_perror("setsockopt");
 		goto cleanup;
@@ -464,6 +463,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	timeouts = 1;
 	discard = true;
 	connected = false;
+	op = 0;
 
 #ifdef NMRPFLASH_WINDOWS
 	add_tftp_firewall_rule(&addr);
@@ -473,9 +473,10 @@ ssize_t tftp_put(struct nmrpd_args *args)
 
 	while (!g_interrupted) {
 		ackblock = -1;
-		op = pkt_num(rx);
 
 		if (!timeouts) {
+			op = pkt_num(rx);
+
 			if (op == ACK) {
 				ackblock = pkt_num(rx + 2);
 			} else if (op == OACK) {
@@ -578,7 +579,6 @@ ssize_t tftp_put(struct nmrpd_args *args)
 			goto cleanup;
 		} else {
 			timeouts = 0;
-			ret = 0;
 
 #ifndef NMRPFLASH_FUZZ
 			if (!block && port != args->port) {
