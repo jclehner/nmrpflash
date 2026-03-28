@@ -8,6 +8,7 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 endif()
 
 include(FetchContent)
+include(CMakeDependentOption)
 
 FetchContent_Declare(
 	Npcap
@@ -18,6 +19,10 @@ FetchContent_Declare(
 )
 
 option(NMRPFLASH_GUI "Enable GUI" OFF)
+cmake_dependent_option(NMRPFLASH_BUILD_APP "Build .app bundle" OFF 
+	[[CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND NMRPFLASH_GUI]]
+	OFF
+)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
@@ -104,7 +109,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	target_link_libraries(nmrpflash PRIVATE pcap)
 	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,CoreFoundation>")
 	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,SystemConfiguration>")
-	if(NMRPFLASH_GUI AND CMAKE_BUILD_TYPE STREQUAL "Release")
+	if(NMRPFLASH_BUILD_APP)
 		target_sources(nmrpflash PRIVATE nmrpflash.icns)
 		set_source_files_properties(nmrpflash.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 		set_target_properties(nmrpflash PROPERTIES
@@ -166,16 +171,6 @@ endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	set(CPACK_SYSTEM_NAME "macos")
-	target_sources(nmrpflash PRIVATE nmrpflash.icns)
-	set_source_files_properties(nmrpflash.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-	set_target_properties(nmrpflash PROPERTIES
-		MACOSX_BUNDLE TRUE
-		MACOSX_BUNDLE_NAME "nmrpflash"
-		MACOSX_BUNDLE_VERSION ${NMRPFLASH_VERSION}
-		MACOSX_BUNDLE_SHORT_VERSION_STRING ${NMRPFLASH_VERSION}
-		MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.jclehner.nmrpflash"
-		MACOSX_BUNDLE_ICON_FILE "nmrpflash.icns"
-	)
 else()
 	string(TOLOWER "${CMAKE_SYSTEM_NAME}" CPACK_SYSTEM_NAME)
 endif()
