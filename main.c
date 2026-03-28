@@ -47,7 +47,7 @@ int usage(FILE *fp)
 			" -c <command>    Command to run before (or instead of) TFTP upload\n"
 			" -f <firmware>   Firmware file\n"
 			" -F <filename>   Remote filename to use during TFTP upload\n"
-#ifdef NMRPFLASH_GUI
+#ifdef NMRPFLASH_WITH_GUI
 			" -g [<setting>]  GUI mode: 0: off, 1: on, a: auto [auto]\n"
 #endif
 			" -i <interface>  Network interface directly connected to device\n"
@@ -233,7 +233,7 @@ static bool list_callback(const struct ethsock_list_item* item, void* arg)
 	return true;
 }
 
-#ifdef NMRPFLASH_GUI
+#ifdef NMRPFLASH_WITH_GUI
 void disable_buffering_if_not_a_tty(FILE* stream)
 {
 	int fd;
@@ -281,7 +281,7 @@ int main(int argc, char **argv)
 	int gui_mode = -1;
 	bool tftpcmd_as_admin = false;
 
-#ifdef NMRPFLASH_GUI
+#ifdef NMRPFLASH_WITH_GUI
 	disable_buffering_if_not_a_tty(stdout);
 	disable_buffering_if_not_a_tty(stderr);
 #endif
@@ -452,7 +452,7 @@ int main(int argc, char **argv)
 		// in auto-mode, start the GUI if we're not being called from a terminal, and either
 		// no or just a single argument 
 
-#ifdef NMRPFLASH_GUI
+#ifdef NMRPFLASH_WITH_GUI
 		if (argc == optind || (argc == (optind+1) && argv[optind][0] != '-')) {
 #  ifdef NMRPFLASH_WINDOWS
 			gui_mode = console_window_is_ours() ? 1 : 0;
@@ -496,7 +496,7 @@ int main(int argc, char **argv)
 			val = -1;
 		}
 	} else if (gui_mode) {
-#ifdef NMRPFLASH_GUI
+#ifdef NMRPFLASH_WITH_GUI
 		return start_gui(argv[0], &args);
 #else
 		fprintf(stderr, "Error: nmrpflash was built without GUI support.\n");
@@ -529,7 +529,7 @@ int main(int argc, char **argv)
 #endif
 		}
 
-#ifdef NMRPFLASH_GUI
+#ifdef NMRPFLASH_WITH_GUI
 		if (args.is_gui_subprocess) {
 			if (start_control_thread() != 0) {
 				return 1;

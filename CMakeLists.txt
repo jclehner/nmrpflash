@@ -18,9 +18,9 @@ FetchContent_Declare(
 	DOWNLOAD_NO_EXTRACT FALSE
 )
 
-option(NMRPFLASH_GUI "Enable GUI" OFF)
+option(NMRPFLASH_WITH_GUI "Enable GUI" OFF)
 cmake_dependent_option(NMRPFLASH_BUILD_APP "Build .app bundle" OFF 
-	[[CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND NMRPFLASH_GUI]]
+	[[CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND NMRPFLASH_WITH_GUI]]
 	OFF
 )
 
@@ -99,9 +99,9 @@ if (MSVC)
 	target_link_options(nmrpflash PRIVATE /MANIFEST:NO)
 endif()
 
-if (NMRPFLASH_GUI)
+if (NMRPFLASH_WITH_GUI)
 	add_subdirectory(gui)
-	add_compile_definitions(NMRPFLASH_GUI=1)
+	add_compile_definitions(NMRPFLASH_WITH_GUI=1)
 	target_link_libraries(nmrpflash PRIVATE nmrpflash-gui)
 endif()
 
