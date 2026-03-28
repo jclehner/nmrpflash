@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.24)
 cmake_policy(SET CMP0167 NEW)
 
+project(nmrpflash)
+
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 	message(FATAL_ERROR "In-source builds are not allowed")
 endif()
@@ -20,11 +22,12 @@ option(NMRPFLASH_GUI "Enable GUI" OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-       set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
+	set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
+else()
+	set(CMAKE_OSX_ARCHITECTURES "" CACHE STRING "" FORCE)
 endif()
 
-project(nmrpflash)
-enable_language(C)
+message("Build type: ${CMAKE_BUILD_TYPE}")
 
 if (NOT DEFINED NMRPFLASH_VERSION)
 	find_package(Git)
@@ -158,13 +161,21 @@ include(GNUInstallDirs)
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	install(TARGETS nmrpflash RUNTIME DESTINATION .)
 else()
-	install(TARGETS nmrpflash RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+	install(TARGETS nmrpflash RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} BUNDLE DESTINATION .)
 endif()
 
-
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-	install(TARGETS nmrpflash BUNDLE DESTINATION .)
 	set(CPACK_SYSTEM_NAME "macos")
+	target_sources(nmrpflash PRIVATE nmrpflash.icns)
+	set_source_files_properties(nmrpflash.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+	set_target_properties(nmrpflash PROPERTIES
+		MACOSX_BUNDLE TRUE
+		MACOSX_BUNDLE_NAME "nmrpflash"
+		MACOSX_BUNDLE_VERSION ${NMRPFLASH_VERSION}
+		MACOSX_BUNDLE_SHORT_VERSION_STRING ${NMRPFLASH_VERSION}
+		MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.jclehner.nmrpflash"
+		MACOSX_BUNDLE_ICON_FILE "nmrpflash.icns"
+	)
 else()
 	string(TOLOWER "${CMAKE_SYSTEM_NAME}" CPACK_SYSTEM_NAME)
 endif()
