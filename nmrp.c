@@ -588,8 +588,8 @@ int nmrp_do(struct nmrpd_args *args)
 		goto out;
 	}
 
-	memcpy(tx.eh.ether_shost, src, 6);
-	memcpy(tx.eh.ether_dhost, dest, 6);
+	memcpy(tx.eh.ether_shost, src, sizeof(tx.eh.ether_shost));
+	memcpy(tx.eh.ether_dhost, dest, sizeof(tx.eh.ether_dhost));
 	tx.eh.ether_type = htons(ETH_P_NMRP);
 
 	msg_mkadvertise(&tx.msg, "NTGR");
