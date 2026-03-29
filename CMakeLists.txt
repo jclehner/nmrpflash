@@ -208,7 +208,7 @@ endif()
 install(TARGETS nmrpflash RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} BUNDLE DESTINATION .)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND (NOT CPACK_GENERATOR STREQUAL "ZIP") AND NMRPFLASH_WITH_GUI)
-	install(FILES art/nmrpflash.svg DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor)
+	install(FILES art/nmrpflash.svg DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps)
 	install(FILES gui/nmrpflash.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
 endif()
 
