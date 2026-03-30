@@ -85,7 +85,8 @@ void DumbConsoleTextCtrl::WriteTextPart(const std::string_view& text, bool commi
 
 void DumbConsoleTextCtrl::DoWriteText(const std::string_view& text, bool commit)
 {
-	// always append "\n" to the end. Otherwise wxTextCtrl would split the line!
+	// in case of "\n" always append, regardless of the cursor position (otherwise wxTextControl
+	// would split the line)
 	if (std::cmp_greater_equal(m_cursorPos, m_currentLine.length()) || text == "\n") {
 		m_currentLine += text;
 		SetCursorPositionEnd();
