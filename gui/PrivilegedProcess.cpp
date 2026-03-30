@@ -371,7 +371,7 @@ public:
 		auto pw = wxGetPasswordFromUser(
 			"Authentication is needed to run this program as the super user.",
 			"Authentication Required"
-		).ToStdString();
+		);
 
 		auto s = GetStdin();
 		if (s) {
@@ -380,7 +380,7 @@ public:
 			s->WriteAll(pw.data(), pw.size());
 		}
 
-		wxSecureZeroMemory(pw.data(), pw.size());
+		std::fill(pw.begin(), pw.end(), '\0');
 	}
 };
 
