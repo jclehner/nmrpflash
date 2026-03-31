@@ -24,7 +24,7 @@
 #include <system_error>
 #include <wx/stream.h>
 #include <boost/algorithm/string.hpp>
-#include "../nmrpd.h"
+#include <gsl/pointers>
 
 namespace nmrpflash {
 namespace fs = std::filesystem;
@@ -41,6 +41,6 @@ public:
 	{}
 };
 
-bool ReadLine(wxInputStream* stream, std::string& buf, bool raw=false);
+bool ReadLine(gsl::not_null<wxInputStream*> stream, std::string& buf, bool raw=false);
 }
 #endif

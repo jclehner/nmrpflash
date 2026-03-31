@@ -61,7 +61,6 @@ private:
 
 	std::unique_ptr<PrivilegedProcess> m_process;
 	wxTimer* m_timer = nullptr;
-	const std::string* m_p_authUtil = nullptr;
 };
 }
 #endif

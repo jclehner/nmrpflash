@@ -24,6 +24,7 @@
 #include <wx/log.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/app.h>
+#include <gsl/assert>
 #include "AppFrame.h"
 #include "../nmrpd.h"
 
@@ -122,6 +123,8 @@ static bool getchar_nonblocking(char& c)
 
 int start_gui(char* argv0, nmrpd_args* args)
 {
+	Expects(argv0 && args);
+
 	umask(077);
 
 	int argc = 1;

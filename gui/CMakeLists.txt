@@ -18,18 +18,15 @@ FetchContent_Declare(
 	EXCLUDE_FROM_ALL
 )
 
-set(BOOST_INCLUDE_LIBRARIES algorithm)
-set(BOOST_ENABLE_CMAKE ON)
-
-FetchContent_Declare(
-	Boost
-	URL https://github.com/boostorg/boost/releases/download/boost-1.90.0/boost-1.90.0-cmake.7z
-	URL_HASH SHA256=218e74c4aa362a994b7b7a23b2920f455a00205c656405fcf262cf60b8871921
-	USES_TERMINAL_DOWNLOAD TRUE
-	DOWNLOAD_NO_EXTRACT FALSE
+FetchContent_Declare(GSL
+    GIT_REPOSITORY "https://github.com/microsoft/GSL"
+    GIT_TAG "v4.2.1"
+    GIT_SHALLOW ON
 	EXCLUDE_FROM_ALL
-	FIND_PACKAGE_ARGS COMPONENTS algorithm
 )
+
+FetchContent_MakeAvailable(GSL)
+target_link_libraries(nmrpflash-gui PRIVATE Microsoft.GSL::GSL)
 
 find_package(wxWidgets COMPONENTS core base xrc)
 if(wxWidgets_FOUND)
@@ -54,6 +51,18 @@ else()
 	set(wxrc_depends "wxrc")
 endif()
 
+set(BOOST_INCLUDE_LIBRARIES algorithm)
+set(BOOST_ENABLE_CMAKE ON)
+
+FetchContent_Declare(
+	Boost
+	URL https://github.com/boostorg/boost/releases/download/boost-1.90.0/boost-1.90.0-cmake.7z
+	URL_HASH SHA256=218e74c4aa362a994b7b7a23b2920f455a00205c656405fcf262cf60b8871921
+	USES_TERMINAL_DOWNLOAD TRUE
+	DOWNLOAD_NO_EXTRACT FALSE
+	EXCLUDE_FROM_ALL
+	FIND_PACKAGE_ARGS COMPONENTS algorithm
+)
 FetchContent_MakeAvailable(Boost)
 
 if (Boost_FOUND)

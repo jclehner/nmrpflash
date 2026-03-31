@@ -16,14 +16,10 @@
  * along with nmrpflash.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <wx/stream.h>
 #include "Util.h"
 
 namespace nmrpflash {
-namespace {
-}
-
-bool ReadLine(wxInputStream* stream, std::string& buf, bool raw)
+bool ReadLine(gsl::not_null<wxInputStream*> stream, std::string& buf, bool raw)
 {
 	bool ret = false;
 

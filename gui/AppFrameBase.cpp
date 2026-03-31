@@ -22,12 +22,13 @@
 #include <wx/sizer.h>
 #include <wx/toplevel.h>
 #include <wx/xrc/xmlres.h>
+#include <gsl/pointers>
 
 #include "AppFrameBase.h"
 
 namespace nmrpflash {
 namespace {
-void MakeSameWidth(wxWindow* a, wxWindow* b)
+void MakeSameWidth(gsl::not_null<wxWindow*> a, gsl::not_null<wxWindow*> b)
 {
 	auto aSize = a->GetSize();
 	auto bSize = b->GetSize();
@@ -39,6 +40,10 @@ void MakeSameWidth(wxWindow* a, wxWindow* b)
 	}
 }
 }
+
+// This class should only handle stuff related to the appearance/layout
+// of the GUI. Anything related to the app logic itself should be done
+// in AppFrame instead.
 
 AppFrameBase::AppFrameBase()
 {

@@ -20,8 +20,8 @@
 #include "Util.h"
 #include <cstdint>
 #include <cstring>
+#include <gsl/pointers>
 #include <stdexcept>
-#include <wx/collpane.h>
 #include <wx/event.h>
 #include <wx/log.h>
 #include <wx/menu.h>
@@ -33,8 +33,7 @@
 #include <wx/aboutdlg.h>
 #include <wx/msgdlg.h>
 #include <wx/textdlg.h>
-#include <wx/cmdline.h>
-#include <wx/windowptr.h>
+#include "../nmrpd.h"
 
 #ifdef NMRPFLASH_MACOS
 #include <mach-o/dyld.h>
@@ -59,7 +58,7 @@ struct AdapterData : public wxClientData
 		memcpy(hwaddr, p->hwaddr, sizeof(hwaddr));
 	}
 
-	static AdapterData* Get(wxChoice* choice)
+	static AdapterData* Get(gsl::not_null<wxChoice*> choice)
 	{
 		return dynamic_cast<AdapterData*>(choice->GetClientObject(choice->GetSelection()));
 	}
@@ -341,7 +340,7 @@ void AppFrame::EndProcess()
 		// SIGINT to the process.
 		WriteProcessInput("\x1b\n");
 
-		// Linux/BSD: terminates `sudo` only. doesn't work with `pkexec`
+		// Linux/BSD: terminates `sudo` and its child process. doesn't work with `pkexec`
 		// macOS: terminates `osascript` only (which should have already exited at this point)
 		// Windows: actually terminates the subprocess
 		wxKill(m_process->GetPid());
