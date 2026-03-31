@@ -18,7 +18,6 @@
  */
 #ifndef NMRPFLASH_GUI_UTIL_H
 #define NMRPFLASH_GUI_UTIL_H
-#include <filesystem>
 #include <string>
 #include <cerrno>
 #include <system_error>
@@ -27,7 +26,6 @@
 #include <gsl/pointers>
 
 namespace nmrpflash {
-namespace fs = std::filesystem;
 
 class errno_error : public std::system_error
 {

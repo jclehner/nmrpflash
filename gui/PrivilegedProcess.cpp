@@ -35,6 +35,8 @@ using namespace std::literals::string_literals;
 namespace nmrpflash {
 namespace {
 
+namespace fs = std::filesystem;
+
 std::string EscapeAndQuote(std::string s, const std::string& quotes, bool quoteIfSpace, bool quoteAlways)
 {
 	bool doQuote = quoteAlways;

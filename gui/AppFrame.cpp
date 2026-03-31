@@ -22,6 +22,7 @@
 #include <cstring>
 #include <gsl/pointers>
 #include <stdexcept>
+#include <filesystem>
 #include <wx/event.h>
 #include <wx/log.h>
 #include <wx/menu.h>
@@ -47,6 +48,9 @@ using namespace std;
 
 namespace nmrpflash {
 namespace {
+
+namespace fs = std::filesystem;
+
 struct AdapterData : public wxClientData
 {
 	AdapterData(const ethsock_list_item* p)
