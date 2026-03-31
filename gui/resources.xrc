@@ -26,7 +26,7 @@
                   <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
                   <border>5</border>
                   <object class="wxStaticBitmap" name="icon">
-                    <bitmap default_size="48,48">../nmrpflash.svg</bitmap>
+                    <bitmap default_size="48,48">../art/nmrpflash.svg</bitmap>
                   </object>
                 </object>
                 <object class="sizeritem">
