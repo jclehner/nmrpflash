@@ -24,6 +24,7 @@
 #include <wx/stream.h>
 #include <boost/algorithm/string.hpp>
 #include <gsl/pointers>
+#include "../nmrpd.h" // IWYU pragma: keep
 
 namespace nmrpflash {
 
