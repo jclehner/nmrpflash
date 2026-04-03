@@ -129,7 +129,8 @@ std::string GetMyExecutableFilename()
 
 AppFrame::AppFrame()
 :
-m_process(PrivilegedProcess::Create(this)),
+m_redirector(m_textLog, &std::cout),
+m_subprocess(PrivilegedProcess::Create(this)),
 m_timer(new wxTimer(this))
 {
 	Bind(wxEVT_TIMER, &AppFrame::OnTimer, this);

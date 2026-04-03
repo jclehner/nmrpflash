@@ -36,6 +36,7 @@ if(wxWidgets_FOUND)
 else()
 	set(wxBUILD_SHARED OFF)
 	set(wxUSE_STL ON)
+	set(wxUSE_STD_IOSTREAM ON)
 
 	# speed up builds, and shrink library a bit
 	set(wxUSE_WEBVIEW OFF)

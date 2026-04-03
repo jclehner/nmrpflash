@@ -18,6 +18,7 @@
  */
 #ifndef NMRPFLASH_GUI_APP_FRAME_H
 #define NMRPFLASH_GUI_APP_FRAME_H
+#include <wx/textctrl.h>
 #include <wx/timer.h>
 #include <wx/process.h>
 #include <string>
@@ -59,7 +60,8 @@ private:
 	void UpdateSubprocessState(bool running);
 	void UpdateNetAdapterList(bool userInitiated);
 
-	std::unique_ptr<PrivilegedProcess> m_process;
+	wxStreamToTextRedirector m_redirector;
+	std::unique_ptr<PrivilegedProcess> m_subprocess;
 	wxTimer* m_timer = nullptr;
 };
 }
