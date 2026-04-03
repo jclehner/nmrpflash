@@ -99,7 +99,7 @@ AppFrameBase::AppFrameBase()
 	});
 #endif
 
-#ifdef __WXMAC__
+#ifdef __WXOSX__
 	// dummy menu bar for macOS
 	SetMenuBar(new wxMenuBar());
 #endif
