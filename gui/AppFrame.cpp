@@ -180,7 +180,7 @@ m_timer(new wxTimer(this))
 
 AppFrame::~AppFrame()
 {
-	EndProcess();
+	EndSubprocess();
 }
 
 void AppFrame::SetFirmwareFilename(const std::string& filename)
@@ -194,7 +194,7 @@ void AppFrame::SetFirmwareFilename(const std::string& filename)
 
 void AppFrame::OnCloseWindow(wxCloseEvent& event)
 {
-	if (m_process->IsExecuting()) {
+	if (m_subprocess->IsExecuting()) {
 		if (event.CanVeto()) {
 			auto ret = wxMessageBox("nmrpflash is still running. Really quit?",
 				"Question", wxICON_QUESTION|wxYES_NO);
@@ -204,7 +204,7 @@ void AppFrame::OnCloseWindow(wxCloseEvent& event)
 			}
 		}
 
-		EndProcess();
+		EndSubprocess();
 	}
 
 	Destroy();
@@ -223,18 +223,18 @@ void AppFrame::OnAdapterSelected(wxCommandEvent&)
 
 void AppFrame::OnStartStopPressed(wxCommandEvent&)
 {
-	if (!m_process->IsExecuting()) {
+	if (!m_subprocess->IsExecuting()) {
 		m_textCmdStatus->SetLabelText("");
 		m_textLog->Clear();
 
-		auto ret = ExecuteProcess();
+		auto ret = ExecuteSubprocess();
 		if (ret > 0) {
-				UpdateProcessState(true);
+				UpdateSubprocessState(true);
 				m_startStopBtn->SetLabelText(wxString::FromUTF8("⏹︎ Stop"));
 				m_timer->Start(100);
 		}
 	} else {
-		EndProcess();
+		EndSubprocess();
 		// only re-enable in OnTerminate
 		m_startStopBtn->Enable(false);
 	}
@@ -242,7 +242,7 @@ void AppFrame::OnStartStopPressed(wxCommandEvent&)
 
 void AppFrame::OnTerminate(wxProcessEvent& event)
 {
-	while (ReadProcessOutputLine(true));
+	while (ConsumeLineFromSubprocess(true));
 
 	string text;
 	string color;
@@ -261,17 +261,17 @@ void AppFrame::OnTerminate(wxProcessEvent& event)
 	m_startStopBtn->SetLabel(wxString::FromUTF8("⏵︎ Start "));
 	m_startStopBtn->Enable();
 
-	UpdateProcessState(false);
+	UpdateSubprocessState(false);
 }
 
 void AppFrame::OnTimer(wxTimerEvent&)
 {
-	ReadProcessOutputLine();
+	ConsumeLineFromSubprocess();
 }
 
 void AppFrame::OnUpdateUI(wxUpdateUIEvent& event)
 {
-	if (event.GetId() != wxID_EXECUTE || m_process->IsExecuting()) {
+	if (event.GetId() != wxID_EXECUTE || m_subprocess->IsExecuting()) {
 		return;
 	}
 
@@ -295,19 +295,19 @@ void AppFrame::OnSubtitleClicked(wxHyperlinkEvent& event)
 	wxAboutBox(info, this);
 }
 
-void AppFrame::WriteProcessInput(const string& str)
+void AppFrame::WriteToSubprocess(const string& str)
 {
-	auto s = m_process->GetStdin();
+	auto s = m_subprocess->GetStdin();
 	if (s) {
 		s->WriteAll(str.data(), str.length());
 	}
 }
 
-bool AppFrame::ReadProcessOutputLine(bool terminated)
+bool AppFrame::ConsumeLineFromSubprocess(bool terminated)
 {
-	auto err = m_process->GetStderr();
+	auto err = m_subprocess->GetStderr();
 
-	auto streams = { m_process->GetStdout(), err };
+	auto streams = { m_subprocess->GetStdout(), err };
 	bool haveValidStream = false;
 
 	for (auto s : streams) {
@@ -336,22 +336,22 @@ bool AppFrame::ReadProcessOutputLine(bool terminated)
 	return !terminated;
 }
 
-void AppFrame::EndProcess()
+void AppFrame::EndSubprocess()
 {
-	if (m_process->IsExecuting()) {
+	if (m_subprocess->IsExecuting()) {
 		// write to the control thread of the nmrpflash subprocess. unless that
 		// thread is malfunctioning, this should have the same effect as sending
 		// SIGINT to the process.
-		WriteProcessInput("\x1b\n");
+		WriteToSubprocess("\x1b\n");
 
 		// Linux/BSD: terminates `sudo` and its child process. doesn't work with `pkexec`
 		// macOS: terminates `osascript` only (which should have already exited at this point)
 		// Windows: actually terminates the subprocess
-		wxKill(m_process->GetPid());
+		wxKill(m_subprocess->GetPid());
 	}
 }
 
-long AppFrame::ExecuteProcess()
+long AppFrame::ExecuteSubprocess()
 {
 	auto adapter = AdapterData::Get(m_adapterList);
 
@@ -377,12 +377,12 @@ long AppFrame::ExecuteProcess()
 		args.push_back("-" + verbosityArg);
 	}
 
-	long ret = m_process->Execute(GetMyExecutableFilename(), args);
+	long ret = m_subprocess->Execute(GetMyExecutableFilename(), args);
 
 	return ret;
 }
 
-void AppFrame::UpdateProcessState(bool running)
+void AppFrame::UpdateSubprocessState(bool running)
 {
 	m_filePicker->Enable(!running);
 	m_adapterList->Enable(!running);

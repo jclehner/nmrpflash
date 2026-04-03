@@ -50,13 +50,13 @@ protected:
 private:
 	void CreateFromXml(wxWindow* parent);
 
-	bool ReadProcessOutputLine(bool terminated=false);
-	void WriteProcessInput(const std::string& str);
-	void EndProcess();
-	long ExecuteProcess();
+	bool ConsumeLineFromSubprocess(bool terminated=false);
+	void WriteToSubprocess(const std::string& str);
+	void EndSubprocess();
+	long ExecuteSubprocess();
 	std::string GetProcessCommand(char quote) const;
 
-	void UpdateProcessState(bool running);
+	void UpdateSubprocessState(bool running);
 	void UpdateNetAdapterList(bool userInitiated);
 
 	std::unique_ptr<PrivilegedProcess> m_process;
