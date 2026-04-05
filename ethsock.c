@@ -1114,7 +1114,7 @@ static bool get_hwaddr_from_pcap(const pcap_if_t *dev, uint8_t *hwaddr)
 #endif
 }
 
-int ethsock_list_all(bool (*cb)(const struct ethsock_list_item*, void*), void* cb_arg)
+int ethsock_for_each(bool (*cb)(const struct ethsock_list_item*, void*), void* cb_arg)
 {
 	pcap_if_t *devs, *dev;
 	pcap_addr_t *addr;

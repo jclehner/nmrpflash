@@ -206,7 +206,7 @@ struct ethsock_list_item
 	const char* ip4addr;
 };
 
-int ethsock_list_all(bool (*cb)(const struct ethsock_list_item*, void*), void* cb_arg);
+int ethsock_for_each(bool (*cb)(const struct ethsock_list_item*, void*), void* cb_arg);
 
 struct ethsock_ip_callback_args
 {

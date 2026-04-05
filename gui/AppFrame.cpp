@@ -397,7 +397,7 @@ void AppFrame::UpdateNetAdapterList(bool userInitiated)
 {
 	m_adapterList->Clear();
 
-	ethsock_list_all([](const ethsock_list_item* p, void* adapterListRaw) {
+	ethsock_for_each([](const ethsock_list_item* p, void* adapterListRaw) {
 		std::string item = p->pretty_name ? p->pretty_name : p->native_name;
 		if (p->ip4addr) {
 			item += " - "s + p->ip4addr;

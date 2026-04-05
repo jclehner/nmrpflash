@@ -490,7 +490,7 @@ int main(int argc, char **argv)
 
 	if (list) {
 		count = 0;
-		val = ethsock_list_all(list_callback, &count);
+		val = ethsock_for_each(list_callback, &count);
 		if (!val && !count) {
 			fprintf(stderr, "Error: no suitable network interfaces found.\n");
 			val = -1;
