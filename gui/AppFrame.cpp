@@ -160,6 +160,8 @@ m_timer(new wxTimer(this))
 	auto vi = wxGetLibraryVersionInfo();
 	m_textLog->AppendText(vi.ToString());
 
+	m_textLog->ScrollLines(-m_textLog->GetNumberOfLines());
+
 #endif
 	UpdateNetAdapterList(false);
 
