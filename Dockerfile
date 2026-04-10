@@ -1,32 +1,33 @@
-FROM ubuntu:jammy
+FROM ubuntu:noble
 
 ENV TZ=Etc/UTC
 ENV TERM=xterm
 ENV APPIMAGE_EXTRACT_AND_RUN=1
+ENV LANG=C.UTF-8
+ENV LC_ALL=${LANG}
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update
-RUN apt-get install -y build-essential pkg-config git zip wget file
+RUN apt-get install -y build-essential pkg-config git
+RUN apt-get install -y zip 7zip
+RUN apt-get install -y file
 RUN apt-get install -y g++-mingw-w64-i686
-RUN apt-get install -y imagemagick
+#RUN apt-get install -y imagemagick
 RUN apt-get install -y libpcap-dev libnl-3-dev libnl-route-3-dev
+RUN apt-get install -y libwxgtk3.2-dev
+RUN apt-get install -y vim
+RUN apt-get install -y pipx
+RUN apt-get install -y wget
+RUN apt-get install -y patchelf
+RUN pipx install cmake
+RUN echo 'export PATH="$PATH:/root/.local/bin"' >> /root/.bashrc
+ARG APPIMAGETOOL_URL=https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+RUN wget -o /root/.local/bin/appimagetool ${APPIMAGETOOL_URL}
+RUN chmod +x /root/.local/bin/appimagetool
 
-RUN mkdir -p /usr/src
-WORKDIR /usr/src
-
-ADD "https://api.github.com/repos/jclehner/nmrpflash/commits?per_page=1" latest_commit
-RUN git clone https://github.com/jclehner/nmrpflash
-
+RUN mkdir -p /usr/src/nmrpflash
 WORKDIR /usr/src/nmrpflash
 
-ARG NPCAP_SDK
 
-RUN wget -q -O npcap-sdk.zip https://npcap.com/dist/npcap-sdk-${NPCAP_SDK}.zip
-RUN unzip npcap-sdk.zip -d Npcap
 
-ARG CACHEBUST=1
-
-RUN make clean
-RUN make release/linux-appimage
-RUN make MINGW=i686-w64-mingw32- release release/win32
 
