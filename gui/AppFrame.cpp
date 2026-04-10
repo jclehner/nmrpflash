@@ -129,7 +129,7 @@ std::string GetMyExecutableFilename()
 
 AppFrame::AppFrame()
 :
-m_redirector(m_textLog, &std::cout),
+m_redirector(gsl::make_not_null(m_textLog), &std::cout),
 m_subprocess(PrivilegedProcess::Create(this)),
 m_timer(new wxTimer(this))
 {
