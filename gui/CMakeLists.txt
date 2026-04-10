@@ -72,6 +72,10 @@ else()
 	target_link_libraries(nmrpflash-gui PRIVATE Boost::algorithm)
 endif()
 
+if(NOT MSVC AND CMAKE_SYSTEM_NAME STREQUAL "Windows")
+	target_link_options(nmrpflash-gui INTERFACE -static-libgcc -static-libstdc++)
+endif()
+
 set(xrc_files ${CMAKE_CURRENT_SOURCE_DIR}/resources.xrc)
 set(resources_cpp ${CMAKE_CURRENT_BINARY_DIR}/Resources.cpp)
 
