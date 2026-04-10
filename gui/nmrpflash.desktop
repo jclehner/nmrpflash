@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.5
+Type=Application
+Name=nmrpflash
+Comment=Netgear Unbrick Utility
+Categories=Utility
+SingleMainWindow=true
+TryExec=nmrpflash
+Exec=nmrpflash -g1 %f
+Icon=nmrpflash
