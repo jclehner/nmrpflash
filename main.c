@@ -323,7 +323,7 @@ int main(int argc, char **argv)
 	if (oldpath && windir) {
 		char *newpath = malloc(strlen(oldpath) + strlen(windir) + 32);
 		sprintf(newpath, "%s;%s\\Sysnative", oldpath, windir);
-		SetEnvironmentVariable("PATH", newpath);
+		setenv("PATH", newpath, 1);
 		free(newpath);
 	}
 #endif

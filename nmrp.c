@@ -20,7 +20,6 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <stdio.h>
 #include <time.h>
 #include "nmrpd.h"
@@ -30,10 +29,6 @@
 #define NMRP_MIN_PKT_LEN (sizeof(struct eth_hdr) +  NMRP_HDR_LEN)
 
 #define ETH_P_NMRP 0x0912
-
-#ifdef NMRPFLASH_WINDOWS
-#define setenv(name, value, overwrite) SetEnvironmentVariableA(name, value)
-#endif
 
 enum nmrp_code {
 	NMRP_C_NONE = 0,

@@ -59,6 +59,7 @@ typedef socklen_t socklen_type;
 #  include <conio.h>
 #  include <io.h>
 typedef int socklen_type;
+#define setenv(name, value, overwrite) SetEnvironmentVariableA(name, value)
 #endif
 
 #ifdef _MSC_VER
