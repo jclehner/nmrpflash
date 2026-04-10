@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set +e
+
+# must be called from root source directory!
+SOURCE_DIR=$PWD
+
+# build_and_package	<build dir> <additional args...>
+function build_and_package()
+{
+	mkdir -p "$1"
+	pushd "$1"
+	shift
+	cmake -DCMAKE_BUILD_TYPE=Release -DNMRPFLASH_WITH_GUI=1 $@ -S "$SOURCE_DIR"
+	# FIXME ugly hack for cross-compiling for Windows (since we can't execute wxrc.exe)
+	cp -v ../appimage/gui/Resources.cpp gui/
+	cmake --build . -j $(nproc)
+	cpack
+	popd
+}
+
+build_and_package build/appimage -DCPACK_GENERATOR=AppImage
+build_and_package build/windows -DCPACK_GENERATOR=ZIP -DCMAKE_TOOLCHAIN_FILE=cmake/i686-w64-mingw32.cmake

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+IMAGE=nmrpflash
+CONTAINER=${IMAGE}-container
+
+docker build --build-arg CACHEBUST=$(date +%s) --progress=plain -t ${IMAGE} .
+docker stop ${CONTAINER}
+docker rm ${CONTAINER}
+docker run -t -d --name ${CONTAINER} ${IMAGE}
+docker exec -it ${CONTAINER} bash
+
+CMDS=(
+	"git clone https://github.com/jclehner/nmrpflash ."
+	"git checkout remotes/origin/gui"
+	"./scripts/build-linux-appimage-and-windows-exe"
+)
+
+for c in "${CMDS[@]}"; do
+	echo "$c"
+	docker exec ${CONTAINER} $c
+done
+
+docker cp ${CONTAINER}:/usr/src/nmrpflash/build*/*.zip output/
