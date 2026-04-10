@@ -19,11 +19,15 @@ RUN apt-get install -y vim
 RUN apt-get install -y pipx
 RUN apt-get install -y wget
 RUN apt-get install -y patchelf
+
+ENV PIPX_BIN_DIR=/usr/local/bin
+ENV PIPX_MAN_DIR=/usr/local/man
 RUN pipx install cmake
-RUN echo 'export PATH="$PATH:/root/.local/bin"' >> /root/.bashrc
+
 ARG APPIMAGETOOL_URL=https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
-RUN wget -o /root/.local/bin/appimagetool ${APPIMAGETOOL_URL}
-RUN chmod +x /root/.local/bin/appimagetool
+ARG APPIMAGETOOL=/usr/local/bin/appimagetool
+RUN wget -O ${APPIMAGETOOL} ${APPIMAGETOOL_URL}
+RUN chmod +x ${APPIMAGETOOL}
 
 RUN mkdir -p /usr/src/nmrpflash
 WORKDIR /usr/src/nmrpflash

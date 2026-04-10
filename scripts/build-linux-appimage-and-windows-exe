@@ -15,7 +15,7 @@ function build_and_package()
 	# FIXME ugly hack for cross-compiling for Windows (since we can't execute wxrc.exe)
 	cp -v ../appimage/gui/Resources.cpp gui/
 	cmake --build . -j $(nproc)
-	cpack
+	make package
 	popd
 }
 
