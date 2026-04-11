@@ -5,7 +5,7 @@ set +e
 # must be called from root source directory!
 CMAKE_SOURCE_DIR="$(readlink -f $(dirname $(dirname $0)))"
 CMAKE_BUILD_DIR=
-OUT_DIR="$CMAKE_SOURCE_DIR/out/"
+OUT_DIR="$CMAKE_SOURCE_DIR/out"
 NMRPFLASH_VERSION=
 ARCH=$(uname -m)
 TMP_DIR=$(mktemp -d)
@@ -19,7 +19,7 @@ cleanup () {
 trap cleanup EXIT
 
 do_configure() {
-	CMAKE_BUILD_DIR="$1"
+	CMAKE_BUILD_DIR="$CMAKE_SOURCE_DIR/$1"
 	shift
 	cmake -DCMAKE_BUILD_TYPE=Release -DNMRPFLASH_WITH_GUI=1 $@ -S "$CMAKE_SOURCE_DIR" -B "$CMAKE_BUILD_DIR"
 	s="NMRPFLASH_VERSION_CACHED:STRING="
@@ -48,8 +48,12 @@ build_and_package_linux() {
 	fi
 
 	LDAI_OUTPUT="nmrpflash-$ARCH.AppImage" "$LINUXDEPLOY" --appdir "$APP_DIR" --output appimage
+	cp *.AppImage $CMAKE_BUILD_DIR
 
-	tar -cvjf "$OUT_DIR/nmrpflash-$NMRPFLASH_VERSION-linux-$ARCH.tar.bz2" *.AppImage
+	# prefer .tar over .zip since it preserves the executable bit. no need for compression, since the AppImage uses squashfs
+	OUT="$OUT_DIR/nmrpflash-$NMRPFLASH_VERSION-linux-$ARCH.tar"
+	echo "=> $OUT"
+	tar -cvf "$OUT" --owner "owner" --group "group" *.AppImage
 }
 
 build_and_package_win32() {
@@ -62,15 +66,17 @@ build_and_package_win32() {
 
 	cd $CMAKE_BUILD_DIR
 
-	zip -X "$OUT_DIR/nmrpflash-$NMRPFLASH_VERSION-win32.zip" nmrpflash.exe
+	OUT="$OUT_DIR/nmrpflash-$NMRPFLASH_VERSION-win32.zip"
+	echo "=> $OUT"
+	zip -X "$OUT" nmrpflash.exe
 }
 
 build_and_package_native() {
 	n=$(uname)
 	if [[ $n == "Linux" ]]; then
-		build_and_package_linux_appimage
+		build_and_package_linux
 	elif [[ $n == "Windows_NT" ]]; then
-		build_and_package_windows_exe
+		build_and_package_win32
 	#elif [[ $n == "Darwin" ]]; then
 	#	build_and_package_macos
 	else
@@ -84,7 +90,7 @@ usage() {
 	echo >&2
 	echo >&2 "valid <output> options:"
 	echo >&2 "  native"
-	echo >&2 "  linux             Linux AppImage in .tar.bz2 archive"
+	echo >&2 "  linux             Linux AppImage in .tar archive"
 	echo >&2 "  win32 [cross]     Windows .exe in .zip archive"
 	echo >&2 "  macos             macOS .app bundle in .dmg file"
 }
