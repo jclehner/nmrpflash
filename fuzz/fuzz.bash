@@ -3,8 +3,8 @@
 set -e
 
 session="nmrpfuzz-$1"
-fuzz_in=$(dirname "$0")/fuzzin
-fuzz_out=$(dirname "$0")/fuzzout/sync
+fuzz_in=$(dirname "$0")/in
+fuzz_out=$(dirname "$0")/out/sync
 
 get_fuzz_cmd()
 {
@@ -20,13 +20,15 @@ get_fuzz_cmd()
 		par_flag="-S"
 	fi
 
-	echo "afl-fuzz -t 1000 -i $fuzz_in/$1 -o $fuzz_out/$1 $par_flag $session$2 -- ./fuzz $1 $prog_args"
+	echo "afl-fuzz -t 1000 -i $fuzz_in/$1 -o $fuzz_out/$1 $par_flag $session$2 -- ./build/fuzzing/fuzz $1 $prog_args"
 }
 
 if [[ $1 != "tftp" && $1 != "nmrp" ]]; then
 	echo >&2 "usage: $0 [tftp|nmrp]"
 	exit 1
 fi
+
+CC=afl-clang-fast cmake -S . -B build/fuzzing && cmake --build build/fuzzing -j -t fuzz
 
 ! tmux kill-session -t "$session:"
 
