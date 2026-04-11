@@ -24,10 +24,10 @@ ENV PIPX_BIN_DIR=/usr/local/bin
 ENV PIPX_MAN_DIR=/usr/local/man
 RUN pipx install cmake
 
-ARG APPIMAGETOOL_URL=https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
-ARG APPIMAGETOOL=/usr/local/bin/appimagetool
-RUN wget -O ${APPIMAGETOOL} ${APPIMAGETOOL_URL}
-RUN chmod +x ${APPIMAGETOOL}
+ARG LINUXDEPLOY_URL=https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+ARG LINUXDEPLOY=/usr/local/bin/linuxdeploy-x86_64
+RUN wget -O ${LINUXDEPLOY} ${LINUXDEPLOY_URL}
+RUN chmod +x ${LINUXDEPLOY}
 
 RUN mkdir -p /usr/src/nmrpflash
 WORKDIR /usr/src/nmrpflash

@@ -7,7 +7,7 @@ docker build --build-arg CACHEBUST=$(date +%s) --progress=plain -t ${IMAGE} .
 docker stop ${CONTAINER}
 docker rm ${CONTAINER}
 docker run -t -d --name ${CONTAINER} ${IMAGE}
-docker exec -it ${CONTAINER} bash
+#docker exec -it ${CONTAINER} bash
 
 CMDS=(
 	"git clone https://github.com/jclehner/nmrpflash ."
@@ -20,4 +20,4 @@ for c in "${CMDS[@]}"; do
 	docker exec ${CONTAINER} $c
 done
 
-docker cp ${CONTAINER}:/usr/src/nmrpflash/build*/*.zip output/
+docker cp ${CONTAINER}:/usr/src/nmrpflash/out/* out/

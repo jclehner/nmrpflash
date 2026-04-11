@@ -47,7 +47,7 @@ if (NOT DEFINED NMRPFLASH_VERSION)
 			string(REPLACE "-" "." GIT_VERSION_CMAKE ${GIT_VERSION_CMAKE})
 			project(${CMAKE_PROJECT_NAME} VERSION ${GIT_VERSION_CMAKE})
 			set(NMRPFLASH_VERSION ${GIT_VERSION})
-
+			set(CACHE{NMRPFLASH_VERSION_CACHED} VALUE ${NMRPFLASH_VERSION})
 	else()
 		message(FATAL_ERROR "Git not found, and no NMRPFLASH_VERSION defined")
 	endif()
@@ -62,7 +62,6 @@ message(
 	"CMAKE_SYSTEM_NAME  : ${CMAKE_SYSTEM_NAME}\n"
 	"NMRPFLASH_WITH_GUI : ${NMRPFLASH_WITH_GUI}\n"
 	"NMRPFLASH_BUILD_APP: ${NMRPFLASH_BUILD_APP}\n"
-	"CPACK_GENERATOR    : ${CPACK_GENERATOR}\n"
 	"------------------------------------\n"
 )
 
@@ -168,51 +167,19 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_sources(nmrpflash PRIVATE nmrpflash.rc)
 endif()
 
-
 # install / CPack stuff
-
-if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-	set(CPACK_SYSTEM_NAME "macos")
-else()
-	string(TOLOWER "${CMAKE_SYSTEM_NAME}" CPACK_SYSTEM_NAME)
-endif()
-
-if (CPACK_GENERATOR STREQUAL "AppImage")
-	set(CPACK_PACKAGE_ICON nmrpflash.svg)
-	# taken from https://cmake.org/cmake/help/latest/cpack_gen/appimage.html
-	install(CODE [[
-		file(GET_RUNTIME_DEPENDENCIES
-			EXECUTABLES $<TARGET_FILE:nmrpflash>
-			RESOLVED_DEPENDENCIES_VAR resolved_deps
-		)
-
-		foreach(dep ${resolved_deps})
-			# copy the symlink
-			file(COPY ${dep} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-
-			# Resolve the real path of the dependency (follows symlinks)
-			file(REAL_PATH ${dep} resolved_dep_path)
-
-			# Copy the resolved file to the destination
-			file(COPY ${resolved_dep_path} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-		endforeach()
-	]])
-elseif(CPACK_GENERATOR STREQUAL "DragNDrop")
-	set(CPACK_BUNDLE_ICON "art/nmrpflash.icns")
-elseif(CPACK_GENERATOR STREQUAL "ZIP")
-	set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
-	# we just want the binary in the zip file, without any "bin" directory
-	set(CMAKE_INSTALL_BINDIR .)
-endif()
 
 install(TARGETS nmrpflash RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} BUNDLE DESTINATION .)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND (NOT CPACK_GENERATOR STREQUAL "ZIP") AND NMRPFLASH_WITH_GUI)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NMRPFLASH_WITH_GUI)
 	install(FILES art/nmrpflash.svg DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps)
 	install(FILES gui/nmrpflash.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
 endif()
 
-if(CPACK_GENERATOR)
+if (NMRPFLASH_BUILD_APP)
+	set(CPACK_SYSTEM_NAME "macos")
+	set(CPACK_GENERATOR "DragNDrop")
+	set(CPACK_BUNDLE_ICON "art/nmrpflash.icns")
 	set(CPACK_PACKAGE_VERSION ${NMRPFLASH_VERSION})
 	include(CPack)
 endif()

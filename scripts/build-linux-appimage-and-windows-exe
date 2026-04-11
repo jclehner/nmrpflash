@@ -3,19 +3,70 @@
 set +e
 
 # must be called from root source directory!
-SOURCE_DIR=$PWD
+CMAKE_SOURCE_DIR="$(readlink -f $(dirname $(dirname $0)))"
+CMAKE_BUILD_DIR=
+OUT_DIR="$CMAKE_SOURCE_DIR/out/"
+NMRPFLASH_VERSION=
+ARCH=$(uname -m)
+TMP_DIR=$(mktemp -d)
+LINUXDEPLOY=$(which linuxdeploy "linuxdeploy-$ARCH" "linuxdeploy-$ARCH.AppImage" | head -n1)
 
-# build_and_package	<build dir> <additional args...>
-function build_and_package()
+if [ -z "$LINUXDEPLOY" ]; then
+	LINUXDEPLOY="$TMP_DIR/linuxdeploy"
+	wget -O "$LINUXDEPLOY" "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-$ARCH.AppImage"
+	chmod +x "$LINUXDEPLOY"
+fi
+
+mkdir -p "$OUT_DIR"
+
+# make sure to clean up build dir, even if errors occur
+cleanup () {
+	if [ -d "$TMP_DIR" ]; then
+		rm -rf "$TMP_DIR"
+	fi
+}
+trap cleanup EXIT
+
+do_configure()
 {
-	mkdir -p "$1"
-	pushd "$1"
+	CMAKE_BUILD_DIR="$1"
 	shift
-	cmake -DCMAKE_BUILD_TYPE=Release -DNMRPFLASH_WITH_GUI=1 $@ -S "$SOURCE_DIR"
-	cmake --build . -j $(nproc)
-	make package
-	popd
+	cmake -DCMAKE_BUILD_TYPE=Release -DNMRPFLASH_WITH_GUI=1 $@ -S "$CMAKE_SOURCE_DIR" -B "$CMAKE_BUILD_DIR"
+	s="NMRPFLASH_VERSION_CACHED:STRING="
+	NMRPFLASH_VERSION=$(cmake -N -LA -S "$CMAKE_SOURCE_DIR" -B "$CMAKE_BUILD_DIR" | grep "$s" | sed -e "s/$s//")
 }
 
-build_and_package build/appimage -DCPACK_GENERATOR=AppImage
-build_and_package build/windows -DCPACK_GENERATOR=ZIP -DCMAKE_TOOLCHAIN_FILE=cmake/i686-w64-mingw32.cmake
+do_build()
+{
+	cmake --build "$CMAKE_BUILD_DIR" -j $(nproc)
+}
+
+build_and_package_linux_appimage()
+{
+	do_configure build/linux -DCMAKE_INSTALL_PREFIX=/usr
+	do_build
+
+	cd $CMAKE_BUILD_DIR
+
+	APP_DIR="$TMP_DIR/AppDir"
+	make install DESTDIR="$APP_DIR"
+
+	cd "$TMP_DIR"
+
+	LDAI_OUTPUT="nmrpflash-$ARCH.AppImage" "$LINUXDEPLOY" --appdir "$APP_DIR" --output appimage
+
+	tar -cvjf "$OUT_DIR/nmrpflash-$NMRPFLASH_VERSION-linux-$ARCH.tar.bz2" *.AppImage
+}
+
+build_and_package_windows_exe()
+{
+	do_configure build/win32 -DCMAKE_TOOLCHAIN_FILE=cmake/i686-w64-mingw32.cmake
+	do_build
+
+	cd $CMAKE_BUILD_DIR
+
+	zip -X "$OUT_DIR/nmrpflash-$NMRPFLASH_VERSION-win32.zip" nmrpflash.exe
+}
+
+build_and_package_linux_appimage
+build_and_package_windows_exe
