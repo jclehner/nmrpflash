@@ -1,4 +1,4 @@
-![icon](nmrpflash.svg)
+![icon](art/nmrpflash.svg)
 
 nmrpflash - Netgear Unbrick Utility
 ====================================
