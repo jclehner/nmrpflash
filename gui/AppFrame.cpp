@@ -414,6 +414,8 @@ void AppFrame::UpdateNetAdapterList(bool userInitiated)
 		m_adapterList->Enable();
 	}
 
+	Ensures(m_adapterList->GetCount() >= 1);
+
 	if (m_adapterList->GetCount() > 1) {
 		// this is the default behaviour on wxGTK and wxMSW, but not wxOSX!
 		m_adapterList->SetSelection(wxNOT_FOUND);
