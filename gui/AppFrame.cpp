@@ -101,6 +101,13 @@ std::string GetMyExecutableFilename()
 		return buf;
 	}
 #else
+#ifdef NMRPFLASH_LINUX
+	char* img = getenv("APPIMAGE");
+	if (img && fs::exists(img)) {
+		return img;
+	}
+#endif
+
 	fs::path paths[] = {
 		"/proc/self/exe",
 		"/proc/self/exefile",
