@@ -1,23 +1,31 @@
 #!/bin/bash
 
+set +e
+
 IMAGE=nmrpflash
 CONTAINER=${IMAGE}-container
+REPO_ROOT="$(readlink -f $(dirname $(dirname $0)))"
 
-docker build --build-arg CACHEBUST=$(date +%s) --progress=plain -t ${IMAGE} .
-docker stop ${CONTAINER}
-docker rm ${CONTAINER}
-docker run -t -d --name ${CONTAINER} ${IMAGE}
-#docker exec -it ${CONTAINER} bash
+dexec() {
+	docker exec $CONTAINER $@
+}
 
-CMDS=(
-	"git clone https://github.com/jclehner/nmrpflash ."
-	"git checkout remotes/origin/gui"
-	"./scripts/build-linux-appimage-and-windows-exe"
-)
+cd "$REPO_ROOT"
 
-for c in "${CMDS[@]}"; do
-	echo "$c"
-	docker exec ${CONTAINER} $c
+docker build -t $IMAGE .
+
+if [ $1 != "reuse" ]; then
+	docker stop $CONTAINER
+	docker rm $CONTAINER
+	docker run -t -d --name $CONTAINER $IMAGE
+	dexec git clone https://github.com/jclehner/nmrpflash .
+	dexec git checkout remotes/origin/gui
+fi
+
+dexec ./scripts/build-and-package linux
+dexec ./scripts/build-and-package win32 cross
+
+dexec find ./out -type f -print0 | while read -r -d '' f; do
+	echo "$f"
+	docker cp $CONTAINER:"$f" out/
 done
-
-docker cp ${CONTAINER}:/usr/src/nmrpflash/out/* out/

@@ -11,15 +11,6 @@ ARCH=$(uname -m)
 TMP_DIR=$(mktemp -d)
 LINUXDEPLOY=$(which linuxdeploy "linuxdeploy-$ARCH" "linuxdeploy-$ARCH.AppImage" | head -n1)
 
-if [ -z "$LINUXDEPLOY" ]; then
-	LINUXDEPLOY="$TMP_DIR/linuxdeploy"
-	wget -O "$LINUXDEPLOY" "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-$ARCH.AppImage"
-	chmod +x "$LINUXDEPLOY"
-fi
-
-mkdir -p "$OUT_DIR"
-
-# make sure to clean up build dir, even if errors occur
 cleanup () {
 	if [ -d "$TMP_DIR" ]; then
 		rm -rf "$TMP_DIR"
@@ -27,8 +18,7 @@ cleanup () {
 }
 trap cleanup EXIT
 
-do_configure()
-{
+do_configure() {
 	CMAKE_BUILD_DIR="$1"
 	shift
 	cmake -DCMAKE_BUILD_TYPE=Release -DNMRPFLASH_WITH_GUI=1 $@ -S "$CMAKE_SOURCE_DIR" -B "$CMAKE_BUILD_DIR"
@@ -36,13 +26,11 @@ do_configure()
 	NMRPFLASH_VERSION=$(cmake -N -LA -S "$CMAKE_SOURCE_DIR" -B "$CMAKE_BUILD_DIR" | grep "$s" | sed -e "s/$s//")
 }
 
-do_build()
-{
+do_build() {
 	cmake --build "$CMAKE_BUILD_DIR" -j $(nproc)
 }
 
-build_and_package_linux_appimage()
-{
+build_and_package_linux() {
 	do_configure build/linux -DCMAKE_INSTALL_PREFIX=/usr
 	do_build
 
@@ -53,14 +41,23 @@ build_and_package_linux_appimage()
 
 	cd "$TMP_DIR"
 
+	if [ -z "$LINUXDEPLOY" ]; then
+		LINUXDEPLOY="$TMP_DIR/linuxdeploy"
+		wget -O "$LINUXDEPLOY" "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-$ARCH.AppImage"
+		chmod +x "$LINUXDEPLOY"
+	fi
+
 	LDAI_OUTPUT="nmrpflash-$ARCH.AppImage" "$LINUXDEPLOY" --appdir "$APP_DIR" --output appimage
 
 	tar -cvjf "$OUT_DIR/nmrpflash-$NMRPFLASH_VERSION-linux-$ARCH.tar.bz2" *.AppImage
 }
 
-build_and_package_windows_exe()
-{
-	do_configure build/win32 -DCMAKE_TOOLCHAIN_FILE=cmake/i686-w64-mingw32.cmake
+build_and_package_win32() {
+	if [ "$1" == "cross" ]; then
+		arg="-DCMAKE_TOOLCHAIN_FILE=cmake/i686-w64-mingw32.cmake"
+	fi
+
+	do_configure build/win32 $arg
 	do_build
 
 	cd $CMAKE_BUILD_DIR
@@ -68,5 +65,36 @@ build_and_package_windows_exe()
 	zip -X "$OUT_DIR/nmrpflash-$NMRPFLASH_VERSION-win32.zip" nmrpflash.exe
 }
 
-build_and_package_linux_appimage
-build_and_package_windows_exe
+build_and_package_native() {
+	n=$(uname)
+	if [[ $n == "Linux" ]]; then
+		build_and_package_linux_appimage
+	elif [[ $n == "Windows_NT" ]]; then
+		build_and_package_windows_exe
+	#elif [[ $n == "Darwin" ]]; then
+	#	build_and_package_macos
+	else
+		echo >&2 "error: no native build defined for $n"
+		exit 1
+	fi
+}
+
+usage() {
+	echo >&2 "usage: $0 <output> [<args...>]"
+	echo >&2
+	echo >&2 "valid <output> options:"
+	echo >&2 "  native"
+	echo >&2 "  linux             Linux AppImage in .tar.bz2 archive"
+	echo >&2 "  win32 [cross]     Windows .exe in .zip archive"
+	echo >&2 "  macos             macOS .app bundle in .dmg file"
+}
+
+func=build_and_package_$1
+
+if [[ $(type -t "$func") != function ]]; then
+	usage
+	exit 1
+fi
+
+shift
+$func $@
