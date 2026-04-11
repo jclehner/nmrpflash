@@ -1,0 +1,14 @@
+BasedOnStyle: Google
+UseTab: ForIndentation
+IndentWidth: 4
+ColumnLimit: 110
+DerivePointerAlignment: false
+InsertNewlineAtEOF: true
+
+IndentCaseLabels: true
+IndentCaseBlocks: true
+
+BraceWrapping:
+  AfterClass:      true
+# AfterEnum:       false
+  AfterFunction:   true
