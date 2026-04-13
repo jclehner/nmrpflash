@@ -565,6 +565,8 @@ int main(int argc, char **argv)
 						"- Disable firewall, or add an exception for nmrpflash\n"
 						"- Manually specify IP addresses using `-a` and/or `-A`\n");
 			}
+		} else if (val != 0 && g_interrupted) {
+			fprintf(stderr, "Interrupted.\n");
 		}
 	}
 
