@@ -366,7 +366,9 @@ long AppFrame::ExecuteSubprocess()
 	auto adapter = AdapterData::Get(m_adapterList);
 
 	list<string> args;
-	boost::algorithm::split(args, m_textCmdlineAdd->GetValue(), boost::is_any_of(" "), boost::algorithm::token_compress_on);
+	// FIXME this is very simplistic, and only works because we disallow quotes in m_textCmdLineAdd
+	boost::algorithm::split(args, m_textCmdlineAdd->GetValue(),
+			boost::is_any_of(" "), boost::algorithm::token_compress_on);
 	args.insert(args.end(), {
 		"-g", "sub",
 		"-i", adapter->device_name,
