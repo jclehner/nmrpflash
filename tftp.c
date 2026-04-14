@@ -600,7 +600,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				addr.sin_port = htons(port);
 
 				if (connect(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-					perror("connect");
+					sock_perror("connect");
 					// FIXME abort?
 				} else {
 					connected = true;
