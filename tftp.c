@@ -64,18 +64,27 @@ static inline char *pkt_mknum(char *pkt, uint16_t n)
 	return pkt + 2;
 }
 
-static inline uint16_t pkt_num(char *pkt)
+static char *pkt_mkopt(char *pkt, const char *opt, const char* val, size_t* rem)
 {
-	return ntohs(*(uint16_t*)pkt);
+	size_t optlen = strlen(opt) + 1;
+	size_t vallen = strlen(val) + 1;
+
+	BUG_ON((optlen + vallen) > *rem);
+
+	strlcpy(pkt, opt, *rem);
+	pkt += optlen;
+	*rem -= optlen;
+
+	strlcpy(pkt, val, *rem);
+	pkt += vallen;
+	*rem -= vallen;
+
+	return pkt;
 }
 
-static char *pkt_mkopt(char *pkt, const char *opt, const char* val)
+static uint16_t pkt_num(char *pkt)
 {
-	strcpy(pkt, opt);
-	pkt += strlen(opt) + 1;
-	strcpy(pkt, val);
-	pkt += strlen(val) + 1;
-	return pkt;
+	return ntohs(*(uint16_t*)pkt);
 }
 
 static bool pkt_nextstr(char **pkt, char **str, size_t *rem)
@@ -141,11 +150,13 @@ static void pkt_mkwrq(char *pkt, const char *filename, unsigned long blksize)
 		filename = "firmware";
 	}
 
+	size_t rem = 512;
+
 	pkt = pkt_mknum(pkt, WRQ);
-	pkt = pkt_mkopt(pkt, filename, "octet");
+	pkt = pkt_mkopt(pkt, filename, "octet", &rem);
 
 	if (blksize && blksize != 512) {
-		pkt_mkopt(pkt, "blksize", xlltostr(blksize, 10));
+		pkt_mkopt(pkt, "blksize", xlltostr(blksize, 10), &rem);
 	}
 }
 

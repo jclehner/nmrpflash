@@ -88,6 +88,14 @@ typedef int sock_type;
 #define STATIC_ASSERT1(cond, line) STATIC_ASSERT2(cond, line)
 #define STATIC_ASSERT(cond)        STATIC_ASSERT1(cond, __LINE__)
 
+#define BUG_ON(cond) \
+	do { \
+		if (!!(cond)) { \
+			fprintf(stderr, "BUG: %s: %s\n", __func__, #cond); \
+			exit(1); \
+		} \
+	} while (0);
+
 #define NMRP_DEFAULT_UL_TIMEOUT_S    (30 * 60)
 #define NMRP_DEFAULT_RX_TIMEOUT_MS   (10000)
 #define NMRP_DEFAULT_BLIND_TIMEOUT_S 5
