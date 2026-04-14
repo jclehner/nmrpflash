@@ -270,9 +270,10 @@ static ssize_t tftp_sendto(sock_type sock, char *pkt, size_t len,
 			len = 4 + strlen(pkt + 4);
 			break;
 		default:
-			fprintf(stderr, "Attempted to send invalid packet ");
+
+			fprintf(stderr, "BUG: %s: attempted to send invalid packet ", __func__);
 			pkt_print(pkt, stderr);
-			fprintf(stderr, "; this is a bug!\n");
+			fprintf(stderr, "\n");
 			return -1;
 	}
 
