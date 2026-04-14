@@ -15,7 +15,7 @@ RUN apt-get install -y g++-mingw-w64-i686
 #RUN apt-get install -y imagemagick
 RUN apt-get install -y libpcap-dev libnl-3-dev libnl-route-3-dev
 RUN apt-get install -y libwxgtk3.2-dev
-RUN apt-get install -y vim
+RUN apt-get install -y vim-tiny
 RUN apt-get install -y pipx
 RUN apt-get install -y wget
 RUN apt-get install -y patchelf
@@ -31,7 +31,4 @@ RUN chmod +x ${LINUXDEPLOY}
 
 RUN mkdir -p /usr/src/nmrpflash
 WORKDIR /usr/src/nmrpflash
-
-
-
 

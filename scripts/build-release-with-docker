@@ -14,7 +14,7 @@ cd "$REPO_ROOT"
 
 docker build -t $IMAGE .
 
-if [ $1 != "reuse" ]; then
+if [[ $1 != "reuse" ]]; then
 	docker stop $CONTAINER
 	docker rm $CONTAINER
 	docker run -t -d --name $CONTAINER $IMAGE
