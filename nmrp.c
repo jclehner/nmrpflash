@@ -182,10 +182,7 @@ static char *msg_mkopt(struct nmrp_msg *msg, char *p, uint16_t type, const void 
 
 	msg->len = ntohs(msg->len);
 
-	if ((msg->len + len > sizeof(*msg))) {
-		fprintf(stderr, "Error: invalid option - this is a bug\n");
-		exit(1);
-	}
+	BUG_ON(msg->len + len > sizeof(*msg));
 
 	opt->type = htons(type);
 	opt->len = NMRP_OPT_HDR_LEN + len;
