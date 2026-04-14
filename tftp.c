@@ -31,7 +31,8 @@
 #endif
 
 #define TFTP_MIN_BLKSIZE 512
-#define TFTP_BLKSIZE 1456
+// maximum size without IP fragmentation
+#define TFTP_MAX_BLKSIZE 1456
 
 static const char *opcode_names[] = {
 	"RRQ", "WRQ", "DATA", "ACK", "ERR", "OACK"
@@ -388,7 +389,8 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	ssize_t len, last_len, bytes, fsize;
 	int fd, ret, timeouts, errors, ackblock;
 	sock_type sock;
-	char rx[2048], tx[2048];
+	char rx[TFTP_MAX_BLKSIZE];
+	char tx[TFTP_MAX_BLKSIZE];
 	const char *file_remote = args->file_remote;
 	char *val, *end;
 	bool rollover, discard, connected;
@@ -482,7 +484,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	add_tftp_firewall_rule(&addr);
 #endif
 
-	pkt_mkwrq(tx, file_remote, TFTP_BLKSIZE);
+	pkt_mkwrq(tx, file_remote, TFTP_MAX_BLKSIZE);
 
 	while (!g_interrupted) {
 		ackblock = -1;
@@ -496,7 +498,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				ackblock = 0;
 				if ((val = pkt_optval(rx, "blksize"))) {
 					blksize = strtoul(val, &end, 10);
-					if (*end != '\0' || blksize < TFTP_MIN_BLKSIZE || blksize > TFTP_BLKSIZE) {
+					if (*end != '\0' || blksize < TFTP_MIN_BLKSIZE || blksize > TFTP_MAX_BLKSIZE) {
 						fprintf(stderr, "Error: invalid blksize in OACK: %s\n", val);
 						ret = -1;
 						goto cleanup;
