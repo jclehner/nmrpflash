@@ -58,7 +58,7 @@ static bool is_netascii(const char *str)
 	return true;
 }
 
-static inline char *pkt_mknum(char *pkt, uint16_t n)
+static char *pkt_mknum(char *pkt, uint16_t n)
 {
 	*(uint16_t*)pkt = htons(n);
 	return pkt + 2;
@@ -160,7 +160,7 @@ static void pkt_mkwrq(char *pkt, const char *filename, unsigned long blksize)
 	}
 }
 
-static inline void pkt_print(char *pkt, FILE *fp)
+static void pkt_print(char *pkt, FILE *fp)
 {
 	uint16_t opcode = pkt_num(pkt);
 	size_t rem;
@@ -372,7 +372,7 @@ void add_tftp_firewall_rule(struct sockaddr_in* addr)
 }
 #endif
 
-inline bool tftp_is_valid_filename(const char *filename)
+bool tftp_is_valid_filename(const char *filename)
 {
 	return strlen(filename) <= 255 && is_netascii(filename);
 }
