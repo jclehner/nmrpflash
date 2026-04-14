@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set +e
+set -e
 
 # must be called from root source directory!
 CMAKE_SOURCE_DIR="$(readlink -f $(dirname $(dirname $0)))"
@@ -101,6 +101,8 @@ if [[ $(type -t "$func") != function ]]; then
 	usage
 	exit 1
 fi
+
+mkdir -p $OUT_DIR
 
 shift
 $func $@
