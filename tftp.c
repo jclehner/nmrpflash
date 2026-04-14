@@ -73,11 +73,11 @@ static char *pkt_mkopt(char *pkt, const char *opt, const char* val, size_t* rem)
 
 	BUG_ON((optlen + vallen) > *rem);
 
-	strlcpy(pkt, opt, *rem);
+	memcpy(pkt, opt, optlen);
 	pkt += optlen;
 	*rem -= optlen;
 
-	strlcpy(pkt, val, *rem);
+	memcpy(pkt, val, vallen);
 	pkt += vallen;
 	*rem -= vallen;
 
