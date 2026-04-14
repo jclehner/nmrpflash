@@ -778,10 +778,12 @@ int nmrp_do(struct nmrpd_args *args)
 					}
 					fflush(stdout);
 
+					time_t beg = time_monotonic();
 					bytes = tftp_put(args);
 
 					if (bytes > 0) {
-						printf("OK (%zd b)\n", bytes);
+						float speed = ((float)bytes / (time_monotonic() - beg)) / (1024*1024);
+						printf("OK (%zd b, %.2f MiB/s)\n", bytes, speed);
 						upload_ok = 1;
 
 						if (args->blind_timeout) {
