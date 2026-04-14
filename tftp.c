@@ -555,7 +555,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				pkt_print(rx, stderr);
 			}
 
-			if (ackblock != -1 && ++errors > 5) {
+			if (ackblock != -1 && ++errors >= 5) {
 				fprintf(stderr, "\nProtocol error; bailing out.\n");
 				ret = -1;
 				goto cleanup;
