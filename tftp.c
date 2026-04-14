@@ -223,19 +223,18 @@ static ssize_t tftp_recvfrom(sock_type sock, char *pkt, uint16_t* port,
 	uint16_t opcode = len ? pkt_num(pkt) : 0;
 
 	if (opcode == ERR) {
-		fprintf(stderr, "Error (%d): %.511s\n", pkt_num(pkt + 2), pkt + 4);
+		fprintf(stderr, "\nError (%d): %.511s\n", pkt_num(pkt + 2), pkt + 4);
 		return -1;
 	} else if (isprint(pkt[0])) {
 		/* In case of a firmware checksum error, the EX2700 I've tested this
 		 * on sends a raw UDP packet containing just an error message starting
 		 * at offset 0. The limit of 32 chars is arbitrary.
 		 */
-		fprintf(stderr, "Error: %.32s\n", pkt);
+		fprintf(stderr, "\nError: %.32s\n", pkt);
 		return -2;
 	} else if (!opcode || opcode > OACK) {
-		fprintf(stderr, "Received invalid packet: ");
+		fprintf(stderr, "\nError: invalid packet: ");
 		pkt_print(pkt, stderr);
-		fprintf(stderr, ".\n");
 		return -1;
 	}
 
@@ -272,8 +271,7 @@ static ssize_t tftp_sendto(sock_type sock, char *pkt, size_t len,
 			len = 4 + strlen(pkt + 4);
 			break;
 		default:
-
-			fprintf(stderr, "BUG: %s: attempted to send invalid packet ", __func__);
+			fprintf(stderr, "\nBUG: %s: attempted to send invalid packet ", __func__);
 			pkt_print(pkt, stderr);
 			fprintf(stderr, "\n");
 			return -1;
@@ -363,13 +361,13 @@ void add_tftp_firewall_rule(struct sockaddr_in* addr)
 	del_tftp_firewall_rule(addr);
 
 	if (g_verbosity > 1) {
-		printf("Adding firewall rule for TFTP... ");
+		printf("\nAdding firewall rule for TFTP... ");
 	}
 
 	err = systemf("netsh advfirewall firewall add rule name=\"%s\" dir=in remoteip=%s protocol=udp action=allow %s",
 			fw_rule_name, inet_ntoa(addr->sin_addr), (g_verbosity > 1 ? "" : "> NUL 2>&1"));
 	if (err) {
-		fprintf(stderr, "Warning: failed to add firewall rule for TFTP\n");
+		fprintf(stderr, "\nWarning: failed to add firewall rule for TFTP\n");
 	}
 }
 #endif
@@ -499,13 +497,13 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				if ((val = pkt_optval(rx, "blksize"))) {
 					blksize = strtoul(val, &end, 10);
 					if (*end != '\0' || blksize < TFTP_MIN_BLKSIZE || blksize > TFTP_MAX_BLKSIZE) {
-						fprintf(stderr, "Error: invalid blksize in OACK: %s\n", val);
+						fprintf(stderr, "\nError: invalid blksize in OACK: %s\n", val);
 						ret = -1;
 						goto cleanup;
 					}
 
 					if (g_verbosity) {
-						printf("Remote accepted blksize option: %lu b\n", blksize);
+						printf("\nRemote accepted blksize option: %lu b\n", blksize);
 					}
 				}
 			}
@@ -515,7 +513,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 			if (!timeouts) {
 				if (++block == 0) {
 					if (!rollover) {
-						printf("Warning: TFTP block rollover. Upload might fail!\n");
+						printf("\nWarning: TFTP block rollover. Upload might fail!\n");
 						rollover = true;
 					}
 				}
@@ -553,13 +551,12 @@ ssize_t tftp_put(struct nmrpd_args *args)
 			}
 		} else if ((op != OACK && op != ACK) || ackblock > block) {
 			if (g_verbosity) {
-				fprintf(stderr, "Expected ACK(%d), got ", block);
+				fprintf(stderr, "\nExpected ACK(%d), got ", block);
 				pkt_print(rx, stderr);
-				fprintf(stderr, ".\n");
 			}
 
 			if (ackblock != -1 && ++errors > 5) {
-				fprintf(stderr, "Protocol error; bailing out.\n");
+				fprintf(stderr, "\nProtocol error; bailing out.\n");
 				ret = -1;
 				goto cleanup;
 			}
@@ -585,9 +582,9 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				pkt_mknum(rx + 2, block);
 				continue;
 			} else if (block) {
-				fprintf(stderr, "Timeout while waiting for ACK(%d).\n", block);
+				fprintf(stderr, "\nTimeout while waiting for ACK(%d).\n", block);
 			} else {
-				fprintf(stderr, "Timeout while waiting for ACK(0)/OACK.\n");
+				fprintf(stderr, "\nTimeout while waiting for ACK(0)/OACK.\n");
 				args->hints |= NMRP_TFTP_XMIT_BLK0_FAILURE;
 			}
 			ret = -1;
@@ -598,14 +595,12 @@ ssize_t tftp_put(struct nmrpd_args *args)
 #ifndef NMRPFLASH_FUZZ
 			if (!block && port != args->port) {
 				if (g_verbosity > 1) {
-					printf("Switching to port %d\n", port);
-					fflush(stdout);
+					printf("\nSwitching to port %d\n", port);
 				}
 				addr.sin_port = htons(port);
 
 				if (connect(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
 					perror("connect");
-					fflush(stderr);
 					// FIXME abort?
 				} else {
 					connected = true;
