@@ -30,6 +30,7 @@
 #define O_BINARY 0
 #endif
 
+#define TFTP_MIN_BLKSIZE 512
 #define TFTP_BLKSIZE 1456
 
 static const char *opcode_names[] = {
@@ -115,7 +116,7 @@ static bool pkt_nextopt(char **pkt, char **opt, char **val, size_t *rem)
 
 static char *pkt_optval(char* pkt, const char* name)
 {
-	size_t rem = 512;
+	size_t rem = TFTP_MIN_BLKSIZE;
 	char *opt, *val;
 	pkt += 2;
 
@@ -130,14 +131,15 @@ static char *pkt_optval(char* pkt, const char* name)
 
 static size_t pkt_xrqlen(char *pkt)
 {
-	size_t rem = 512;
+	size_t rem = TFTP_MIN_BLKSIZE;
 
 	pkt += 2;
 	while (pkt_nextopt(&pkt, NULL, NULL, &rem)) {
 		;
 	}
 
-	return 514 - rem;
+	// +2, because the returned value includes the opcode
+	return (TFTP_MIN_BLKSIZE + 2) - rem;
 }
 
 static void pkt_mkwrq(char *pkt, const char *filename, unsigned long blksize)
@@ -150,12 +152,12 @@ static void pkt_mkwrq(char *pkt, const char *filename, unsigned long blksize)
 		filename = "firmware";
 	}
 
-	size_t rem = 512;
+	size_t rem = TFTP_MIN_BLKSIZE;
 
 	pkt = pkt_mknum(pkt, WRQ);
 	pkt = pkt_mkopt(pkt, filename, "octet", &rem);
 
-	if (blksize && blksize != 512) {
+	if (blksize && blksize != TFTP_MIN_BLKSIZE) {
 		pkt_mkopt(pkt, "blksize", xlltostr(blksize, 10), &rem);
 	}
 }
@@ -163,7 +165,6 @@ static void pkt_mkwrq(char *pkt, const char *filename, unsigned long blksize)
 static void pkt_print(char *pkt, FILE *fp)
 {
 	uint16_t opcode = pkt_num(pkt);
-	size_t rem;
 	char *opt, *val;
 
 	if (!opcode || opcode > OACK) {
@@ -176,7 +177,7 @@ static void pkt_print(char *pkt, FILE *fp)
 			fprintf(fp, "(%s, %s)", pkt + 2, pkt + 2 + strlen(pkt + 2) + 1);
 		} else if (opcode == OACK) {
 				fprintf(fp, "(");
-				rem = 512;
+				size_t rem = TFTP_MIN_BLKSIZE;
 				pkt += 2;
 				while (pkt_nextopt(&pkt, &opt, &val, &rem)) {
 					fprintf(fp, " %s=%s ", opt, val);
@@ -464,7 +465,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 
 	addr.sin_port = htons(args->port);
 
-	blksize = 512;
+	blksize = TFTP_MIN_BLKSIZE;
 	block = 0;
 	last_len = -1;
 	len = 0;
@@ -495,7 +496,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				ackblock = 0;
 				if ((val = pkt_optval(rx, "blksize"))) {
 					blksize = strtoul(val, &end, 10);
-					if (*end != '\0' || blksize < 8 || blksize > TFTP_BLKSIZE) {
+					if (*end != '\0' || blksize < TFTP_MIN_BLKSIZE || blksize > TFTP_BLKSIZE) {
 						fprintf(stderr, "Error: invalid blksize in OACK: %s\n", val);
 						ret = -1;
 						goto cleanup;
