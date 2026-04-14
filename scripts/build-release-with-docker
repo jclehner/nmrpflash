@@ -25,7 +25,9 @@ fi
 dexec ./scripts/build-and-package linux
 dexec ./scripts/build-and-package win32 cross
 
-dexec find ./out -type f -print0 | while read -r -d '' f; do
+WORKDIR=$(dexec pwd)
+
+dexec find "$WORKDIR/out" -type f -print0 | while read -r -d '' f; do
 	echo "$f"
 	docker cp $CONTAINER:"$f" out/
 done
