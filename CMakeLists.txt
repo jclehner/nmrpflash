@@ -21,8 +21,9 @@ FetchContent_Declare(
 	DOWNLOAD_NO_EXTRACT FALSE
 )
 
-option(NMRPFLASH_WITH_GUI      "Enable GUI" OFF)
-option(NMRPFLASH_BUILD_APP     "Build .app bundle (macOS)" OFF)
+option(NMRPFLASH_WITH_GUI               "Enable GUI" OFF)
+option(NMRPFLASH_BUILD_APP              "Build .app bundle (macOS)" OFF)
+option(NMRPFLASH_WITH_STATIC_WXWIDGETS  "Build and link static wxWidgets library" OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
@@ -118,7 +119,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,CoreFoundation>")
 	target_link_libraries(nmrpflash PRIVATE "$<LINK_LIBRARY:FRAMEWORK,SystemConfiguration>")
 	if(NMRPFLASH_BUILD_APP)
-		if (NOT NMRPFLASH_GUI)
+		if (NOT NMRPFLASH_WITH_GUI)
 			message(FATAL_ERROR "Cannot build .app bundle without GUI")
 		endif()
 		target_sources(nmrpflash PRIVATE art/nmrpflash.icns)

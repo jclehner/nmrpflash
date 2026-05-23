@@ -27,7 +27,7 @@ do_configure() {
 }
 
 do_build() {
-	cmake --build "$CMAKE_BUILD_DIR" -j $(nproc)
+	cmake --build "$CMAKE_BUILD_DIR" -j $(getconf _NPROCESSORS_ONLN)
 }
 
 build_and_package_linux() {
@@ -69,6 +69,14 @@ build_and_package_win32() {
 	OUT="$OUT_DIR/nmrpflash-$NMRPFLASH_VERSION-win32.zip"
 	echo "=> $OUT"
 	zip -X "$OUT" nmrpflash.exe
+}
+
+build_and_package_macos() {
+	do_configure build/macos -DNMRPFLASH_BUILD_APP=1 -DNMRPFLASH_WITH_STATIC_WXWIDGETS=1
+	do_build
+
+	cd $CMAKE_BUILD_DIR
+	make package
 }
 
 build_and_package_native() {

@@ -28,7 +28,10 @@ FetchContent_Declare(GSL
 FetchContent_MakeAvailable(GSL)
 target_link_libraries(nmrpflash-gui PRIVATE Microsoft.GSL::GSL)
 
-find_package(wxWidgets COMPONENTS core base xrc)
+if(NOT NMRPFLASH_WITH_STATIC_WXWIDGETS)
+	find_package(wxWidgets COMPONENTS core base xrc)
+endif()
+
 if(wxWidgets_FOUND)
 	target_link_libraries(nmrpflash-gui PUBLIC wxWidgets::wxWidgets)
 	set(wxrc ${wxWidgets_wxrc_EXECUTABLE})
