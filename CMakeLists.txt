@@ -67,7 +67,7 @@ message(
 )
 
 # for all targets - these must come BEFORE add_executable!
-add_compile_definitions(NMRPFLASH_VERSION=\"${NMRPFLASH_VERSION}\")
+add_compile_definitions(NMRPFLASH_VERSION="${NMRPFLASH_VERSION}")
 
 if (MSVC)
 	add_compile_options(/W3)
@@ -123,7 +123,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 			message(FATAL_ERROR "Cannot build .app bundle without GUI")
 		endif()
 		target_sources(nmrpflash PRIVATE art/nmrpflash.icns)
-		set_source_files_properties(nmrpflash.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+		set_source_files_properties(art/nmrpflash.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 		set_target_properties(nmrpflash PROPERTIES
 			MACOSX_BUNDLE TRUE
 			MACOSX_BUNDLE_NAME "nmrpflash"
