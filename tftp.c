@@ -548,16 +548,22 @@ ssize_t tftp_put(struct nmrpd_args *args)
 
 		ret = tftp_recvfrom(sock, rx, &port, rx_timeout, blksize + 4);
 
+		bool is_close_req = false;
+
 		// stop calling nmrp_discard() if the last call didn't actually discard anything.
 		// this turned out to be a major bottleneck on Windows, each call blocking > 10ms
 		if (discard && args->sock) {
-			discard &= nmrp_discard(args->sock);
+			discard &= nmrp_discard(args->sock, &is_close_req);
 		}
 
 		if (ret < 0) {
 			goto cleanup;
 		} else if (!ret) {
-			if (++timeouts < max_timeouts || (!block && timeouts < (max_timeouts * 4))) {
+			if (is_close_req) {
+				// apparently this can happen on some devices while an upload is re-requested
+				// (https://github.com/jclehner/nmrpflash/issues/165#issuecomment-4933057540).
+				fprintf(stderr, "Connection closed by remote while waiting for ACK(%d).\n", block);
+			} else if (++timeouts < max_timeouts || (!block && timeouts < (max_timeouts * 4))) {
 				continue;
 			} else if (args->blind_timeout) {
 				timeouts = 0;

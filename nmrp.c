@@ -368,7 +368,7 @@ static void sigh(int sig)
 	g_interrupted = 1;
 }
 
-bool nmrp_discard(struct ethsock *sock)
+bool nmrp_discard(struct ethsock *sock, bool *p_is_close_req)
 {
 	// between nmrpflash sending the TFTP WRQ packet, and the router
 	// responding with ACK(0)/OACK, some devices send extraneous
@@ -379,6 +379,10 @@ bool nmrp_discard(struct ethsock *sock)
 	//
 	// without this it might seem  as if these packets arrived after
 	// the TFTP upload completed successfuly, confusing the NMRP code.
+	//
+	// CLOSE_REQ gets a special treatment, because it needs to be handled
+	// by the TFTP code too (if we started the TFTP upload too late, and
+	// the device has since requested the NMRP session to be terminated).
 
 	unsigned timeout = ethsock_get_timeout(sock);
 	// don't set this to 0, as this would cause pkt_recv to block!
@@ -392,6 +396,10 @@ bool nmrp_discard(struct ethsock *sock)
 			printf("Discarding unexpected %s packet.\n", msg_code_str(rx.msg.code));
 		} else if (verbosity > 1) {
 			printf("Discarding late %s packet.\n", msg_code_str(rx.msg.code));
+		}
+
+		if (p_is_close_req) {
+			*p_is_close_req = (rx.msg.code == NMRP_C_CLOSE_REQ);
 		}
 	}
 
