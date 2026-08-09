@@ -175,7 +175,7 @@ ssize_t tftp_put(struct nmrpd_args *args);
 bool tftp_is_valid_filename(const char *filename);
 
 int nmrp_do(struct nmrpd_args *args);
-bool nmrp_discard(struct ethsock *sock);
+bool nmrp_discard(struct ethsock *sock, bool *p_is_close_req);
 
 int select_readfd(sock_type fd, unsigned timeout);
 const char *mac_to_str(const uint8_t *mac);
