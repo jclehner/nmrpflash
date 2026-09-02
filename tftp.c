@@ -189,7 +189,7 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 
 	len = select_fd(sock, timeout);
 	if (len < 0) {
-		return -1;
+		return TFTP_ERROR;
 	} else if (!len) {
 		return 0;
 	}
@@ -199,13 +199,13 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 	len = recvfrom(sock, pkt, pktlen, 0, (struct sockaddr*)&src, &alen);
 	if (len < 0) {
 		sock_perror("recvfrom");
-		return -1;
+		return TFTP_ERROR;
 	}
 #else
 	len = read(sock, pkt, pktlen);
 	if (len < 0) {
 		perror("read");
-		return -1;
+		return TFTP_ERROR;
 	}
 #endif
 
@@ -215,19 +215,19 @@ static ssize_t tftp_recvfrom(int sock, char *pkt, uint16_t* port,
 
 	if (opcode == ERR) {
 		fprintf(stderr, "Error (%d): %.511s\n", pkt_num(pkt + 2), pkt + 4);
-		return -1;
+		return TFTP_ERROR;
 	} else if (isprint(pkt[0])) {
 		/* In case of a firmware checksum error, the EX2700 I've tested this
 		 * on sends a raw UDP packet containing just an error message starting
 		 * at offset 0. The limit of 32 chars is arbitrary.
 		 */
 		fprintf(stderr, "Error: %.32s\n", pkt);
-		return -2;
+		return TFTP_FIRMWARE_REJECTED;
 	} else if (!opcode || opcode > OACK) {
 		fprintf(stderr, "Received invalid packet: ");
 		pkt_print(pkt, stderr);
 		fprintf(stderr, ".\n");
-		return -1;
+		return TFTP_ERROR;
 	}
 
 	if (verbosity > 2) {
@@ -266,7 +266,7 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 			fprintf(stderr, "Attempted to send invalid packet ");
 			pkt_print(pkt, stderr);
 			fprintf(stderr, "; this is a bug!\n");
-			return -1;
+			return TFTP_ERROR;
 	}
 
 	if (verbosity > 2) {
@@ -289,6 +289,7 @@ static ssize_t tftp_sendto(int sock, char *pkt, size_t len,
 			args->hints |= NMRP_TFTP_XMIT_BLK0_FAILURE;
 		}
 		sock_perror("sendto");
+		return TFTP_ERROR;
 	}
 #else
 	sent = len;
@@ -387,7 +388,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 #endif
 
 	sock = -1;
-	ret = -1;
+	ret = TFTP_ERROR;
 	fd = -1;
 
 	if (g_interrupted) {
@@ -481,7 +482,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 					blksize = strtol(val, &end, 10);
 					if (*end != '\0' || blksize < 8 || blksize > TFTP_BLKSIZE) {
 						fprintf(stderr, "Error: invalid blksize in OACK: %s\n", val);
-						ret = -1;
+						ret = TFTP_ERROR;
 						goto cleanup;
 					}
 
@@ -516,7 +517,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				len = read(fd, tx + 4, blksize);
 				if (len < 0) {
 					xperror("read");
-					ret = len;
+					ret = TFTP_ERROR;
 					goto cleanup;
 				} else if (!len) {
 					if (last_len != blksize && last_len != -1) {
@@ -563,6 +564,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				// apparently this can happen on some devices while an upload is re-requested
 				// (https://github.com/jclehner/nmrpflash/issues/165#issuecomment-4933057540).
 				fprintf(stderr, "Connection closed by remote while waiting for ACK(%d).\n", block);
+
 			} else if (++timeouts < max_timeouts || (!block && timeouts < (max_timeouts * 4))) {
 				continue;
 			} else if (args->blind_timeout) {
@@ -577,7 +579,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 				fprintf(stderr, "Timeout while waiting for ACK(0)/OACK.\n");
 				args->hints |= NMRP_TFTP_XMIT_BLK0_FAILURE;
 			}
-			ret = -1;
+			ret = is_close_req ? TFTP_LATE_NMRP_CLOSE_REQ : TFTP_ERROR;
 			goto cleanup;
 		} else {
 			timeouts = 0;
@@ -603,7 +605,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 		}
 	}
 
-	ret = !g_interrupted ? 0 : -1;
+	ret = !g_interrupted ? 0 : TFTP_INTERRUPTED;
 
 cleanup:
 	if (fd >= 0) {

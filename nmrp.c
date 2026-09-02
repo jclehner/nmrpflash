@@ -392,14 +392,17 @@ bool nmrp_discard(struct ethsock *sock, bool *p_is_close_req)
 
 	int ret = pkt_recv(sock, &rx);
 	if (ret == 0) {
-		if (rx.msg.code != NMRP_C_CONF_REQ && rx.msg.code != NMRP_C_TFTP_UL_REQ) {
+		if (rx.msg.code == NMRP_C_CLOSE_REQ) {
+			if (p_is_close_req) {
+				*p_is_close_req = (rx.msg.code == NMRP_C_CLOSE_REQ);
+			}
+			if (verbosity > 1) {
+				printf("Handling late %s packet.\n", msg_code_str(rx.msg.code));
+			}
+		} else if (rx.msg.code != NMRP_C_CONF_REQ && rx.msg.code != NMRP_C_TFTP_UL_REQ) {
 			printf("Discarding unexpected %s packet.\n", msg_code_str(rx.msg.code));
 		} else if (verbosity > 1) {
 			printf("Discarding late %s packet.\n", msg_code_str(rx.msg.code));
-		}
-
-		if (p_is_close_req) {
-			*p_is_close_req = (rx.msg.code == NMRP_C_CLOSE_REQ);
 		}
 	}
 
@@ -782,12 +785,16 @@ int nmrp_do(struct nmrpd_args *args)
 							printf("Not waiting for further responses in blind mode.\n");
 							goto out;
 						}
-					} else if (bytes == -2) {
-						// return -2 means the TFTP code signalled that the remote
-						// file has been rejected. this feature is only implemented
-						// by some bootloaders.
+					} else if (bytes == TFTP_FIRMWARE_REJECTED) {
+						// this feature is only implemented by some bootloaders.
 						expect = NMRP_C_TFTP_UL_REQ;
 						args->hints |= NMRP_MAYBE_FIRMWARE_INVALID;
+					} else if (bytes == TFTP_LATE_NMRP_CLOSE_REQ) {
+						printf("Received late close request.\n");
+						args->hints &= ~NMRP_MAYBE_FIRMWARE_INVALID;
+						tx.msg.code = NMRP_C_CLOSE_ACK;
+						rx.msg.code = NMRP_C_CLOSE_REQ;
+						goto out;
 					} else {
 						goto out;
 					}

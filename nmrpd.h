@@ -130,6 +130,14 @@ struct nmrpd_args {
 };
 
 const char *leafname(const char *path);
+
+enum tftp_error {
+	TFTP_ERROR = -1,
+	TFTP_FIRMWARE_REJECTED = -2,
+	TFTP_INTERRUPTED = -3,
+	TFTP_LATE_NMRP_CLOSE_REQ = -4,
+};
+
 ssize_t tftp_put(struct nmrpd_args *args);
 bool tftp_is_valid_filename(const char *filename);
 
