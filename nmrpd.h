@@ -108,7 +108,9 @@ enum nmrp_op {
 struct ethsock;
 
 struct nmrpd_args {
-	unsigned rx_timeout;
+	// time in [ms]
+	unsigned rx_timeout; 
+	// time in [ms]
 	unsigned ul_timeout;
 	const char *tftpcmd;
 	const char *file_local;

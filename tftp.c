@@ -379,7 +379,7 @@ ssize_t tftp_put(struct nmrpd_args *args)
 	const char *file_remote = args->file_remote;
 	char *val, *end;
 	bool rollover, discard, connected;
-	const unsigned rx_timeout = args->blind_timeout ? 10 : MAX(args->rx_timeout / 50, 200);
+	const unsigned rx_timeout = args->blind_timeout ? 10 : MAX(args->rx_timeout / 5, 200);
 	const unsigned max_timeouts = args->blind_timeout ? 3 : 5;
 #ifndef NMRPFLASH_WINDOWS
 	int enabled = 1;
