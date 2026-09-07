@@ -222,11 +222,9 @@ static void msg_mkconfack(struct nmrp_msg *msg, uint32_t ipaddr, uint32_t ipmask
 	p = msg_mkopt(msg, msg->opts, NMRP_O_DEV_IP, &ip, 8);
 	p = msg_mkopt(msg, p, NMRP_O_FW_UP, NULL, 0);
 
-#ifdef NMRPFLASH_SET_REGION
 	if (region) {
 		p = msg_mkopt(msg, p, NMRP_O_DEV_REGION, &region, 2);
 	}
-#endif
 }
 
 
