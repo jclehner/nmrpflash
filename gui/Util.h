@@ -18,6 +18,7 @@
  */
 #ifndef NMRPFLASH_GUI_UTIL_H
 #define NMRPFLASH_GUI_UTIL_H
+#include <filesystem>
 #include <string>
 #include <cerrno>
 #include <system_error>
@@ -27,6 +28,7 @@
 #include "../nmrpd.h" // IWYU pragma: keep
 
 namespace nmrpflash {
+namespace fs = std::filesystem;
 
 class errno_error : public std::system_error
 {
@@ -41,5 +43,11 @@ public:
 };
 
 bool ReadLine(gsl::not_null<wxInputStream*> stream, std::string& buf, bool raw=false);
+
+#ifndef NMRPFLASH_WINDOWS
+fs::path MakeTempDir();
+void chmod(const fs::path& p, mode_t mode);
+void chown(const fs::path& p, uid_t owner, gid_t group);
+#endif
 }
 #endif

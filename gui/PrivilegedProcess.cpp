@@ -18,7 +18,6 @@
  */
 #include "PrivilegedProcess.h"
 #include "Util.h"
-#include <filesystem>
 #include <memory>
 #include <fstream>
 #include <stdexcept>
@@ -34,8 +33,6 @@ using namespace std::literals::string_literals;
 
 namespace nmrpflash {
 namespace {
-
-namespace fs = std::filesystem;
 
 std::string EscapeAndQuote(std::string s, const std::string& quotes, bool quoteIfSpace, bool quoteAlways)
 {
@@ -102,17 +99,6 @@ fs::path CmdToAbsolutePath(const std::string& cmd)
 }
 
 #ifndef NMRPFLASH_WINDOWS
-fs::path mkdtemp()
-{
-	auto tmp = (fs::temp_directory_path() / "nmrpflashXXXXXX").string();
-
-	if (!::mkdtemp(tmp.data())) {
-		throw errno_error("mkdtemp");
-	}
-
-	return tmp;
-}
-
 template<class T> class NonSeekableStream : public T
 {
 	public:
@@ -349,21 +335,73 @@ private:
 };
 
 #ifndef NMRPFLASH_WINDOWS
-class ProcessWithPkExec : public ProcessBase
+class ProcessBaseWithTmpDir : public ProcessBase
+{
+public:
+	~ProcessBaseWithTmpDir()
+	{
+		Cleanup();
+	}
+
+protected:
+	void OnInit() override
+	{
+		m_tmpDir = MakeTempDir();
+	}
+
+	virtual void Cleanup()
+	{
+		try {
+			fs::remove_all(m_tmpDir);
+		} catch (...) {
+
+		}
+	}
+
+	fs::path GetTmpPath(const std::string& filename) const
+	{
+		return fs::absolute(m_tmpDir / filename);
+	}
+
+private:
+	fs::path m_tmpDir;
+};
+
+class AppImageAwareProcessBase : public ProcessBaseWithTmpDir
 {
 protected:
 	void AdjustCommand(std::string& cmd, Args& args, std::string& redirection) override
 	{
+#ifdef NMRPFLASH_LINUX
+		auto exe = getenv("APPIMAGE");
+		if (exe && fs::equivalent(cmd, exe)) {
+			auto copy = GetTmpPath("nmrpflash");
+			fs::remove(copy);
+			fs::copy(exe, copy);
+			chmod(copy, 0755);
+			cmd = copy;
+		}
+#endif
+	}
+};
+
+class ProcessWithPkExec : public AppImageAwareProcessBase
+{
+protected:
+	void AdjustCommand(std::string& cmd, Args& args, std::string& redirection) override
+	{
+		AppImageAwareProcessBase::AdjustCommand(cmd, args, redirection);
 		args.push_front(cmd);
 		cmd = which("pkexec");
 	}
 };
 
-class ProcessWithSudo : public ProcessBase
+class ProcessWithSudo : public AppImageAwareProcessBase
 {
 public:
-	void AdjustCommand(std::string& cmd, Args& args, std::string&) override
+	void AdjustCommand(std::string& cmd, Args& args, std::string& redirection) override
 	{
+		AppImageAwareProcessBase::AdjustCommand(cmd, args, redirection);
 		args.insert(args.begin(), { "-kS", "--", cmd });
 		cmd = which("sudo");
 	}
@@ -386,14 +424,9 @@ public:
 	}
 };
 
-class ProcessWithNamedPipeRedirection : public ProcessBase
+class ProcessWithNamedPipeRedirection : public ProcessBaseWithTmpDir
 {
 public:
-	~ProcessWithNamedPipeRedirection()
-	{
-		Cleanup();
-	}
-
 	wxOutputStream* GetStdin() const override
 	{
 		return m_stdin ? m_stdin.get() : ProcessBase::GetStdin();
@@ -412,11 +445,11 @@ public:
 protected:
 	void OnInit() override
 	{
-		m_tmpDir = mkdtemp();
+		ProcessBaseWithTmpDir::OnInit();
 
-		m_pipePath[STDIN_FILENO] = m_tmpDir / "stdin";
-		m_pipePath[STDOUT_FILENO] = m_tmpDir / "stdout";
-		m_pipePath[STDERR_FILENO] = m_tmpDir / "stderr";
+		m_pipePath[STDIN_FILENO] = GetTmpPath("stdin");
+		m_pipePath[STDOUT_FILENO] = GetTmpPath("stdout");
+		m_pipePath[STDERR_FILENO] = GetTmpPath("stderr");
 
 		for (auto& p : m_pipePath) {
 			int err = mkfifo(p.c_str(), 0600);
@@ -454,20 +487,6 @@ protected:
 		m_stdin.reset();
 		m_stdout.reset();
 		m_stderr.reset();
-	}
-
-	void Cleanup()
-	{
-		try {
-			fs::remove_all(m_tmpDir);
-		} catch (...) {
-
-		}
-	}
-
-	fs::path GetPath(const std::string& filename) const
-	{
-		return fs::absolute(m_tmpDir / filename);
 	}
 
 private:
@@ -526,7 +545,7 @@ protected:
 
 	fs::path GetScriptPath() const
 	{
-		return GetPath(m_scriptName);
+		return GetTmpPath(m_scriptName);
 	}
 
 	void AdjustCommand(std::string& cmd, Args& args, std::string& redirection) override
@@ -584,7 +603,7 @@ protected:
 		// if the script file is executable, the authentication prompt will show
 		// "<script name> wants to make changes", instead of "osascript wants to
 		// make changes" (on macOS 15 at least)
-		chmod(GetScriptPath().c_str(), 0700);
+		chmod(GetScriptPath(), 0700);
 	}
 };
 #endif

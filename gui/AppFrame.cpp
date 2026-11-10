@@ -49,8 +49,6 @@ using namespace std;
 namespace nmrpflash {
 namespace {
 
-namespace fs = std::filesystem;
-
 struct AdapterData : public wxClientData
 {
 	AdapterData(const ethsock_list_item* p)

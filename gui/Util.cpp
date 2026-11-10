@@ -47,4 +47,32 @@ bool ReadLine(gsl::not_null<wxInputStream*> stream, std::string& buf, bool raw)
 
 	return ret;
 }
+
+#ifndef NMRPFLASH_WINDOWS
+fs::path MakeTempDir()
+{
+	auto tmp = (fs::temp_directory_path() / "nmrpflashXXXXXX").string();
+
+	if (!::mkdtemp(tmp.data())) {
+		throw errno_error("mkdtemp");
+	}
+
+	return tmp;
+}
+
+void chmod(const fs::path& p, mode_t mode)
+{
+	if (::chmod(p.c_str(), mode) != 0) {
+		throw errno_error("chmod");
+	}
+}
+
+void chown(const fs::path& p, uid_t owner, gid_t group)
+{
+	if (::chown(p.c_str(), owner, group) != 0) {
+		throw errno_error("chown");
+	}
+}
+
+#endif
 }
