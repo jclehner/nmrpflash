@@ -757,6 +757,7 @@ int nmrp_do(struct nmrpd_args *args)
 
 					if (status != 0) {
 						fprintf(stderr, "Command failed: status %d.\n", status);
+						args->hints |= NMRP_CMD_EXEC_FAILED;
 						goto out;
 					}
 				}

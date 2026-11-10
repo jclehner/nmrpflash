@@ -564,6 +564,12 @@ int main(int argc, char **argv)
 						"Failed to send/receive initial TFTP packet. Possible fixes:\n"
 						"- Disable firewall, or add an exception for nmrpflash\n"
 						"- Manually specify IP addresses using `-a` and/or `-A`\n");
+			} else if (args.hints & NMRP_CMD_EXEC_FAILED) {
+				fprintf(stderr,
+						"Failed to execute specified command. Starting in nmrpflash 1.0\n"
+						"these commands are no longer executed with " NMRPFLASH_ADMIN_USER "\n"
+						"privileges by default. Fixes:\n"
+						"- Use -U to force running the command as " NMRPFLASH_ADMIN_USER "\n");
 			}
 		} else if (val != 0 && g_interrupted) {
 			fprintf(stderr, "Interrupted.\n");

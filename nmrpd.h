@@ -117,6 +117,7 @@ typedef int sock_type;
 #define NMRP_NO_ETHERNET_CONNECTION  (1 << 1)
 #define NMRP_NO_NMRP_RESPONSE        (1 << 2)
 #define NMRP_TFTP_XMIT_BLK0_FAILURE  (1 << 3)
+#define NMRP_CMD_EXEC_FAILED         (1 << 4)
 
 #ifdef __cplusplus
 extern "C" {
