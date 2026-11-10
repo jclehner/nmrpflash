@@ -165,10 +165,11 @@ static int intf_sys_open(const char* intf, const char* file)
 	return open(name, O_RDWR, 0644);
 }
 
-static bool intf_sys_read(const char* intf, const char* file, bool def)
+static bool intf_sys_read_bool(const char* intf, const char* file, bool def)
 {
 	char c;
 	int fd;
+	ssize_t n;
 
 	fd = intf_sys_open(intf, file);
 	if (fd == -1) {
@@ -176,10 +177,14 @@ static bool intf_sys_read(const char* intf, const char* file, bool def)
 	}
 
 	c = 0;
-	read(fd, &c, 1);
+	n = read(fd, &c, 1);
 	close(fd);
 
-	return c ? (c == '1') : def;
+	if (n == 1) {
+		return c == '1';
+	}
+
+	return def;
 }
 
 static bool intf_stp_enable(const char *intf, bool enabled)
@@ -874,7 +879,7 @@ struct ethsock *ethsock_create(const char *intf, uint16_t protocol)
 
 #ifdef NMRPFLASH_LINUX
 	// nmrpflash does not work on bridge interfaces with STP enabled
-	if ((sock->stp = intf_sys_read(intf, "bridge/stp_state", false))) {
+	if ((sock->stp = intf_sys_read_bool(intf, "bridge/stp_state", false))) {
 		if (!intf_stp_enable(intf, false)) {
 			fprintf(stderr, "Warning: failed to disable STP on %s.\n", intf);
 		}
