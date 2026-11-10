@@ -349,7 +349,7 @@ protected:
 		m_tmpDir = MakeTempDir();
 	}
 
-	virtual void Cleanup()
+	void Cleanup()
 	{
 		try {
 			fs::remove_all(m_tmpDir);
