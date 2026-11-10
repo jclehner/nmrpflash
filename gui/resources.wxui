@@ -184,8 +184,8 @@
               style="wxTE_MULTILINE|wxTE_READONLY|wxTE_RICH|wxTE_DONTWRAP"
               var_name="textLog"
               font="teletype,8"
-              subclass="nmrpflash::DumbConsoleTextCtrl"
-              subclass_header="DumbConsoleTextCtrl.h"
+              subclass="nmrpflash::SimpleConsoleTextCtrl"
+              subclass_header="SimpleConsoleTextCtrl.h"
               flags="wxEXPAND" />
             <node
               class="wxBoxSizer"

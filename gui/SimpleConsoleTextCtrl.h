@@ -23,12 +23,12 @@
 #include <wx/textctrl.h>
 
 namespace nmrpflash {
-class DumbConsoleTextCtrl : public wxTextCtrl
+class SimpleConsoleTextCtrl : public wxTextCtrl
 {
-	wxDECLARE_DYNAMIC_CLASS(DumbConsoleTextCtrl);
+	wxDECLARE_DYNAMIC_CLASS(SimpleConsoleTextCtrl);
 
 public:
-	DumbConsoleTextCtrl() = default;
+	SimpleConsoleTextCtrl() = default;
 
 	virtual void WriteText(const wxString& text) override;
 	virtual void Clear() override;

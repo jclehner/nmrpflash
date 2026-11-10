@@ -99,7 +99,7 @@ add_custom_command(
 target_sources(nmrpflash-gui PRIVATE
 	AppFrame.cpp
 	AppFrameBase.cpp
-	DumbConsoleTextCtrl.cpp
+	SimpleConsoleTextCtrl.cpp
 	PrivilegedProcess.cpp
 	App.cpp
 	Util.cpp

@@ -17,18 +17,18 @@
  *
  */
 #include <utility>
-#include "DumbConsoleTextCtrl.h"
+#include "SimpleConsoleTextCtrl.h"
 using namespace std;
 
-wxIMPLEMENT_DYNAMIC_CLASS(nmrpflash::DumbConsoleTextCtrl, wxTextCtrl);
+wxIMPLEMENT_DYNAMIC_CLASS(nmrpflash::SimpleConsoleTextCtrl, wxTextCtrl);
 
 namespace nmrpflash {
-long DumbConsoleTextCtrl::GetCursorPosition() const
+long SimpleConsoleTextCtrl::GetCursorPosition() const
 {
 	return m_cursorPos;
 }
 
-void DumbConsoleTextCtrl::SetCursorPosition(long pos, bool relative)
+void SimpleConsoleTextCtrl::SetCursorPosition(long pos, bool relative)
 {
 	if (relative) {
 		SetCursorPosition(m_cursorPos + pos, false);
@@ -41,12 +41,12 @@ void DumbConsoleTextCtrl::SetCursorPosition(long pos, bool relative)
 	}
 }
 
-void DumbConsoleTextCtrl::SetCursorPositionEnd()
+void SimpleConsoleTextCtrl::SetCursorPositionEnd()
 {
 	SetCursorPosition(-1, false);
 }
 
-void DumbConsoleTextCtrl::WriteText(const wxString& text)
+void SimpleConsoleTextCtrl::WriteText(const wxString& text)
 {
 	if (!text.empty()) {
 		WriteTextPart(text.ToStdString(), true);
@@ -55,13 +55,13 @@ void DumbConsoleTextCtrl::WriteText(const wxString& text)
 	}
 }
 
-void DumbConsoleTextCtrl::Clear()
+void SimpleConsoleTextCtrl::Clear()
 {
 	wxTextCtrl::Clear();
 	UpdateCurrentLineInfo(true);
 }
 
-void DumbConsoleTextCtrl::WriteTextPart(const std::string_view& text, bool commit)
+void SimpleConsoleTextCtrl::WriteTextPart(const std::string_view& text, bool commit)
 {
 	size_t beg = 0;
 	size_t pos;
@@ -83,7 +83,7 @@ void DumbConsoleTextCtrl::WriteTextPart(const std::string_view& text, bool commi
 	DoWriteText(text.substr(beg), commit);
 }
 
-void DumbConsoleTextCtrl::DoWriteText(const std::string_view& text, bool commit)
+void SimpleConsoleTextCtrl::DoWriteText(const std::string_view& text, bool commit)
 {
 	// in case of "\n" always append, regardless of the cursor position (otherwise wxTextControl
 	// would split the line)
@@ -110,7 +110,7 @@ void DumbConsoleTextCtrl::DoWriteText(const std::string_view& text, bool commit)
 	}
 }
 
-void DumbConsoleTextCtrl::UpdateCurrentLineInfo(bool updateCursor)
+void SimpleConsoleTextCtrl::UpdateCurrentLineInfo(bool updateCursor)
 {
 	long end = GetLastPosition();
 	long x;
