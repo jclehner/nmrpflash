@@ -207,8 +207,8 @@ void AppFrame::OnCloseWindow(wxCloseEvent& event)
 			auto ret = wxMessageBox("nmrpflash is still running. Really quit?",
 				"Question", wxICON_QUESTION|wxYES_NO);
 			if (ret != wxYES) {
-					event.Veto();
-					return;
+				event.Veto();
+				return;
 			}
 		}
 
@@ -237,9 +237,9 @@ void AppFrame::OnStartStopPressed(wxCommandEvent&)
 
 		auto ret = ExecuteSubprocess();
 		if (ret > 0) {
-				UpdateSubprocessState(true);
-				m_startStopBtn->SetLabelText(wxString::FromUTF8("⏹︎ Stop"));
-				m_timer->Start(100);
+			UpdateSubprocessState(true);
+			m_startStopBtn->SetLabelText(wxString::FromUTF8("⏹︎ Stop"));
+			m_timer->Start(100);
 		}
 	} else {
 		EndSubprocess();
